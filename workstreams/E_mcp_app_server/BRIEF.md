@@ -21,3 +21,4 @@ Deliverables
 - Public API to start/stop MCP/app-server and perform tool calls/threads.
 - Stream of notifications/events to caller.
 - Tests (where feasible via fixture/mocked stdio) and examples (coordinate with H).
+- At task completion, agent must write the kickoff prompt for the next task in this workstream branch (not in a worktree).

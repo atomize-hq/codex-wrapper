@@ -17,3 +17,4 @@ Deliverables
 - Probing functions with caching keyed by binary path.
 - Tests for parsing/version ordering.
 - Docs on how host can react to upgrade availability.
+- At task completion, agent must write the kickoff prompt for the next task in this workstream branch (not in a worktree).

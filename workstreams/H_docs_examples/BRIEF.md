@@ -15,3 +15,4 @@ Deliverables
 - README updates.
 - New example files under `crates/codex/examples`.
 - Docs snippets per feature.
+- At task completion, agent must write the kickoff prompt for the next task in this workstream branch (not in a worktree).

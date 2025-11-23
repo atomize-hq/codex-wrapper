@@ -24,6 +24,7 @@ Deliverables
 - Env-prep helper used by all process spawns.
 - Tests covering env overrides and defaulting.
 - Docs snippet in README/examples (can be coordinated with Workstream H).
+- At task completion, agent must write the kickoff prompt for the next task in this workstream branch (not in a worktree).
 
 Assumptions
 - Bundled binary path will be provided by the host app; crate just accepts a path.

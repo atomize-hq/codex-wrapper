@@ -22,3 +22,4 @@ Deliverables
 - Public stream API for `--json` output with typed events.
 - Tests for ordering, tool calls, errors, timeouts.
 - Example demonstrating real-time consumption and last-message file handling (coordinate with H).
+- At task completion, agent must write the kickoff prompt for the next task in this workstream branch (not in a worktree).
