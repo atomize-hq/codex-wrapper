@@ -3,6 +3,7 @@
     "id": "A1-design-env-api",
     "title": "Design binary and CODEX_HOME API surface",
     "description": "Draft builder/API changes to accept explicit binary path (default bundled), optional CODEX_HOME override, and env-prep helper used by all spawns. Document expected directory layout under CODEX_HOME (config.toml, auth.json, .credentials.json, history.jsonl, conversations/*.jsonl, logs/codex-*.log). Produce module-level doc comments and decide on types (e.g., PathBuf for home, bool for create_dirs).",
+    "status": "done",
     "dependencies": [],
     "files": ["crates/codex/src/lib.rs", "workstreams/A_binary_env/BRIEF.md"],
     "outputs": ["API proposal in comments or a short design note committed to the repo"],
