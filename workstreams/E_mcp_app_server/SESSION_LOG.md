@@ -1,3 +1,6 @@
 # Session Log — Workstream E (MCP + App Server)
 
 Record per session: `[START ...] [END ...] Agent: <name> | Task(s): <IDs> | Branch: <branch> | Notes`. At task completion, write the kickoff prompt for the next task in this workstream branch (not in a worktree).
+
+[START 2025-11-23T17:53:45-05:00] Agent: Codex | Task(s): E1-design-mcp-app | Branch: ws/E_mcp_app_server | Notes: Session start
+[END 2025-11-23T18:06:16-05:00] Agent: Codex | Task(s): E1-design-mcp-app | Branch: ws/E_mcp_app_server | Notes: Merged task/E1-design-mcp-app

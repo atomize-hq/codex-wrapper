@@ -2,6 +2,7 @@
   {
     "id": "E1-design-mcp-app",
     "title": "Design MCP/app-server APIs and lifecycle",
+    "status": "done",
     "description": "Specify Rust APIs to spawn/stop codex mcp-server and app-server (stdio JSON-RPC) using bundled binary + CODEX_HOME. Define request/notification types (codex/codex-reply params, thread/turn methods), approval/cancel handling, and error model. Note dependency on Workstream A env-prep helper for spawning.",
     "dependencies": [],
     "files": ["workstreams/E_mcp_app_server/BRIEF.md"],
