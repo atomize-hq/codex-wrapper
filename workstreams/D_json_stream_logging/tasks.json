@@ -3,6 +3,7 @@
     "id": "D1-design-stream-types",
     "title": "Design typed JSONL event API",
     "description": "Define Rust types mirroring Codex exec --json events (thread/turn/item lifecycle, item variants: agent_message, reasoning, command_execution, file_change, mcp_tool_call, web_search, todo_list, error). Plan streaming surface (e.g., async Stream) and error types (including idle timeout). Document how --output-last-message and --output-schema integrate.",
+    "status": "done",
     "dependencies": [],
     "files": ["crates/codex/src/lib.rs", "workstreams/D_json_stream_logging/BRIEF.md"],
     "outputs": ["Type definitions and API sketch (doc comments or design note)"]
