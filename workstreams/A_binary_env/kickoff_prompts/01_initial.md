@@ -2,10 +2,17 @@ You are starting Workstream A (Binary + Env Isolation), Task A1-design-env-api.
 
 Branch/worktree workflow (follow before coding):
 1) Checkout the workstream branch: `git checkout ws/A_binary_env`.
-2) Log session start in `workstreams/A_binary_env/SESSION_LOG.md`.
-3) Create the task branch from the workstream branch: `git checkout -b task/A1-design-env-api`.
-4) Create a task worktree from that branch (example): `git worktree add ../wt-A1 task/A1-design-env-api` and do all code in the worktree. Do **not** edit docs/logs inside the worktree.
+2) In `workstreams/A_binary_env/tasks.json`, mark this task as \"doing\" (edit the JSON) while on the workstream branch.
+3) Log session start in `workstreams/A_binary_env/SESSION_LOG.md`.
+4) Create the task branch from the workstream branch: `git checkout -b task/A1-design-env-api`.
+5) Create a task worktree from that branch (example): `git worktree add ../wt-A1 task/A1-design-env-api` and do all code in the worktree. Do **not** edit docs/logs inside the worktree.
 
 Task goal: design how the crate accepts a pinned Codex binary path and an app-scoped CODEX_HOME per invocation, and how all Command spawns use a shared env-prep helper.
 Resources: workstreams/A_binary_env/BRIEF.md, workstreams/A_binary_env/tasks.json, crates/codex/src/lib.rs.
-Deliverable: an API proposal (doc comments or short design note in-repo) that keeps backward compatibility and outlines directory expectations under CODEX_HOME. On completion, close your session log entry and write the kickoff prompt for the next task in this workstream branch (not in the worktree).
+Deliverable: an API proposal (doc comments or short design note in-repo) that keeps backward compatibility and outlines directory expectations under CODEX_HOME.
+
+Completion steps (in this order):
+1) Return to the workstream branch `ws/A_binary_env` (if you were in the worktree/ task branch).
+2) In `workstreams/A_binary_env/tasks.json`, update this task status to \"done\" (or equivalent).
+3) Update `workstreams/A_binary_env/SESSION_LOG.md` with end time/outcome.
+4) Write the kickoff prompt for the next task in `workstreams/A_binary_env/kickoff_prompts/<next>.md` (create the file) while on the workstream branch.
