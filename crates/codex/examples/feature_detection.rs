@@ -83,6 +83,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("Capabilities served from cache for {}", binary.display());
     }
     println!("Features: {}", capability.features.join(", "));
+    println!("Cache scope: per binary path for this process; refresh probes after upgrading the binary.");
 
     if capability.supports("json-stream") {
         println!("-> Enable streaming examples (stream_events, stream_with_log).");
