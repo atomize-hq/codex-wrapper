@@ -495,6 +495,231 @@ fn merge_stdio_env(
     merged.into_iter().collect()
 }
 
+/// Summarized runtime metadata for listing available MCP servers.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct McpRuntimeSummary {
+    pub name: String,
+    pub description: Option<String>,
+    pub tags: Vec<String>,
+    pub tools: Option<McpToolConfig>,
+    pub transport: McpRuntimeSummaryTransport,
+}
+
+/// Transport kind used by a runtime.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum McpRuntimeSummaryTransport {
+    Stdio,
+    StreamableHttp,
+}
+
+impl From<&McpServerLauncher> for McpRuntimeSummary {
+    fn from(launcher: &McpServerLauncher) -> Self {
+        let transport = match launcher.transport {
+            McpServerLauncherTransport::Stdio(_) => McpRuntimeSummaryTransport::Stdio,
+            McpServerLauncherTransport::StreamableHttp(_) => {
+                McpRuntimeSummaryTransport::StreamableHttp
+            }
+        };
+
+        Self {
+            name: launcher.name.clone(),
+            description: launcher.description.clone(),
+            tags: launcher.tags.clone(),
+            tools: launcher.tools.clone(),
+            transport,
+        }
+    }
+}
+
+/// Errors surfaced while starting or stopping MCP runtimes.
+#[derive(Debug, Error)]
+pub enum McpRuntimeError {
+    #[error("runtime `{0}` not found")]
+    NotFound(String),
+    #[error("failed to spawn `{command:?}`: {source}")]
+    Spawn {
+        command: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error("stdio pipes unavailable for `{name}`")]
+    MissingPipes { name: String },
+    #[error("failed to stop `{name}`: {source}")]
+    Stop {
+        name: String,
+        #[source]
+        source: io::Error,
+    },
+    #[error("timed out stopping `{name}` after {timeout:?}")]
+    StopTimeout { name: String, timeout: Duration },
+}
+
+/// Lightweight runtime manager that owns resolved launchers/connectors.
+///
+/// The manager is non-destructive: launchers remain available after `prepare`
+/// is called so callers can reuse connectors or restart stdio servers as
+/// needed.
+pub struct McpRuntimeManager {
+    launchers: BTreeMap<String, McpServerLauncher>,
+}
+
+impl McpRuntimeManager {
+    /// Construct a runtime manager from resolved launchers.
+    pub fn new(launchers: Vec<McpServerLauncher>) -> Self {
+        let mut map = BTreeMap::new();
+        for launcher in launchers {
+            map.insert(launcher.name.clone(), launcher);
+        }
+        Self { launchers: map }
+    }
+
+    /// Returns the available runtimes with tool hints intact.
+    pub fn available(&self) -> Vec<McpRuntimeSummary> {
+        self.launchers.values().map(McpRuntimeSummary::from).collect()
+    }
+
+    /// Returns a cloned launcher/connector by name without mutating storage.
+    pub fn launcher(&self, name: &str) -> Option<McpServerLauncher> {
+        self.launchers.get(name).cloned()
+    }
+
+    /// Start a stdio runtime or hand back HTTP connector metadata.
+    pub fn prepare(&self, name: &str) -> Result<McpRuntimeHandle, McpRuntimeError> {
+        let Some(launcher) = self.launcher(name) else {
+            return Err(McpRuntimeError::NotFound(name.to_string()));
+        };
+
+        let tools = launcher.tools.clone();
+        match launcher.transport {
+            McpServerLauncherTransport::Stdio(launch) => {
+                let mut command = launch.command();
+                let spawn_target = launch.command.clone();
+                let mut child = command
+                    .spawn()
+                    .map_err(|source| McpRuntimeError::Spawn {
+                        command: spawn_target,
+                        source,
+                    })?;
+
+                let stdout = child.stdout.take();
+                let stdin = child.stdin.take();
+                if let (Some(stdout), Some(stdin)) = (stdout, stdin) {
+                    let stderr = child.stderr.take();
+                    Ok(McpRuntimeHandle::Stdio(ManagedStdioRuntime {
+                        name: launcher.name,
+                        tools,
+                        child,
+                        stdin,
+                        stdout,
+                        stderr,
+                        timeout: launch.timeout,
+                    }))
+                } else {
+                    let _ = child.start_kill();
+                    Err(McpRuntimeError::MissingPipes { name: launcher.name })
+                }
+            }
+            McpServerLauncherTransport::StreamableHttp(connector) => Ok(
+                McpRuntimeHandle::StreamableHttp(ManagedHttpRuntime {
+                    name: launcher.name,
+                    connector,
+                    tools,
+                }),
+            ),
+        }
+    }
+}
+
+/// Handle returned by [`McpRuntimeManager::prepare`] for either transport.
+#[derive(Debug)]
+pub enum McpRuntimeHandle {
+    Stdio(ManagedStdioRuntime),
+    StreamableHttp(ManagedHttpRuntime),
+}
+
+impl McpRuntimeHandle {
+    /// Returns tool hints when present.
+    pub fn tools(&self) -> Option<&McpToolConfig> {
+        match self {
+            McpRuntimeHandle::Stdio(handle) => handle.tools.as_ref(),
+            McpRuntimeHandle::StreamableHttp(handle) => handle.tools.as_ref(),
+        }
+    }
+}
+
+/// Running stdio MCP server along with its pipes.
+#[derive(Debug)]
+pub struct ManagedStdioRuntime {
+    name: String,
+    tools: Option<McpToolConfig>,
+    child: Child,
+    stdin: ChildStdin,
+    stdout: ChildStdout,
+    stderr: Option<ChildStderr>,
+    timeout: Duration,
+}
+
+impl ManagedStdioRuntime {
+    /// Name of the runtime.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Tool allow/deny hints if provided.
+    pub fn tools(&self) -> Option<&McpToolConfig> {
+        self.tools.as_ref()
+    }
+
+    /// Writable pipe to the server.
+    pub fn stdin_mut(&mut self) -> &mut ChildStdin {
+        &mut self.stdin
+    }
+
+    /// Readable pipe from the server.
+    pub fn stdout_mut(&mut self) -> &mut ChildStdout {
+        &mut self.stdout
+    }
+
+    /// Optional stderr pipe from the server.
+    pub fn stderr_mut(&mut self) -> Option<&mut ChildStderr> {
+        self.stderr.as_mut()
+    }
+
+    /// Terminate the process and wait for exit (best-effort).
+    pub async fn stop(&mut self) -> Result<(), McpRuntimeError> {
+        if let Ok(Some(_)) = self.child.try_wait() {
+            return Ok(());
+        }
+
+        let _ = self.child.start_kill();
+        match time::timeout(self.timeout, self.child.wait()).await {
+            Ok(Ok(_)) => Ok(()),
+            Ok(Err(source)) => Err(McpRuntimeError::Stop {
+                name: self.name.clone(),
+                source,
+            }),
+            Err(_) => Err(McpRuntimeError::StopTimeout {
+                name: self.name.clone(),
+                timeout: self.timeout,
+            }),
+        }
+    }
+}
+
+impl Drop for ManagedStdioRuntime {
+    fn drop(&mut self) {
+        let _ = self.child.start_kill();
+    }
+}
+
+/// HTTP runtime connector with tool hints preserved.
+#[derive(Clone, Debug)]
+pub struct ManagedHttpRuntime {
+    pub name: String,
+    pub connector: StreamableHttpConnector,
+    pub tools: Option<McpToolConfig>,
+}
+
 /// Helper to load and mutate MCP config stored under `[mcp_servers]`.
 pub struct McpConfigManager {
     config_path: PathBuf,
@@ -1935,6 +2160,28 @@ for line in sys.stdin:
         (dir, script_path)
     }
 
+    fn write_env_probe_server(var: &str) -> (tempfile::TempDir, PathBuf) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let script_path = dir.path().join("env-probe-server");
+        let script = format!(
+            r#"#!/usr/bin/env python3
+import os
+import sys
+import time
+
+sys.stdout.write(os.environ.get("{var}", "") + "\n")
+sys.stdout.flush()
+time.sleep(30)
+"#
+        );
+
+        fs::write(&script_path, script).expect("write script");
+        let mut perms = fs::metadata(&script_path).expect("metadata").permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&script_path, perms).expect("chmod");
+        (dir, script_path)
+    }
+
     fn test_config(binary: PathBuf) -> StdioServerConfig {
         StdioServerConfig {
             binary,
@@ -2915,5 +3162,182 @@ for line in sys.stdin:
         );
 
         let _ = server.shutdown().await;
+    }
+
+    #[tokio::test]
+    async fn runtime_manager_starts_and_stops_stdio() {
+        let (_dir, script) = write_env_probe_server("MCP_RUNTIME_ENV_E8");
+        let code_home = tempfile::tempdir().expect("code_home");
+
+        let defaults = StdioServerConfig {
+            binary: PathBuf::from("codex"),
+            code_home: Some(code_home.path().to_path_buf()),
+            current_dir: None,
+            env: vec![(OsString::from("MCP_RUNTIME_ENV_E8"), OsString::from("manager-ok"))],
+            mirror_stdio: false,
+            startup_timeout: Duration::from_secs(5),
+        };
+
+        let runtime = McpRuntimeServer {
+            name: "env-probe".into(),
+            transport: McpRuntimeTransport::Stdio(StdioServerDefinition {
+                command: script.to_string_lossy().to_string(),
+                args: Vec::new(),
+                env: BTreeMap::new(),
+                timeout_ms: Some(1500),
+            }),
+            description: None,
+            tags: vec!["local".into()],
+            tools: Some(McpToolConfig {
+                enabled: vec!["tool-x".into()],
+                disabled: vec![],
+            }),
+        };
+
+        let launcher = runtime.into_launcher(&defaults);
+        let manager = McpRuntimeManager::new(vec![launcher]);
+
+        let mut handle = match manager.prepare("env-probe").expect("prepare stdio") {
+            McpRuntimeHandle::Stdio(handle) => handle,
+            other => panic!("expected stdio handle, got {other:?}"),
+        };
+
+        let mut reader = BufReader::new(handle.stdout_mut());
+        let mut line = String::new();
+        let _ = time::timeout(Duration::from_secs(2), reader.read_line(&mut line))
+            .await
+            .expect("read timeout")
+            .expect("read env line");
+        assert_eq!(line.trim(), "manager-ok");
+
+        let tools = handle.tools().expect("tool hints");
+        assert_eq!(tools.enabled, vec!["tool-x".to_string()]);
+
+        handle.stop().await.expect("stop server");
+    }
+
+    #[test]
+    fn runtime_manager_propagates_tool_hints_for_http() {
+        let env_var = "MCP_HTTP_TOKEN_E8_HINTS";
+        env::set_var(env_var, "token-hints");
+
+        let mut http = StreamableHttpDefinition {
+            url: "https://example.test/hints".into(),
+            headers: BTreeMap::new(),
+            bearer_env_var: Some(env_var.to_string()),
+            connect_timeout_ms: Some(1200),
+            request_timeout_ms: Some(2400),
+        };
+        http.headers.insert("X-Test".into(), "true".into());
+
+        let runtime = McpRuntimeServer {
+            name: "remote-http".into(),
+            transport: McpRuntimeTransport::StreamableHttp(resolve_streamable_http(http)),
+            description: Some("http runtime".into()),
+            tags: vec!["http".into()],
+            tools: Some(McpToolConfig {
+                enabled: vec!["alpha".into()],
+                disabled: vec!["beta".into()],
+            }),
+        };
+
+        let defaults = StdioServerConfig {
+            binary: PathBuf::from("codex"),
+            code_home: None,
+            current_dir: None,
+            env: Vec::new(),
+            mirror_stdio: false,
+            startup_timeout: Duration::from_secs(2),
+        };
+
+        let launcher = runtime.into_launcher(&defaults);
+        let manager = McpRuntimeManager::new(vec![launcher]);
+
+        let available = manager.available();
+        assert_eq!(available.len(), 1);
+        let summary = &available[0];
+        assert_eq!(summary.name, "remote-http");
+        assert_eq!(summary.transport, McpRuntimeSummaryTransport::StreamableHttp);
+        let summary_tools = summary.tools.as_ref().expect("tool hints present");
+        assert_eq!(summary_tools.enabled, vec!["alpha".to_string()]);
+        assert_eq!(summary_tools.disabled, vec!["beta".to_string()]);
+
+        match manager.prepare("remote-http").expect("prepare http") {
+            McpRuntimeHandle::StreamableHttp(http_handle) => {
+                let tools = http_handle.tools.as_ref().expect("tool hints on handle");
+                assert_eq!(tools.enabled, vec!["alpha".to_string()]);
+                assert_eq!(tools.disabled, vec!["beta".to_string()]);
+                assert_eq!(
+                    http_handle.connector.bearer_token.as_deref(),
+                    Some("token-hints")
+                );
+            }
+            other => panic!("expected http handle, got {other:?}"),
+        }
+
+        env::remove_var(env_var);
+    }
+
+    #[test]
+    fn http_connector_retrieval_is_non_destructive() {
+        let env_var = "MCP_HTTP_TOKEN_E8_REUSE";
+        env::set_var(env_var, "token-reuse");
+
+        let runtime = McpRuntimeServer {
+            name: "remote-reuse".into(),
+            transport: McpRuntimeTransport::StreamableHttp(resolve_streamable_http(
+                StreamableHttpDefinition {
+                    url: "https://example.test/reuse".into(),
+                    headers: BTreeMap::new(),
+                    bearer_env_var: Some(env_var.to_string()),
+                    connect_timeout_ms: Some(1500),
+                    request_timeout_ms: Some(3200),
+                },
+            )),
+            description: None,
+            tags: vec!["http".into()],
+            tools: Some(McpToolConfig {
+                enabled: vec!["one".into()],
+                disabled: vec![],
+            }),
+        };
+
+        let defaults = StdioServerConfig {
+            binary: PathBuf::from("codex"),
+            code_home: None,
+            current_dir: None,
+            env: Vec::new(),
+            mirror_stdio: false,
+            startup_timeout: Duration::from_secs(2),
+        };
+
+        let launcher = runtime.into_launcher(&defaults);
+        let manager = McpRuntimeManager::new(vec![launcher]);
+
+        let first = manager.prepare("remote-reuse").expect("first prepare");
+        let second = manager.prepare("remote-reuse").expect("second prepare");
+
+        let first_token = match first {
+            McpRuntimeHandle::StreamableHttp(handle) => handle.connector.bearer_token,
+            other => panic!("expected http handle, got {other:?}"),
+        };
+        let second_token = match second {
+            McpRuntimeHandle::StreamableHttp(handle) => handle.connector.bearer_token,
+            other => panic!("expected http handle, got {other:?}"),
+        };
+
+        assert_eq!(first_token.as_deref(), Some("token-reuse"));
+        assert_eq!(second_token.as_deref(), Some("token-reuse"));
+
+        let summary = manager
+            .available()
+            .into_iter()
+            .find(|s| s.name == "remote-reuse")
+            .expect("summary present");
+        assert_eq!(summary.transport, McpRuntimeSummaryTransport::StreamableHttp);
+        let tools = summary.tools.as_ref().expect("tool hints preserved");
+        assert_eq!(tools.enabled, vec!["one".to_string()]);
+
+        env::remove_var(env_var);
     }
 }
