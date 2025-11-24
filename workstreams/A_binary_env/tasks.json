@@ -32,5 +32,16 @@
     "status": "done",
     "tests": ["cargo test -p codex"],
     "notes": "Prefer tempdirs in tests to avoid polluting real HOME."
+  },
+  {
+    "id": "A4-integration-smoke",
+    "title": "Integration smoke tests for env/binary overrides",
+    "description": "Add end-to-end/smoke coverage proving CODEX_BINARY and CODEX_HOME are applied for every spawn site (exec, login/status/logout, MCP/app-server helpers) using a fake codex binary.",
+    "dependencies": ["A3-tests-docs"],
+    "files": ["crates/codex/src/lib.rs", "crates/codex/tests", "crates/codex/examples"],
+    "outputs": ["Integration-style tests exercising all spawn paths with overridden env/binary"],
+    "status": "doing",
+    "tests": ["cargo test -p codex"],
+    "notes": "Use fake codex binary to assert env/args without hitting real service; cover exec, login/status/logout, MCP/app-server helpers."
   }
 ]
