@@ -1165,6 +1165,16 @@ impl AppRuntimeApi {
     pub fn into_pool(self) -> AppRuntimePool {
         AppRuntimePool::new(self.manager)
     }
+
+    /// Build a pooled lifecycle API that can reuse running runtimes.
+    pub fn pool_api(&self) -> AppRuntimePoolApi {
+        AppRuntimePoolApi::from_manager(self.manager.clone())
+    }
+
+    /// Consume the API and return a pooled lifecycle API.
+    pub fn into_pool_api(self) -> AppRuntimePoolApi {
+        AppRuntimePoolApi::from_manager(self.manager)
+    }
 }
 
 /// Async pool that starts, reuses, and stops app runtimes without mutating config.
@@ -1186,6 +1196,22 @@ impl AppRuntimePool {
     /// List available runtimes and metadata without touching stored definitions.
     pub fn available(&self) -> Vec<AppRuntimeSummary> {
         self.manager.available()
+    }
+
+    /// List currently running runtimes with metadata/resume hints preserved.
+    pub async fn running(&self) -> Vec<AppRuntimeSummary> {
+        let mut names: Vec<String> = {
+            let guard = self.running.lock().await;
+            guard.keys().cloned().collect()
+        };
+
+        names.sort();
+
+        names
+            .into_iter()
+            .filter_map(|name| self.manager.launcher(&name))
+            .map(|launcher| AppRuntimeSummary::from(&launcher))
+            .collect()
     }
 
     /// Returns a launch-ready config bundle for the given runtime.
@@ -1270,6 +1296,84 @@ impl AppRuntimePool {
         }
 
         Ok(())
+    }
+}
+
+/// Public API around [`AppRuntimePool`] that exposes pooled lifecycle helpers.
+#[derive(Clone, Debug)]
+pub struct AppRuntimePoolApi {
+    pool: AppRuntimePool,
+}
+
+impl AppRuntimePoolApi {
+    /// Build a pooled API from prepared launchers.
+    pub fn new(launchers: Vec<AppRuntimeLauncher>) -> Self {
+        Self::from_manager(AppRuntimeManager::new(launchers))
+    }
+
+    /// Load app runtimes from disk and merge Workstream A stdio defaults.
+    pub fn from_config(
+        config: &McpConfigManager,
+        defaults: &StdioServerConfig,
+    ) -> Result<Self, McpConfigError> {
+        let launchers = config.app_runtime_launchers(defaults)?;
+        Ok(Self::new(launchers))
+    }
+
+    /// Build a pooled API from a runtime manager.
+    pub fn from_manager(manager: AppRuntimeManager) -> Self {
+        Self::from_pool(AppRuntimePool::new(manager))
+    }
+
+    /// Wrap an existing pool in the API surface.
+    pub fn from_pool(pool: AppRuntimePool) -> Self {
+        Self { pool }
+    }
+
+    /// List available runtimes and metadata.
+    pub fn available(&self) -> Vec<AppRuntimeSummary> {
+        self.pool.available()
+    }
+
+    /// List running runtimes with metadata intact.
+    pub async fn running(&self) -> Vec<AppRuntimeSummary> {
+        self.pool.running().await
+    }
+
+    /// Returns the launch-ready config bundle for the given runtime.
+    pub fn launcher(&self, name: &str) -> Result<AppRuntimeLauncher, AppRuntimeError> {
+        self.pool
+            .launcher(name)
+            .ok_or_else(|| AppRuntimeError::NotFound(name.to_string()))
+    }
+
+    /// Prepare a stdio config + metadata for a runtime.
+    pub fn prepare(&self, name: &str) -> Result<AppRuntimeHandle, AppRuntimeError> {
+        self.pool.prepare(name)
+    }
+
+    /// Start (or reuse) an app runtime.
+    pub async fn start(
+        &self,
+        name: &str,
+        client: ClientInfo,
+    ) -> Result<Arc<ManagedAppRuntime>, AppRuntimeError> {
+        self.pool.start(name, client).await
+    }
+
+    /// Stop a running runtime and remove it from the pool.
+    pub async fn stop(&self, name: &str) -> Result<(), AppRuntimeError> {
+        self.pool.stop(name).await
+    }
+
+    /// Stop all running runtimes (best-effort) and clear the pool.
+    pub async fn stop_all(&self) -> Result<(), AppRuntimeError> {
+        self.pool.stop_all().await
+    }
+
+    /// Convenience accessor for the merged stdio config.
+    pub fn stdio_config(&self, name: &str) -> Result<StdioServerConfig, AppRuntimeError> {
+        self.prepare(name).map(|handle| handle.config)
     }
 }
 
@@ -4331,7 +4435,7 @@ time.sleep(30)
     }
 
     #[tokio::test]
-    async fn app_runtime_pool_reuses_and_restarts_stdio() {
+    async fn app_runtime_pool_api_reuses_and_restarts_stdio() {
         let (config_dir, manager) = temp_config_manager();
         let (_server_dir, server_path) = write_fake_app_server();
         let code_home = config_dir.path().join("app-pool-home");
@@ -4371,11 +4475,18 @@ time.sleep(30)
         };
 
         let before = fs::read_to_string(manager.config_path()).expect("read config before");
-        let api = AppRuntimeApi::from_config(&manager, &defaults).expect("build api");
-        let pool = api.pool();
+        let api = AppRuntimePoolApi::from_config(&manager, &defaults).expect("build pool api");
         let client = test_client();
 
-        let runtime = pool
+        let available = api.available();
+        assert_eq!(available.len(), 1);
+        let pooled_summary = &available[0];
+        assert_eq!(pooled_summary.name, "pooled");
+        assert_eq!(pooled_summary.metadata, metadata);
+
+        assert!(api.running().await.is_empty());
+
+        let runtime = api
             .start("pooled", client.clone())
             .await
             .expect("start pooled runtime");
@@ -4416,19 +4527,28 @@ time.sleep(30)
             .to_string();
         assert!(!thread_id.is_empty());
 
-        let reused = pool
+        let running = api.running().await;
+        let running_summary = running
+            .iter()
+            .find(|summary| summary.name == "pooled")
+            .expect("running summary present");
+        assert_eq!(running_summary.metadata, metadata);
+
+        let reused = api
             .start("pooled", client.clone())
             .await
             .expect("reuse pooled runtime");
         assert!(Arc::ptr_eq(&runtime, &reused));
 
-        pool.stop("pooled").await.expect("stop pooled runtime");
-        match pool.stop("pooled").await {
+        api.stop("pooled").await.expect("stop pooled runtime");
+        match api.stop("pooled").await {
             Err(AppRuntimeError::NotFound(name)) => assert_eq!(name, "pooled"),
             other => panic!("expected not found on second stop, got {other:?}"),
         }
 
-        let restarted = pool
+        assert!(api.running().await.is_empty());
+
+        let restarted = api
             .start("pooled", client)
             .await
             .expect("restart pooled runtime");
@@ -4443,7 +4563,7 @@ time.sleep(30)
     }
 
     #[tokio::test]
-    async fn app_runtime_pool_stop_all_shuts_down_runtimes() {
+    async fn app_runtime_pool_api_stop_all_shuts_down_runtimes() {
         let (config_dir, manager) = temp_config_manager();
         let (_server_dir, server_path) = write_fake_app_server();
         let code_home = config_dir.path().join("app-pool-stop-home");
@@ -4496,21 +4616,30 @@ time.sleep(30)
         };
 
         let before = fs::read_to_string(manager.config_path()).expect("read config before");
-        let api = AppRuntimeApi::from_config(&manager, &defaults).expect("build api");
-        let pool = api.pool();
+        let api = AppRuntimePoolApi::from_config(&manager, &defaults).expect("build pool api");
         let client = test_client();
 
-        let alpha = pool
+        assert!(api.running().await.is_empty());
+
+        let alpha = api
             .start("alpha", client.clone())
             .await
             .expect("start alpha runtime");
-        let beta = pool
+        let beta = api
             .start("beta", client.clone())
             .await
             .expect("start beta runtime");
 
         assert_eq!(alpha.metadata, alpha_metadata);
         assert_eq!(beta.metadata, beta_metadata);
+
+        let mut running = api.running().await;
+        running.sort_by(|a, b| a.name.cmp(&b.name));
+        assert_eq!(running.len(), 2);
+        assert_eq!(running[0].name, "alpha");
+        assert_eq!(running[0].metadata, alpha_metadata);
+        assert_eq!(running[1].name, "beta");
+        assert_eq!(running[1].metadata, beta_metadata);
 
         let alpha_thread = alpha
             .server
@@ -4526,16 +4655,17 @@ time.sleep(30)
             .expect("alpha response recv")
             .expect("alpha ok");
 
-        pool.stop_all().await.expect("stop all runtimes");
+        api.stop_all().await.expect("stop all runtimes");
+        assert!(api.running().await.is_empty());
 
-        let restarted_alpha = pool
+        let restarted_alpha = api
             .start("alpha", client.clone())
             .await
             .expect("restart alpha");
         assert!(!Arc::ptr_eq(&alpha, &restarted_alpha));
         assert_eq!(restarted_alpha.metadata, alpha_metadata);
 
-        let restarted_beta = pool.start("beta", client).await.expect("restart beta");
+        let restarted_beta = api.start("beta", client).await.expect("restart beta");
         assert!(!Arc::ptr_eq(&beta, &restarted_beta));
         assert_eq!(restarted_beta.metadata, beta_metadata);
 
