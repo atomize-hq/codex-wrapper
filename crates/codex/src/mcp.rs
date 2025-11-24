@@ -70,12 +70,20 @@ pub type EventStream<T> = mpsc::UnboundedReceiver<T>;
 /// Default config filename placed under CODEX_HOME.
 pub const DEFAULT_CONFIG_FILE: &str = "config.toml";
 const MCP_SERVERS_KEY: &str = "mcp_servers";
+const APP_RUNTIMES_KEY: &str = "app_runtimes";
 
 /// MCP server definition coupled with its name.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct McpServerEntry {
     pub name: String,
     pub definition: McpServerDefinition,
+}
+
+/// App runtime definition coupled with its name.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AppRuntimeEntry {
+    pub name: String,
+    pub definition: AppRuntimeDefinition,
 }
 
 /// JSON-serializable MCP server configuration stored under `[mcp_servers]`.
@@ -131,6 +139,38 @@ pub struct McpToolConfig {
     pub enabled: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub disabled: Vec<String>,
+}
+
+/// Stored definition for launching an app-server runtime.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AppRuntimeDefinition {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub env: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_home: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_dir: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mirror_stdio: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub startup_timeout_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub binary: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub metadata: Value,
+}
+
+/// Input for adding or updating an app runtime entry.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AddAppRuntimeRequest {
+    pub name: String,
+    pub definition: AppRuntimeDefinition,
+    #[serde(default)]
+    pub overwrite: bool,
 }
 
 /// Resolved runtime configuration for an MCP server, ready for spawning or connecting.
@@ -276,6 +316,13 @@ pub enum McpConfigError {
         #[source]
         source: toml::de::Error,
     },
+    #[error("`app_runtimes` must be a table in {path}")]
+    InvalidAppRuntimes { path: PathBuf },
+    #[error("failed to decode app_runtimes: {source}")]
+    DecodeAppRuntimes {
+        #[source]
+        source: toml::de::Error,
+    },
     #[error("failed to serialize config: {source}")]
     Serialize {
         #[source]
@@ -287,6 +334,12 @@ pub enum McpConfigError {
     ServerNotFound(String),
     #[error("server name may not be empty")]
     InvalidServerName,
+    #[error("app runtime `{0}` already exists")]
+    AppRuntimeAlreadyExists(String),
+    #[error("app runtime `{0}` not found")]
+    AppRuntimeNotFound(String),
+    #[error("app runtime name may not be empty")]
+    InvalidAppRuntimeName,
     #[error("invalid env var name `{name}`")]
     InvalidEnvVarName { name: String },
     #[error("server `{server}` missing bearer_env_var for auth token")]
@@ -527,6 +580,123 @@ impl From<&McpServerLauncher> for McpRuntimeSummary {
             tags: launcher.tags.clone(),
             tools: launcher.tools.clone(),
             transport,
+        }
+    }
+}
+
+/// Stored app runtime converted into launch-ready config with metadata intact.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AppRuntime {
+    pub name: String,
+    pub description: Option<String>,
+    pub tags: Vec<String>,
+    pub metadata: Value,
+    pub env: BTreeMap<String, String>,
+    pub code_home: Option<PathBuf>,
+    pub current_dir: Option<PathBuf>,
+    pub mirror_stdio: Option<bool>,
+    pub startup_timeout_ms: Option<u64>,
+    pub binary: Option<PathBuf>,
+}
+
+impl From<AppRuntimeEntry> for AppRuntime {
+    fn from(entry: AppRuntimeEntry) -> Self {
+        let AppRuntimeEntry { name, definition } = entry;
+        let AppRuntimeDefinition {
+            description,
+            tags,
+            env,
+            code_home,
+            current_dir,
+            mirror_stdio,
+            startup_timeout_ms,
+            binary,
+            metadata,
+        } = definition;
+
+        Self {
+            name,
+            description,
+            tags,
+            metadata,
+            env,
+            code_home,
+            current_dir,
+            mirror_stdio,
+            startup_timeout_ms,
+            binary,
+        }
+    }
+}
+
+impl AppRuntime {
+    /// Converts an app runtime into a launch-ready config using provided defaults.
+    pub fn into_launcher(self, defaults: &StdioServerConfig) -> AppRuntimeLauncher {
+        let code_home = self
+            .code_home
+            .clone()
+            .or_else(|| defaults.code_home.clone());
+        let env = merge_stdio_env(code_home.as_deref(), &defaults.env, &self.env);
+
+        let config = StdioServerConfig {
+            binary: self
+                .binary
+                .clone()
+                .unwrap_or_else(|| defaults.binary.clone()),
+            code_home,
+            current_dir: self
+                .current_dir
+                .clone()
+                .or_else(|| defaults.current_dir.clone()),
+            env,
+            mirror_stdio: self.mirror_stdio.unwrap_or(defaults.mirror_stdio),
+            startup_timeout: self
+                .startup_timeout_ms
+                .map(Duration::from_millis)
+                .unwrap_or(defaults.startup_timeout),
+        };
+
+        AppRuntimeLauncher {
+            name: self.name,
+            description: self.description,
+            tags: self.tags,
+            metadata: self.metadata,
+            config,
+        }
+    }
+
+    /// Convenience clone-preserving conversion to a launcher.
+    pub fn to_launcher(&self, defaults: &StdioServerConfig) -> AppRuntimeLauncher {
+        self.clone().into_launcher(defaults)
+    }
+}
+
+/// Launch-ready stdio config bundled with app metadata.
+#[derive(Clone, Debug)]
+pub struct AppRuntimeLauncher {
+    pub name: String,
+    pub description: Option<String>,
+    pub tags: Vec<String>,
+    pub metadata: Value,
+    pub config: StdioServerConfig,
+}
+
+/// Summarized app runtime metadata for listing.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AppRuntimeSummary {
+    pub name: String,
+    pub description: Option<String>,
+    pub tags: Vec<String>,
+    pub metadata: Value,
+}
+
+impl From<&AppRuntimeLauncher> for AppRuntimeSummary {
+    fn from(launcher: &AppRuntimeLauncher) -> Self {
+        Self {
+            name: launcher.name.clone(),
+            description: launcher.description.clone(),
+            tags: launcher.tags.clone(),
+            metadata: launcher.metadata.clone(),
         }
     }
 }
@@ -801,6 +971,110 @@ pub struct ManagedHttpRuntime {
     pub tools: Option<McpToolConfig>,
 }
 
+/// Errors surfaced while reading app runtimes.
+#[derive(Debug, Error)]
+pub enum AppRuntimeError {
+    #[error("runtime `{0}` not found")]
+    NotFound(String),
+}
+
+/// Prepared app runtime with merged stdio config and metadata.
+#[derive(Clone, Debug)]
+pub struct AppRuntimeHandle {
+    pub name: String,
+    pub metadata: Value,
+    pub config: StdioServerConfig,
+}
+
+/// Non-destructive manager for app runtimes backed by launch-ready configs.
+#[derive(Clone, Debug)]
+pub struct AppRuntimeManager {
+    launchers: BTreeMap<String, AppRuntimeLauncher>,
+}
+
+impl AppRuntimeManager {
+    /// Construct a runtime manager from prepared launchers.
+    pub fn new(launchers: Vec<AppRuntimeLauncher>) -> Self {
+        let mut map = BTreeMap::new();
+        for launcher in launchers {
+            map.insert(launcher.name.clone(), launcher);
+        }
+        Self { launchers: map }
+    }
+
+    /// Returns the available app runtimes with metadata intact.
+    pub fn available(&self) -> Vec<AppRuntimeSummary> {
+        self.launchers
+            .values()
+            .map(AppRuntimeSummary::from)
+            .collect()
+    }
+
+    /// Returns a cloned launcher by name without mutating storage.
+    pub fn launcher(&self, name: &str) -> Option<AppRuntimeLauncher> {
+        self.launchers.get(name).cloned()
+    }
+
+    /// Returns a prepared config + metadata for launching the app server.
+    pub fn prepare(&self, name: &str) -> Result<AppRuntimeHandle, AppRuntimeError> {
+        let Some(launcher) = self.launcher(name) else {
+            return Err(AppRuntimeError::NotFound(name.to_string()));
+        };
+
+        Ok(AppRuntimeHandle {
+            name: launcher.name,
+            metadata: launcher.metadata,
+            config: launcher.config,
+        })
+    }
+}
+
+/// Read-only helpers around [`AppRuntimeManager`] backed by stored config.
+#[derive(Clone, Debug)]
+pub struct AppRuntimeApi {
+    manager: AppRuntimeManager,
+}
+
+impl AppRuntimeApi {
+    /// Build an API from already prepared launchers.
+    pub fn new(launchers: Vec<AppRuntimeLauncher>) -> Self {
+        Self {
+            manager: AppRuntimeManager::new(launchers),
+        }
+    }
+
+    /// Load app runtimes from disk and merge Workstream A stdio defaults.
+    pub fn from_config(
+        config: &McpConfigManager,
+        defaults: &StdioServerConfig,
+    ) -> Result<Self, McpConfigError> {
+        let launchers = config.app_runtime_launchers(defaults)?;
+        Ok(Self::new(launchers))
+    }
+
+    /// List available runtimes and metadata.
+    pub fn available(&self) -> Vec<AppRuntimeSummary> {
+        self.manager.available()
+    }
+
+    /// Returns the launch-ready config bundle for the given runtime.
+    pub fn launcher(&self, name: &str) -> Result<AppRuntimeLauncher, AppRuntimeError> {
+        self.manager
+            .launcher(name)
+            .ok_or_else(|| AppRuntimeError::NotFound(name.to_string()))
+    }
+
+    /// Prepare a stdio config + metadata for a runtime.
+    pub fn prepare(&self, name: &str) -> Result<AppRuntimeHandle, AppRuntimeError> {
+        self.manager.prepare(name)
+    }
+
+    /// Convenience accessor for the merged stdio config.
+    pub fn stdio_config(&self, name: &str) -> Result<StdioServerConfig, AppRuntimeError> {
+        self.prepare(name).map(|handle| handle.config)
+    }
+}
+
 /// Helper to load and mutate MCP config stored under `[mcp_servers]`.
 pub struct McpConfigManager {
     config_path: PathBuf,
@@ -846,6 +1120,65 @@ impl McpConfigManager {
         })
     }
 
+    /// Returns all configured app runtimes.
+    pub fn list_app_runtimes(&self) -> Result<Vec<AppRuntimeEntry>, McpConfigError> {
+        let runtimes = self.read_app_runtimes()?;
+        Ok(runtimes
+            .into_iter()
+            .map(|(name, definition)| AppRuntimeEntry { name, definition })
+            .collect())
+    }
+
+    /// Returns a single app runtime by name.
+    pub fn get_app_runtime(&self, name: &str) -> Result<AppRuntimeEntry, McpConfigError> {
+        let runtimes = self.read_app_runtimes()?;
+        let Some(definition) = runtimes.get(name).cloned() else {
+            return Err(McpConfigError::AppRuntimeNotFound(name.to_string()));
+        };
+
+        Ok(AppRuntimeEntry {
+            name: name.to_string(),
+            definition,
+        })
+    }
+
+    /// Returns runtime-ready app configs with metadata preserved.
+    pub fn app_runtimes(&self) -> Result<Vec<AppRuntime>, McpConfigError> {
+        Ok(self
+            .list_app_runtimes()?
+            .into_iter()
+            .map(AppRuntime::from)
+            .collect())
+    }
+
+    /// Returns a runtime-ready app config for a single entry.
+    pub fn app_runtime(&self, name: &str) -> Result<AppRuntime, McpConfigError> {
+        self.get_app_runtime(name).map(AppRuntime::from)
+    }
+
+    /// Returns prepared launchers for all app runtimes.
+    pub fn app_runtime_launchers(
+        &self,
+        defaults: &StdioServerConfig,
+    ) -> Result<Vec<AppRuntimeLauncher>, McpConfigError> {
+        self.app_runtimes().map(|runtimes| {
+            runtimes
+                .into_iter()
+                .map(|runtime| runtime.into_launcher(defaults))
+                .collect()
+        })
+    }
+
+    /// Returns a prepared launcher for an app runtime by name.
+    pub fn app_runtime_launcher(
+        &self,
+        name: &str,
+        defaults: &StdioServerConfig,
+    ) -> Result<AppRuntimeLauncher, McpConfigError> {
+        self.app_runtime(name)
+            .map(|runtime| runtime.into_launcher(defaults))
+    }
+
     /// Returns runtime-ready configs for all servers, resolving bearer tokens from the environment.
     pub fn runtime_servers(&self) -> Result<Vec<McpRuntimeServer>, McpConfigError> {
         Ok(self
@@ -881,6 +1214,32 @@ impl McpConfigManager {
     ) -> Result<McpServerLauncher, McpConfigError> {
         self.runtime_server(name)
             .map(|server| server.into_launcher(defaults))
+    }
+
+    /// Adds or updates an app runtime definition.
+    pub fn add_app_runtime(
+        &self,
+        request: AddAppRuntimeRequest,
+    ) -> Result<AppRuntimeEntry, McpConfigError> {
+        let AddAppRuntimeRequest {
+            name,
+            definition,
+            overwrite,
+        } = request;
+
+        if name.trim().is_empty() {
+            return Err(McpConfigError::InvalidAppRuntimeName);
+        }
+
+        let (table, mut runtimes) = self.read_table_and_app_runtimes()?;
+        if !overwrite && runtimes.contains_key(&name) {
+            return Err(McpConfigError::AppRuntimeAlreadyExists(name));
+        }
+
+        runtimes.insert(name.clone(), definition.clone());
+        self.persist_app_runtimes(table, &runtimes)?;
+
+        Ok(AppRuntimeEntry { name, definition })
     }
 
     /// Adds or updates a server definition and injects any provided env vars.
@@ -1031,6 +1390,56 @@ impl McpConfigManager {
             let value = TomlValue::try_from(servers.clone())
                 .map_err(|source| McpConfigError::Serialize { source })?;
             table.insert(MCP_SERVERS_KEY.to_string(), value);
+        }
+
+        self.write_table(table)
+    }
+
+    fn read_app_runtimes(
+        &self,
+    ) -> Result<BTreeMap<String, AppRuntimeDefinition>, McpConfigError> {
+        let table = self.load_table()?;
+        self.parse_app_runtimes(table.get(APP_RUNTIMES_KEY))
+    }
+
+    fn read_table_and_app_runtimes(
+        &self,
+    ) -> Result<(TomlTable, BTreeMap<String, AppRuntimeDefinition>), McpConfigError> {
+        let table = self.load_table()?;
+        let runtimes = self.parse_app_runtimes(table.get(APP_RUNTIMES_KEY))?;
+        Ok((table, runtimes))
+    }
+
+    fn parse_app_runtimes(
+        &self,
+        value: Option<&TomlValue>,
+    ) -> Result<BTreeMap<String, AppRuntimeDefinition>, McpConfigError> {
+        let Some(value) = value else {
+            return Ok(BTreeMap::new());
+        };
+
+        let table = value
+            .as_table()
+            .ok_or_else(|| McpConfigError::InvalidAppRuntimes {
+                path: self.config_path.clone(),
+            })?;
+        let cloned = TomlValue::Table(table.clone());
+        cloned
+            .try_into()
+            .map_err(|source| McpConfigError::DecodeAppRuntimes { source })
+    }
+
+    fn persist_app_runtimes(
+        &self,
+        mut table: TomlTable,
+        runtimes: &BTreeMap<String, AppRuntimeDefinition>,
+    ) -> Result<(), McpConfigError> {
+        if runtimes.is_empty() {
+            table.remove(APP_RUNTIMES_KEY);
+        } else {
+            let value = TomlValue::try_from(runtimes.clone())
+                .map_err(|source| McpConfigError::Serialize { source })?;
+            table.insert(APP_RUNTIMES_KEY.to_string(), value);
         }
 
         self.write_table(table)
@@ -3469,6 +3878,161 @@ time.sleep(30)
         assert_eq!(before, after);
 
         env::remove_var(env_var);
+    }
+
+    #[test]
+    fn app_runtime_api_lists_and_merges_without_writes() {
+        let (dir, manager) = temp_config_manager();
+
+        let alpha_home = dir.path().join("app-home-a");
+        let alpha_cwd = dir.path().join("app-cwd-a");
+        let mut alpha_env = BTreeMap::new();
+        alpha_env.insert("APP_RUNTIME_ENV".into(), "alpha".into());
+        alpha_env.insert("OVERRIDE_ME".into(), "runtime".into());
+
+        manager
+            .add_app_runtime(AddAppRuntimeRequest {
+                name: "alpha".into(),
+                definition: AppRuntimeDefinition {
+                    description: Some("local app".into()),
+                    tags: vec!["local".into()],
+                    env: alpha_env,
+                    code_home: Some(alpha_home.clone()),
+                    current_dir: Some(alpha_cwd.clone()),
+                    mirror_stdio: Some(true),
+                    startup_timeout_ms: Some(4200),
+                    binary: Some(PathBuf::from("/bin/app-alpha")),
+                    metadata: serde_json::json!({"thread": "t-alpha"}),
+                },
+                overwrite: false,
+            })
+            .expect("add alpha app runtime");
+
+        let mut beta_env = BTreeMap::new();
+        beta_env.insert("APP_RUNTIME_ENV".into(), "beta".into());
+
+        manager
+            .add_app_runtime(AddAppRuntimeRequest {
+                name: "beta".into(),
+                definition: AppRuntimeDefinition {
+                    description: None,
+                    tags: vec!["default".into()],
+                    env: beta_env,
+                    code_home: None,
+                    current_dir: None,
+                    mirror_stdio: None,
+                    startup_timeout_ms: None,
+                    binary: None,
+                    metadata: serde_json::json!({"resume": true}),
+                },
+                overwrite: false,
+            })
+            .expect("add beta app runtime");
+
+        let before = fs::read_to_string(manager.config_path()).expect("read config before");
+
+        let default_home = dir.path().join("default-home");
+        let default_cwd = dir.path().join("default-cwd");
+        let defaults = StdioServerConfig {
+            binary: PathBuf::from("codex"),
+            code_home: Some(default_home.clone()),
+            current_dir: Some(default_cwd.clone()),
+            env: vec![
+                (OsString::from("DEFAULT_ONLY"), OsString::from("base")),
+                (OsString::from("OVERRIDE_ME"), OsString::from("base")),
+            ],
+            mirror_stdio: false,
+            startup_timeout: Duration::from_secs(3),
+        };
+
+        let api = AppRuntimeApi::from_config(&manager, &defaults).expect("app runtime api");
+
+        let available = api.available();
+        assert_eq!(available.len(), 2);
+
+        let alpha_summary = available
+            .iter()
+            .find(|entry| entry.name == "alpha")
+            .expect("alpha summary");
+        assert_eq!(alpha_summary.description.as_deref(), Some("local app"));
+        assert_eq!(alpha_summary.tags, vec!["local".to_string()]);
+        assert_eq!(
+            alpha_summary.metadata,
+            serde_json::json!({"thread": "t-alpha"})
+        );
+
+        let alpha = api.prepare("alpha").expect("prepare alpha");
+        assert_eq!(alpha.name, "alpha");
+        assert_eq!(alpha.metadata, serde_json::json!({"thread": "t-alpha"}));
+        assert_eq!(alpha.config.binary, PathBuf::from("/bin/app-alpha"));
+        assert_eq!(alpha.config.code_home.as_deref(), Some(alpha_home.as_path()));
+        assert_eq!(alpha.config.current_dir.as_deref(), Some(alpha_cwd.as_path()));
+        assert!(alpha.config.mirror_stdio);
+        assert_eq!(alpha.config.startup_timeout, Duration::from_millis(4200));
+
+        let alpha_env: HashMap<OsString, OsString> = alpha.config.env.into_iter().collect();
+        assert_eq!(
+            alpha_env.get(&OsString::from("CODEX_HOME")),
+            Some(&alpha_home.as_os_str().to_os_string())
+        );
+        assert_eq!(
+            alpha_env.get(&OsString::from("DEFAULT_ONLY")),
+            Some(&OsString::from("base"))
+        );
+        assert_eq!(
+            alpha_env.get(&OsString::from("OVERRIDE_ME")),
+            Some(&OsString::from("runtime"))
+        );
+        assert_eq!(
+            alpha_env.get(&OsString::from("APP_RUNTIME_ENV")),
+            Some(&OsString::from("alpha"))
+        );
+
+        let beta = api.stdio_config("beta").expect("beta config");
+        assert_eq!(beta.binary, PathBuf::from("codex"));
+        assert_eq!(beta.code_home.as_deref(), Some(default_home.as_path()));
+        assert_eq!(beta.current_dir.as_deref(), Some(default_cwd.as_path()));
+        assert!(!beta.mirror_stdio);
+        assert_eq!(beta.startup_timeout, Duration::from_secs(3));
+
+        let beta_env: HashMap<OsString, OsString> = beta.env.into_iter().collect();
+        assert_eq!(
+            beta_env.get(&OsString::from("CODEX_HOME")),
+            Some(&default_home.as_os_str().to_os_string())
+        );
+        assert_eq!(
+            beta_env.get(&OsString::from("DEFAULT_ONLY")),
+            Some(&OsString::from("base"))
+        );
+        assert_eq!(
+            beta_env.get(&OsString::from("OVERRIDE_ME")),
+            Some(&OsString::from("base"))
+        );
+        assert_eq!(
+            beta_env.get(&OsString::from("APP_RUNTIME_ENV")),
+            Some(&OsString::from("beta"))
+        );
+
+        let beta_summary = available
+            .iter()
+            .find(|entry| entry.name == "beta")
+            .expect("beta summary");
+        assert_eq!(
+            beta_summary.metadata,
+            serde_json::json!({"resume": true})
+        );
+
+        let after = fs::read_to_string(manager.config_path()).expect("read config after");
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn app_runtime_api_not_found_errors() {
+        let api = AppRuntimeApi::new(Vec::new());
+        match api.prepare("missing") {
+            Err(AppRuntimeError::NotFound(name)) => assert_eq!(name, "missing"),
+            other => panic!("unexpected result: {other:?}"),
+        }
     }
 
     #[tokio::test]
