@@ -14,6 +14,7 @@
     "description": "Implement functions to run codex --version and codex features list using env from Workstream A; parse outputs into capability model; cache results per binary path. Handle failures gracefully with defaults and warnings.",
     "dependencies": ["F1-design-capability-model"],
     "files": ["crates/codex/src/lib.rs"],
+    "status": "done",
     "tests": ["cargo test -p codex"],
     "notes": "Do not assume network; keep probes local." 
   },
