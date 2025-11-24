@@ -19,4 +19,7 @@ Every example under `crates/codex/examples/` corresponds to a specific `codex ex
 | `cargo run -p codex --example send_prompt --color never -- "Show monochrome"` | `codex exec "Show monochrome" --skip-git-repo-check --color never` | (Color example also works for `auto`/`never`.) |
 | `cargo run -p ingestion --example ingest_to_codex -- --instructions "Summarize the documents" --model gpt-5-codex --json --include-prompt --image "C:\Docs\mockup.png" C:\Docs\spec.pdf` | `codex exec --skip-git-repo-check --json --model gpt-5-codex --image "C:\Docs\mockup.png" "<constructed prompt covering spec.pdf>"` | Full ingestion harness: it builds the multi-document prompt before calling `codex exec`. |
 
-Use these pairs as a checklist when validating parity between the Rust wrapper and the raw Codex CLI.*** End Patch*** End Patch
+Use these pairs as a checklist when validating parity between the Rust wrapper and the raw Codex CLI.
+
+Additional examples:
+- `cargo run -p codex --example app_server_turns -- "<prompt>" [thread-id]`: drive `codex app-server` threads/turns and optionally issue interrupts.
