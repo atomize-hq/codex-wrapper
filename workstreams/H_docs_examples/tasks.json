@@ -187,5 +187,55 @@
       "Upgrade/capability caching notes"
     ],
     "status": "done"
+  },
+  {
+    "id": "H10-docs-live-fixture",
+    "title": "Docs live fixture",
+    "description": "Use the integration fixture with a real Codex binary (or CI-friendly runner) to refresh streaming/resume/apply sample payloads. Update docs/examples if drift is detected and record any remaining gaps for capability caching or typed streaming APIs.",
+    "dependencies": [
+      "H9-docs-integration-fixture"
+    ],
+    "files": [
+      "README.md",
+      "crates/codex/EXAMPLES.md",
+      "crates/codex/src/lib.rs",
+      "crates/codex/examples",
+      "crates/codex/examples/fixtures",
+      "workstreams/H_docs_examples"
+    ],
+    "tests": [
+      "cargo test -p codex --doc",
+      "cargo test -p codex --examples"
+    ],
+    "outputs": [
+      "Updated fixtures/docs/examples",
+      "Drift notes",
+      "Capability caching/typed streaming gaps"
+    ],
+    "status": "done"
+  },
+  {
+    "id": "H11-docs-typed-streaming-api",
+    "title": "Docs typed streaming + capability cache",
+    "description": "Document typed streaming API/capability caching status; wire docs/examples/tests if a typed stream API lands and capture cache invalidation guidance when stream schemas change.",
+    "dependencies": [
+      "H10-docs-live-fixture"
+    ],
+    "files": [
+      "README.md",
+      "crates/codex/EXAMPLES.md",
+      "crates/codex/src/lib.rs",
+      "crates/codex/examples",
+      "workstreams/H_docs_examples"
+    ],
+    "tests": [
+      "cargo test -p codex --doc",
+      "cargo test -p codex --examples"
+    ],
+    "outputs": [
+      "Typed streaming/capability cache docs or backlog note",
+      "Fixture/coverage updates"
+    ],
+    "status": "todo"
   }
 ]

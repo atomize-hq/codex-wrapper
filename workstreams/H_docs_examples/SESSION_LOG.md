@@ -23,3 +23,6 @@ Append entries: `[START ...] [END ...] Agent: <name> | Task(s): <IDs> | Branch: 
 [END 2025-11-24 20:50:52Z] Agent: Codex | Task(s): H8-docs-post-review | Branch: ws/H_docs_examples | Notes: Completed post-review; merged task branch after cargo test -p codex --doc/--examples; added upgrade/caching advisories
 [START 2025-11-24 20:55:40Z] Agent: Codex | Task(s): H9-docs-integration-fixture | Branch: ws/H_docs_examples | Notes: Starting integration fixture task; will create task branch/worktree next
 [END 2025-11-24 21:17:51Z] Agent: Codex | Task(s): H9-docs-integration-fixture | Branch: ws/H_docs_examples | Notes: Added streaming/resume/apply fixtures + doc/test refresh; merged task branch after cargo test -p codex, cargo test -p codex --examples, cargo test -p codex --doc
+
+[START 2025-11-24 21:22:37Z] Agent: Codex | Task(s): H10-docs-live-fixture | Branch: ws/H_docs_examples | Notes: Starting live fixture task; will create task branch/worktree next
+[END 2025-11-24 21:45:04Z] Agent: Codex | Task(s): H10-docs-live-fixture | Branch: ws/H_docs_examples | Notes: Refreshed streaming/resume fixtures from live CLI, updated examples/docs, ran cargo test -p codex fixture and cargo test -p codex --doc
