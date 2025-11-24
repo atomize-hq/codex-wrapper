@@ -16,3 +16,4 @@ Record per session: `[START ...] [END ...] Agent: <name> | Task(s): <IDs> | Bran
 [END 2025-11-23T22:27:08-05:00] Agent: Codex | Task(s): E6-mcp-runtime-config | Branch: ws/E_mcp_app_server | Notes: Merged task/E6-mcp-runtime-config
 [START 2025-11-23T22:35:18-05:00] Agent: Codex | Task(s): E7-mcp-runtime-launchers | Branch: ws/E_mcp_app_server | Notes: Session start
 [END 2025-11-23T22:47:58-05:00] Agent: Codex | Task(s): E7-mcp-runtime-launchers | Branch: ws/E_mcp_app_server | Notes: Merged task/E7-mcp-runtime-launchers
+[START 2025-11-23T22:53:37-05:00] Agent: Codex | Task(s): E8-mcp-runtime-manager | Branch: ws/E_mcp_app_server | Notes: Session start
