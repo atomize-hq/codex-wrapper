@@ -2,6 +2,12 @@
 
 Every example under `crates/codex/examples/` corresponds to a specific `codex exec` flag combo. Use the table below to compare the wrapper invocation (`cargo run -p codex --example ...`) with the equivalent raw CLI call.
 
+## Binary and `CODEX_HOME` isolation
+
+- Point the wrapper at a bundled Codex binary with `CodexClientBuilder::binary`; when unset, it honors `CODEX_BINARY` or falls back to `codex` on `PATH`.
+- Apply an app-scoped home via `CodexClientBuilder::codex_home` and optionally create the layout with `CodexClientBuilder::create_home_dirs`. `CODEX_BINARY`, `CODEX_HOME`, and `RUST_LOG` overrides are applied per spawn without mutating the parent environment.
+- Use `bundled_binary_home` to exercise both knobs together, or `env_binary` to validate an existing `CODEX_BINARY` override.
+
 | Wrapper example | Native `codex exec` command | Notes |
 | --- | --- | --- |
 | `cargo run -p codex --example send_prompt -- "List Rust toolchain commands"` | `codex exec "List Rust toolchain commands" --skip-git-repo-check` | Baseline prompt with default timeout/temp dir. |

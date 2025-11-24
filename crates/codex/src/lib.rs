@@ -5,25 +5,42 @@
 //! (non-interactive color handling, timeouts, optional model selection), and returns whatever
 //! the CLI prints to stdout (the agent's final response per upstream docs).
 //!
-//! ## Binary + CODEX_HOME design (Workstream A)
-//! - `CodexClientBuilder` will grow environment knobs: `binary_path: PathBuf` (default still
-//!   `default_binary_path()`), `codex_home: Option<PathBuf>`, and `create_home_dirs: bool`
-//!   (defaults to `true` when `codex_home` is set) that ensures the on-disk layout exists.
-//!   The existing `binary(...)` setter remains; new `codex_home(...)` /
-//!   `create_home_dirs(...)` methods are additive.
-//! - A shared `CommandEnvironment` helper will prepare every `tokio::process::Command`
-//!   (exec/login/status/logout/MCP/app-server) without mutating the parent env. It applies
-//!   `CODEX_HOME` when provided, mirrors the resolved binary into `CODEX_BINARY`, reuses the
-//!   default `RUST_LOG` fallback, and can pre-create `conversations/` and `logs/` directories
-//!   when asked.
-//! - Expected `CODEX_HOME` contents: root holds `config.toml`, `auth.json`, `.credentials.json`,
-//!   and `history.jsonl`; `conversations/` stores `*.jsonl` transcripts; `logs/` stores
-//!   `codex-*.log`. When `codex_home` is unset no directories are created and the ambient
-//!   `CODEX_HOME` (if any) is inherited.
-//! - Backward compatibility: callers that ignore the new options keep today's behavior (binary
-//!   from `CODEX_BINARY` or `codex` on PATH, no forced `CODEX_HOME`, same spawning semantics).
-//!   Opting into `codex_home` enables app-scoped state isolation without affecting the host
-//!   process environment.
+//! ## Binary and `CODEX_HOME` isolation
+//! `CodexClientBuilder` lets you point at a bundled Codex binary and apply an app-scoped
+//! `CODEX_HOME` per spawn. The resolved binary is mirrored into `CODEX_BINARY`, the provided
+//! home is exported as `CODEX_HOME`, and `RUST_LOG` defaults to `error` when unset. The
+//! `CODEX_HOME` root plus `conversations/` and `logs/` directories are created when
+//! `create_home_dirs` is enabled (default when a home is set). Environment changes are applied
+//! per command without mutating the parent process. If you do not set a binary path, the builder
+//! resolves it from `CODEX_BINARY` or falls back to `codex` on `PATH`.
+//!
+//! ```no_run
+//! use codex::{CodexClient, CodexHomeLayout};
+//!
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let layout = CodexHomeLayout::new("/apps/myapp/codex");
+//! layout.materialize(true)?;
+//!
+//! let client = CodexClient::builder()
+//!     .binary("/apps/myapp/bin/codex")
+//!     .codex_home(layout.root())
+//!     .create_home_dirs(true)
+//!     .mirror_stdout(false)
+//!     .quiet(true)
+//!     .build();
+//!
+//! let reply = client.send_prompt("Health check").await?;
+//! println!("{reply}");
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Use [`CodexHomeLayout`] to discover where Codex writes `config.toml`, `auth.json`,
+//! `.credentials.json`, `history.jsonl`, `conversations/*.jsonl`, and `logs/codex-*.log` under an
+//! isolated home.
+//!
+//! For CLI parity examples, see `crates/codex/EXAMPLES.md`.
 
 use std::{
     env,
