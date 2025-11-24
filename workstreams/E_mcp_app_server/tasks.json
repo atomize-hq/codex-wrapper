@@ -98,5 +98,15 @@
     "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
     "tests": ["cargo test -p codex"],
     "outputs": ["Public app runtime helpers", "Tests for listing/preparing app runtimes without mutation"]
+  },
+  {
+    "id": "E11-app-runtime-lifecycle",
+    "title": "App runtime lifecycle helpers",
+    "status": "done",
+    "description": "Build lifecycle helpers around the app-runtime API so callers can launch and stop app-server instances from prepared configs (Workstream A env prep intact) while preserving runtime metadata and avoiding mutation of stored config or thread state.",
+    "dependencies": ["E10-app-runtime-api"],
+    "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
+    "tests": ["cargo test -p codex"],
+    "outputs": ["App runtime lifecycle helpers", "Tests for start/stop without metadata mutation"]
   }
 ]
