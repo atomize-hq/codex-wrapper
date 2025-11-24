@@ -128,5 +128,15 @@
     "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
     "tests": ["cargo test -p codex"],
     "outputs": ["Public app runtime pool API", "Tests for pooled listing + lifecycle without metadata mutation"]
+  },
+  {
+    "id": "E14-post-workstream-review",
+    "title": "Post-workstream review for MCP + app-server",
+    "status": "doing",
+    "description": "Polish pass to verify MCP/app-server APIs and pooled app runtimes are documented, consistent, and covered by tests/examples without mutating stored config or thread metadata.",
+    "dependencies": ["E13-app-runtime-pool-api"],
+    "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
+    "tests": ["cargo test -p codex"],
+    "outputs": ["Docs/tests adjustments", "Post-workstream review fixes"]
   }
 ]
