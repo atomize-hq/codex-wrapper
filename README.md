@@ -1,12 +1,34 @@
 # Codex Rust Wrapper
 
-Async helper around the `codex` CLI (`codex exec` in particular). It shells out to the installed binary, applies safe defaults (color handling, timeouts, `RUST_LOG`), and surfaces stdout/stderr or typed JSONL events.
+Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, apply/diff helpers, and stdio servers. The crate shells out to `codex`, applies safe defaults (temp working dirs, timeouts, quiet stderr mirroring), and supports bundled binaries plus capability-aware streaming/app-server flows.
 
-## Binary and `CODEX_HOME` isolation
+## Getting Started
+- Add the dependency:
+  ```toml
+  [dependencies]
+  codex = { path = "crates/codex" }
+  ```
+- Minimal prompt:
+  ```rust
+  use codex::CodexClient;
 
-- Point at a bundled Codex binary with `CodexClientBuilder::binary`; when unset, the wrapper honors `CODEX_BINARY` or falls back to `codex` on `PATH`.
-- Apply an app-scoped home via `CodexClientBuilder::codex_home` and optionally create the layout with `CodexClientBuilder::create_home_dirs`. Overrides are applied per spawn without mutating the parent process.
-- Use `CodexHomeLayout` to inspect where Codex writes config, credentials, history, conversations, and logs under an isolated home.
+  # async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+  let client = CodexClient::builder().build();
+  let reply = client.send_prompt("List rustfmt defaults").await?;
+  println!("{reply}");
+  # Ok(()) }
+  ```
+
+## Binary + `CODEX_HOME` isolation
+- Point at a bundled binary with `CodexClientBuilder::binary`; when unset, the wrapper honors `CODEX_BINARY` or falls back to `codex` on `PATH`. `CODEX_BUNDLED_PATH` and a local `bin/codex` can be used as hints in the examples.
+- Scope Codex data via `CodexClientBuilder::codex_home` and optionally create the layout with `CodexClientBuilder::create_home_dirs`; overrides are applied per spawn without mutating the parent environment. Use `CodexHomeLayout` to inspect `config.toml`, `auth.json`, `.credentials.json`, `history.jsonl`, `conversations/`, and `logs/` under an isolated home.
+- Binary/home examples: see `crates/codex/examples/bundled_binary.rs`, `env_binary.rs`, and `codex_home.rs`. The `bundled_binary_home` example exercises both knobs together.
+
+## Exec API and safety defaults
+- Wrapper calls run `codex exec --skip-git-repo-check` with a temp working dir unless `working_dir` is set, a 120s timeout by default (`Duration::ZERO` disables), ANSI colors off by default (`ColorMode::Never`), and `RUST_LOG=error` when unset.
+- Stdout mirrors by default; set `.mirror_stdout(false)` when parsing JSON. `.quiet(true)` suppresses stderr mirroring while still capturing it.
+- Model pickers (`.model("gpt-5-codex")`), image attachment (`.image(...)`), and JSON mode (`.json(true)`) map directly to the CLI. Reasoning defaults for `gpt-5`/`gpt-5-codex` are applied when unset.
+- `ExecStreamRequest` supports `idle_timeout` (fails fast on silent streams), `output_last_message`/`output_schema` (artifact paths), and `json_event_log` (tee raw JSONL before parsing).
 
 ## Single prompt
 
@@ -65,18 +87,12 @@ if let Some(path) = completion.last_message_path {
 # Ok(()) }
 ```
 
-`ExecStreamRequest` accepts optional `output_schema` (writes the JSON schema codex reports for the run) and `idle_timeout` (returns `ExecStreamError::IdleTimeout` if no events arrive in time). When `output_last_message` is `None`, a temporary path is generated and returned in `ExecCompletion::last_message_path`.
+Events include `thread.started`, `turn.started`/`turn.completed`/`turn.failed`, and `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`. Sample payloads ship with the streaming examples for offline inspection.
 
-## Log the raw JSON stream
-
-Set `json_event_log` on the builder or per request to tee every raw JSONL line to disk before parsing:
-
-- The log is appended to (existing files are preserved) and flushed per line.
-- Parent directories are created automatically.
-- An empty string is ignored; set a real path or leave `None` to disable.
-- The per-request `json_event_log` overrides the builder default for that run.
-
-The events continue to flow to your `events` stream even when log teeing is enabled.
+## Log tee, artifacts, and RUST_LOG defaults
+- Set `json_event_log` on the builder or per request to tee every raw JSONL line to disk before parsing; logs append to existing files, flush per line, and create parent directories.
+- `ExecStreamRequest` accepts optional `output_schema` (writes the JSON schema Codex reports) and `idle_timeout` (returns `ExecStreamError::IdleTimeout` if no events arrive in time). When `output_last_message` is `None`, a temporary path is generated and returned in `ExecCompletion::last_message_path`.
+- When `RUST_LOG` is unset, the wrapper injects `RUST_LOG=error` for spawned processes to silence verbose upstream tracing. Set `RUST_LOG=info` (or higher) to debug codex internals alongside your own logs.
 
 ## Apply or inspect diffs
 
@@ -84,7 +100,7 @@ The events continue to flow to your `events` stream even when log teeing is enab
 
 - `mirror_stdout` controls whether stdout is echoed while still being captured.
 - `quiet` suppresses stderr mirroring (stderr is always returned in the artifacts).
-- `RUST_LOG` defaults to `error` for these subcommands when the environment is unset; set `RUST_LOG=info` (or higher) to inspect codex internals.
+- When you stream JSONL events, apply/diff output is also emitted inside `file_change` events (stdout/stderr/exit code) and tee'd to any `json_event_log` path you configure.
 
 ```rust
 use codex::CodexClient;
@@ -102,15 +118,16 @@ println!("stderr: {}", apply.stderr);
 # Ok(()) }
 ```
 
-When you stream JSONL events, apply/diff output is also emitted inside `file_change` events (stdout/stderr/exit code) and tee'd to any `json_event_log` path you configure.
+## MCP + App-Server flows
+- `crates/codex/examples/mcp_codex_tool.rs`: start `codex mcp-server --stdio`, call `tools/codex` with prompt/cwd/model/sandbox, and watch `approval_required`/`task_complete` notifications (supports `--sample`).
+- `crates/codex/examples/mcp_codex_reply.rs`: resume a session via `tools/codex-reply`, taking `CODEX_CONVERSATION_ID` or a CLI arg; supports `--sample`.
+- `crates/codex/examples/app_server_thread_turn.rs`: launch `codex app-server --stdio`, send `thread/start` then `turn/start`, and stream task notifications; supports `--sample` and `CODEX_HOME` isolation.
 
-## RUST_LOG defaults
-
-If `RUST_LOG` is unset, the wrapper injects `RUST_LOG=error` for the spawned `codex` process to silence verbose upstream tracing. Any existing `RUST_LOG` value is respected. To debug codex internals alongside your own logs, set `RUST_LOG=info` (or higher) before invoking `CodexClient`.
+## Feature detection and upgrades
+- `crates/codex/examples/feature_detection.rs` probes `codex --version` and `codex features list` to gate streaming/log tee/artifact flags plus MCP/app-server endpoints and emit upgrade advisories.
+- `crates/codex/EXAMPLES.md` maps every example to the matching CLI invocation for parity checks. Most examples ship `--sample` payloads so you can read shapes without a binary present.
 
 ## Release notes
-
-- New streaming docs cover `ExecStreamRequest` fields, idle timeouts, and the `events`/`completion` contract.
-- Documented the JSON event log tee: append-only, flushed per line, request-level override of builder default.
-- Clarified `RUST_LOG` defaults (`error` when unset) and how to opt into more verbose codex logs.
-- Added apply/diff helper docs: captured stdout/stderr/exit status, console mirroring defaults, and how output flows into JSON event logs.
+- Streaming docs cover `ExecStreamRequest` fields, idle timeouts, artifact paths, and the `events`/`completion` contract alongside JSON event log teeing.
+- Binary and `CODEX_HOME` isolation guidance is consolidated with bundled-binary fallbacks and layout helpers.
+- MCP/app-server, feature detection, and capability-guarded usage now ship examples and README pointers.

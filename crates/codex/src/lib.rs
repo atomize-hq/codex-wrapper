@@ -1,25 +1,29 @@
-//! Async wrapper over the [OpenAI Codex CLI](https://github.com/openai/codex).
+//! Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, and server flows.
 //!
-//! Shells out to `codex exec`, enforces sensible defaults (non-interactive color handling, timeouts, optional model selection), and supports both single-response and streaming flows.
+//! Shells out to `codex exec`, enforces sensible defaults (non-interactive color handling, timeouts, optional model selection), and supports single-response, streaming, and server flows.
 //!
 //! Surfaces:
 //! - [`CodexClient::send_prompt`] for a single prompt/response with optional `--json` output.
 //! - [`CodexClient::stream_exec`] for typed, real-time JSONL events from `codex exec --json`, returning an [`ExecStream`] with an event stream plus a completion future.
 //! - [`CodexClient::apply`] / [`CodexClient::diff`] to run `codex apply/diff`, echo stdout/stderr according to the builder (`mirror_stdout` / `quiet`), and return captured output + exit status.
 //!
-//! Binary and `CODEX_HOME` isolation (Workstream A):
-//! - Point at a bundled Codex binary with [`CodexClientBuilder::binary`] or honor `CODEX_BINARY` and `PATH` fallbacks.
+//! Binary and `CODEX_HOME` isolation:
+//! - Point at a bundled Codex binary with [`CodexClientBuilder::binary`] or honor `CODEX_BINARY`/`PATH` fallbacks; examples also support a `CODEX_BUNDLED_PATH` hint and a local `bin/codex`.
 //! - Scope Codex data via [`CodexClientBuilder::codex_home`] and optionally create the layout with [`CodexClientBuilder::create_home_dirs`]; overrides are applied per spawn without mutating the parent environment.
 //! - Use [`CodexHomeLayout`] to inspect `config.toml`, `auth.json`, `.credentials.json`, `history.jsonl`, `conversations/`, and `logs/` paths under an isolated home.
-//! - Backward compatibility: callers that ignore the new options keep today's behavior (binary from `CODEX_BINARY` or `codex` on PATH, no forced `CODEX_HOME`, same spawning semantics).
 //!
-//! Logging and defaults:
+//! Streaming, logging, and defaults:
+//! - Wrapper defaults: temp working dir per call (unless `working_dir` is set), `--skip-git-repo-check`, 120s timeout (use `Duration::ZERO` to disable), ANSI colors off, `RUST_LOG=error` if unset.
 //! - Set `json_event_log` on the builder or [`ExecStreamRequest`] to tee raw JSONL lines to disk before parsing. Logs append to existing files, flush per line, and create parent directories.
 //! - Disable `mirror_stdout` when parsing JSON so stdout stays under caller control; `quiet` controls stderr mirroring.
-//! - When `RUST_LOG` is unset, spawned commands inherit `RUST_LOG=error` to mute verbose tracing.
-//! - Streaming apply/diff output (stdout/stderr/exit) flows into `file_change` events and any configured `json_event_log` tee before parsing.
+//! - Streaming apply/diff output (stdout/stderr/exit) flows into `file_change` events and any configured `json_event_log` tee before parsing. `ExecStreamRequest` supports `idle_timeout`, `output_last_message`, and `output_schema` for artifact handling.
+//! - Events include `thread.started`, `turn.started`/`turn.completed`/`turn.failed`, and `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus optional `status`/`content`/`input`.
 //!
-//! See `examples/json_stream.rs` and `crates/codex/EXAMPLES.md` for end-to-end walkthroughs.
+//! Servers and capability detection:
+//! - Integrate the stdio servers via `codex mcp-server --stdio` (`crates/codex/examples/mcp_codex_tool.rs`, `crates/codex/examples/mcp_codex_reply.rs`) and `codex app-server --stdio` (`crates/codex/examples/app_server_thread_turn.rs`) to drive JSON-RPC flows and approvals.
+//! - Gate optional flags with `crates/codex/examples/feature_detection.rs`, which parses `codex --version` + `codex features list` to decide whether to enable streaming, log tee, or app-server endpoints and to emit upgrade advisories.
+//!
+//! More end-to-end flows and CLI mappings live in `README.md` and `crates/codex/EXAMPLES.md`.
 
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -951,6 +955,11 @@ fn apply_feature_overrides(
 }
 
 /// High-level client for interacting with `codex exec`.
+///
+/// Spawns the CLI with safe defaults (`--skip-git-repo-check`, temp working dirs unless
+/// `working_dir` is set, 120s timeout unless zero, ANSI colors off, `RUST_LOG=error` if unset),
+/// mirrors stdout by default, and returns whatever the CLI printed. See the crate docs for
+/// streaming/log tee/server patterns and example links.
 #[derive(Clone, Debug)]
 pub struct CodexClient {
     command_env: CommandEnvironment,
@@ -1006,6 +1015,21 @@ impl CodexClient {
     }
 
     /// Sends `prompt` to `codex exec` and returns its stdout (the final agent message) on success.
+    ///
+    /// When `.json(true)` is enabled the CLI emits JSONL events (`thread.started`, `turn.started`,
+    /// `item.created`, `turn.completed`, or `error`). The stream is mirrored to stdout unless
+    /// `.mirror_stdout(false)`; the returned string contains the buffered lines for offline parsing.
+    /// For per-event handling, see `crates/codex/examples/stream_events.rs`.
+    ///
+    /// ```rust,no_run
+    /// use codex::CodexClient;
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let client = CodexClient::builder().json(true).mirror_stdout(false).build();
+    /// let jsonl = client.send_prompt("Stream repo status").await?;
+    /// println!("{jsonl}");
+    /// # Ok(()) }
+    /// ```
     pub async fn send_prompt(&self, prompt: impl AsRef<str>) -> Result<String, CodexError> {
         let prompt = prompt.as_ref();
         if prompt.trim().is_empty() {
@@ -1823,7 +1847,11 @@ impl CodexClientBuilder {
         Self::default()
     }
 
-    /// Sets the path to the Codex binary. Defaults to `codex`.
+    /// Sets the path to the Codex binary.
+    ///
+    /// Defaults to `CODEX_BINARY` when present or `codex` on `PATH`. Use this to pin a packaged
+    /// binary; `crates/codex/examples/bundled_binary.rs` demonstrates a `CODEX_BUNDLED_PATH`
+    /// fallback.
     pub fn binary(mut self, binary: impl Into<PathBuf>) -> Self {
         self.binary = binary.into();
         self
@@ -1903,6 +1931,11 @@ impl CodexClientBuilder {
     }
 
     /// Enables Codex's JSONL output mode (`--json`).
+    ///
+    /// Prompts are piped via stdin when enabled. Events include `thread.started`,
+    /// `turn.started`/`turn.completed`, and `item.created` with `item.type` such as
+    /// `agent_message` or `reasoning`. Pair with `.mirror_stdout(false)` if you plan to parse the
+    /// stream instead of just mirroring it.
     pub fn json(mut self, enable: bool) -> Self {
         self.json_output = enable;
         self
@@ -1923,7 +1956,8 @@ impl CodexClientBuilder {
     }
 
     /// Controls whether Codex stdout should be mirrored to the console while
-    /// also being captured. Disable this when you plan to parse JSONL output.
+    /// also being captured. Disable this when you plan to parse JSONL output or
+    /// tee the stream to a log file (see `crates/codex/examples/stream_with_log.rs`).
     pub fn mirror_stdout(mut self, enable: bool) -> Self {
         self.mirror_stdout = enable;
         self

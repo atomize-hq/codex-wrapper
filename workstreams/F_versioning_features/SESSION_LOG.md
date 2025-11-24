@@ -37,3 +37,12 @@ Kickoff prompt for next integration (H → integration/adf):
 - Merge `ws/H_docs_examples` on top of the F-integrated baseline; resolve doc/readme/example conflicts alongside capability changes.
 - Reconcile crate/docs versions with the highest from A+D+F (codex 0.2.0 unless H bumps it), regenerate `Cargo.lock`, and run `cargo test -p codex --doc --examples`.
 - Update integration logs with results and hand off for subsequent integration phases.
+
+[START 2025-11-24T12:00:00Z] Agent: Codex | Task(s): integration/adfh merge (ws/H_docs_examples) | Branch: integration/adfh | Notes: Starting merge of ws/H_docs_examples into the A+D+F baseline; expecting README/EXAMPLES/lib doc conflicts.
+[END 2025-11-24T12:35:00Z] Agent: Codex | Task(s): integration/adfh merge (ws/H_docs_examples) | Branch: integration/adfh | Notes: Conflicts resolved with updated README/EXAMPLES/rustdoc/tasks; tests green (`cargo test -p codex`, `cargo test -p codex --doc`, `cargo test -p codex --examples`); ready to merge E next.
+
+Kickoff prompt for next integration (E → integration/adfh):
+- Start from a clean `integration/adfh`, create `integration/adfhe` (or the next integration branch) and add a worktree if helpful.
+- Merge `ws/E_mcp_app_server` on top, reconciling MCP/app-server docs/examples with capability guards and existing streaming/apply guidance.
+- Keep crate versions aligned with the integration line (codex 0.2.0); regenerate `Cargo.lock` if deps shift and run `cargo test -p codex`, `cargo test -p codex --doc`, and `cargo test -p codex --examples`.
+- Update integration logs after the merge and prepare the following kickoff.
