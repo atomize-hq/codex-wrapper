@@ -114,5 +114,28 @@
       "Handoff note"
     ],
     "status": "done"
+  },
+  {
+    "id": "H7-docs-backlog",
+    "title": "Docs backlog sweep",
+    "description": "Sweep remaining doc/example backlog items: fold in streaming/log-tee/API changes from Workstream D, document apply/resume/apply/diff flows, sync capability hooks/caching guidance with latest codex features list output.",
+    "dependencies": [
+      "H6-docs-handoff"
+    ],
+    "files": [
+      "README.md",
+      "crates/codex/EXAMPLES.md",
+      "crates/codex/src/lib.rs",
+      "crates/codex/examples"
+    ],
+    "tests": [
+      "cargo test -p codex --doc",
+      "cargo test -p codex --examples"
+    ],
+    "outputs": [
+      "Updated docs/examples",
+      "Upgrade advisories/gaps note"
+    ],
+    "status": "done"
   }
 ]
