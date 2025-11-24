@@ -34,10 +34,21 @@
 //! - `.mirror_stdout(true)` (default) lets you watch the stream live while the wrapper buffers it;
 //!   set `.mirror_stdout(false)` when you need to parse the JSON yourself.
 //! - Persist artifacts via CLI flags (`--output-last-message`, `--output-schema`) and tee events to
-//!   `CODEX_LOG_PATH` (see `crates/codex/examples/stream_with_log.rs`).
+//!   `CODEX_LOG_PATH` (see `crates/codex/examples/stream_with_log.rs`). If the binary advertises a
+//!   built-in log tee via `codex features list`, prefer that instead of manual mirroring.
 //! - See `crates/codex/examples/stream_events.rs` for a typed consumer and
 //!   `crates/codex/examples/stream_last_message.rs` for handling the saved artifacts; both offer
 //!   `--sample` payloads.
+//!
+//! ## Resume + apply/diff
+//! - `codex resume --json --skip-git-repo-check --last` (or `--id <conversationId>`) streams the
+//!   same `thread/turn/item` events as `exec` so you can continue a prior turn; reuse the streaming
+//!   consumers above to handle the feed.
+//! - `codex diff --json --skip-git-repo-check` previews staged changes, and `codex apply --json`
+//!   returns stdout/stderr plus the exit status for the apply step. Keep handling non-JSON stdout
+//!   defensively in host apps.
+//! - `crates/codex/examples/resume_apply.rs` strings these together with sample payloads and lets
+//!   you skip the apply call when you just want the resume stream.
 //!
 //! ```rust,no_run
 //! use tokio::{io::{AsyncBufReadExt, AsyncWriteExt, BufReader}, process::Command};
@@ -61,8 +72,9 @@
 //!   `crates/codex/examples/mcp_codex_reply.rs`) and `codex app-server --stdio`
 //!   (`crates/codex/examples/app_server_thread_turn.rs`) to drive JSON-RPC flows and approvals.
 //! - Gate optional flags with `crates/codex/examples/feature_detection.rs`, which parses
-//!   `codex --version` + `codex features list` to decide whether to enable streaming, log tee, or
-//!   app-server endpoints and to emit upgrade advisories.
+//!   `codex --version` + `codex features list` to decide whether to enable streaming, log tee,
+//!   resume/apply/diff helpers, or app-server endpoints. Cache feature probes per binary path and
+//!   emit upgrade advisories when required capabilities are missing.
 //!
 //! More end-to-end flows and CLI mappings live in `README.md` and `crates/codex/EXAMPLES.md`.
 

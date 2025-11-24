@@ -14,3 +14,8 @@
 ## Verification
 - `cargo test -p codex --doc` (pass)
 - `cargo test -p codex --examples` (pass)
+
+## H7 backlog sweep
+- Added `resume_apply` example plus README/lib/EXAMPLES coverage for resume/diff/apply flows, apply stdout/stderr/exit capture, and log-tee advisories.
+- Synced feature detection docs/examples with per-binary caching and gating for resume/apply/artifact flags alongside streaming/log-tee and server endpoints.
+- Remaining risks: streaming/apply payloads are still sample-only (no live binary validation), feature names from `codex features list` may drift, and a typed streaming API inside the crate remains unimplemented.
