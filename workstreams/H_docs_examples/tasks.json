@@ -114,5 +114,29 @@
       "Handoff note"
     ],
     "status": "done"
+  },
+  {
+    "id": "H7-docs-backlog",
+    "title": "Docs backlog and live validation",
+    "description": "Capture and address remaining docs/example backlog: run streaming/MCP/app-server samples against a live Codex binary, reconcile capability probe notes with Workstream F, and add any missing typed-stream/log-tee helper documentation.",
+    "dependencies": [
+      "H6-docs-handoff"
+    ],
+    "files": [
+      "README.md",
+      "crates/codex/EXAMPLES.md",
+      "crates/codex/src/lib.rs",
+      "crates/codex/examples",
+      "workstreams/H_docs_examples/kickoff_prompts/07_H7-docs-backlog.md"
+    ],
+    "tests": [
+      "cargo test -p codex --doc",
+      "cargo test -p codex --examples"
+    ],
+    "outputs": [
+      "Backlog list + addressed fixes",
+      "Validated examples against live Codex (notes)"
+    ],
+    "status": "pending"
   }
 ]

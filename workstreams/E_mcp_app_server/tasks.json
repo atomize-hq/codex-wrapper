@@ -108,5 +108,16 @@
     "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
     "tests": ["cargo test -p codex"],
     "outputs": ["App runtime lifecycle helpers", "Tests for start/stop without metadata mutation"]
+  },
+  {
+    "id": "E12-app-runtime-pool",
+    "title": "App runtime pool and reuse",
+    "status": "pending",
+    "description": "Design and implement an app-server runtime pool so multiple prepared runtimes can be started, reused, and stopped safely with metadata intact. Include lifecycle coordination, limits, and cleanup of stale handles; ensure compatibility with capability guards and existing app runtime helpers.",
+    "dependencies": ["E11-app-runtime-lifecycle"],
+    "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "workstreams/E_mcp_app_server/kickoff_prompts/12_E12-app-runtime-pool.md"],
+    "tests": ["cargo test -p codex"],
+    "outputs": ["Pool implementation and tests (start/reuse/stop)", "Updated docs/examples if APIs surface publicly"],
+    "notes": "Follow kickoff prompt for branch/worktree flow; keep metadata/config non-destructive."
   }
 ]
