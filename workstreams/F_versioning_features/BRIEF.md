@@ -20,3 +20,23 @@ Deliverables
 - Tests for parsing/version ordering.
 - Docs on how host can react to upgrade availability.
 - At task completion, agent must write the kickoff prompt for the next task in this workstream branch (not in a worktree).
+
+## Consuming capability guards
+- Probe once per binary (`probe_capabilities`) and consult guards before enabling optional flags like `--output-schema`, `--add-dir`, or `login --mcp`. The wrapper skips requested flags when support is unknown to stay compatible with older releases.
+- Example:
+```rust
+let capabilities = client.probe_capabilities().await;
+let output_schema = capabilities.guard_output_schema();
+let add_dir = capabilities.guard_add_dir();
+
+let client = CodexClient::builder()
+    .binary("/path/to/codex")
+    .output_schema(output_schema.is_supported())
+    .add_dir("/workspace")
+    .build();
+
+if let Some(child) = client.spawn_mcp_login_process().await? {
+    // handle MCP login child or drop it to kill the helper
+}
+```
+- When guards are `Unknown`, skip the optional flags and surface the guard notes to operators rather than attempting the flag blindly.

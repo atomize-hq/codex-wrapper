@@ -470,6 +470,19 @@ fn guard_feature_support(
     CapabilityGuard::unknown(feature, notes)
 }
 
+fn guard_is_supported(guard: &CapabilityGuard) -> bool {
+    matches!(guard.support, CapabilitySupport::Supported)
+}
+
+fn log_guard_skip(guard: &CapabilityGuard) {
+    warn!(
+        feature = guard.feature.label(),
+        support = ?guard.support,
+        notes = ?guard.notes,
+        "Skipping requested Codex capability because support was not confirmed"
+    );
+}
+
 /// Cache key for capability snapshots derived from a specific Codex binary path.
 ///
 /// Cache lookups should canonicalize the path when possible so symlinked binaries
@@ -550,8 +563,10 @@ pub struct CodexClient {
     timeout: Duration,
     color_mode: ColorMode,
     working_dir: Option<PathBuf>,
+    add_dirs: Vec<PathBuf>,
     images: Vec<PathBuf>,
     json_output: bool,
+    output_schema: bool,
     quiet: bool,
     mirror_stdout: bool,
 }
@@ -612,6 +627,38 @@ impl CodexClient {
             binary: self.command_env.binary_path().to_path_buf(),
             source,
         })
+    }
+
+    /// Spawns `codex login --mcp` when the probed binary advertises support.
+    ///
+    /// Returns `Ok(None)` when the capability is unknown or unsupported so
+    /// callers can degrade gracefully without attempting the flag.
+    pub async fn spawn_mcp_login_process(
+        &self,
+    ) -> Result<Option<tokio::process::Child>, CodexError> {
+        let capabilities = self.probe_capabilities().await;
+        let guard = capabilities.guard_mcp_login();
+        if !guard_is_supported(&guard) {
+            log_guard_skip(&guard);
+            return Ok(None);
+        }
+
+        let mut command = Command::new(self.command_env.binary_path());
+        command
+            .arg("login")
+            .arg("--mcp")
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true);
+
+        self.command_env.apply(&mut command)?;
+
+        let child = command.spawn().map_err(|source| CodexError::Spawn {
+            binary: self.command_env.binary_path().to_path_buf(),
+            source,
+        })?;
+
+        Ok(Some(child))
     }
 
     /// Returns the current Codex authentication state by invoking `codex login status`.
@@ -819,6 +866,12 @@ impl CodexClient {
 
     async fn invoke_codex_exec(&self, prompt: &str) -> Result<String, CodexError> {
         let dir_ctx = self.directory_context()?;
+        let needs_capabilities = self.output_schema || !self.add_dirs.is_empty();
+        let capabilities = if needs_capabilities {
+            Some(self.probe_capabilities().await)
+        } else {
+            None
+        };
 
         let mut command = Command::new(self.command_env.binary_path());
         command
@@ -850,6 +903,28 @@ impl CodexClient {
 
         if let Some(model) = &self.model {
             command.arg("--model").arg(model);
+        }
+
+        if let Some(capabilities) = &capabilities {
+            if self.output_schema {
+                let guard = capabilities.guard_output_schema();
+                if guard_is_supported(&guard) {
+                    command.arg("--output-schema");
+                } else {
+                    log_guard_skip(&guard);
+                }
+            }
+
+            if !self.add_dirs.is_empty() {
+                let guard = capabilities.guard_add_dir();
+                if guard_is_supported(&guard) {
+                    for dir in &self.add_dirs {
+                        command.arg("--add-dir").arg(dir);
+                    }
+                } else {
+                    log_guard_skip(&guard);
+                }
+            }
         }
 
         for image in &self.images {
@@ -1034,8 +1109,10 @@ pub struct CodexClientBuilder {
     timeout: Duration,
     color_mode: ColorMode,
     working_dir: Option<PathBuf>,
+    add_dirs: Vec<PathBuf>,
     images: Vec<PathBuf>,
     json_output: bool,
+    output_schema: bool,
     quiet: bool,
     mirror_stdout: bool,
 }
@@ -1091,6 +1168,24 @@ impl CodexClientBuilder {
         self
     }
 
+    /// Requests that `codex exec` include one or more `--add-dir` flags when the
+    /// probed binary supports them. Unsupported or unknown capability results
+    /// skip the flag to avoid CLI errors.
+    pub fn add_dir(mut self, path: impl Into<PathBuf>) -> Self {
+        self.add_dirs.push(path.into());
+        self
+    }
+
+    /// Replaces the current add-dir list with the provided collection.
+    pub fn add_dirs<I, P>(mut self, dirs: I) -> Self
+    where
+        I: IntoIterator<Item = P>,
+        P: Into<PathBuf>,
+    {
+        self.add_dirs = dirs.into_iter().map(Into::into).collect();
+        self
+    }
+
     /// Adds an image to the prompt by passing `--image <path>` to `codex exec`.
     pub fn image(mut self, path: impl Into<PathBuf>) -> Self {
         self.images.push(path.into());
@@ -1110,6 +1205,14 @@ impl CodexClientBuilder {
     /// Enables Codex's JSONL output mode (`--json`).
     pub fn json(mut self, enable: bool) -> Self {
         self.json_output = enable;
+        self
+    }
+
+    /// Requests the `--output-schema` flag when the probed binary reports
+    /// support. When capability detection is inconclusive, the flag is skipped
+    /// to maintain compatibility with older releases.
+    pub fn output_schema(mut self, enable: bool) -> Self {
+        self.output_schema = enable;
         self
     }
 
@@ -1136,8 +1239,10 @@ impl CodexClientBuilder {
             timeout: self.timeout,
             color_mode: self.color_mode,
             working_dir: self.working_dir,
+            add_dirs: self.add_dirs,
             images: self.images,
             json_output: self.json_output,
+            output_schema: self.output_schema,
             quiet: self.quiet,
             mirror_stdout: self.mirror_stdout,
         }
@@ -1154,8 +1259,10 @@ impl Default for CodexClientBuilder {
             timeout: DEFAULT_TIMEOUT,
             color_mode: ColorMode::Never,
             working_dir: None,
+            add_dirs: Vec::new(),
             images: Vec::new(),
             json_output: false,
+            output_schema: false,
             quiet: false,
             mirror_stdout: true,
         }
@@ -2084,6 +2191,174 @@ mod tests {
 
         let features_list = capabilities.guard_features_list();
         assert_eq!(features_list.support, CapabilitySupport::Unknown);
+    }
+
+    #[tokio::test]
+    async fn exec_applies_guarded_flags_when_supported() {
+        let _guard = env_guard();
+        clear_capability_cache();
+
+        let temp = tempfile::tempdir().unwrap();
+        let log_path = temp.path().join("exec.log");
+        let script = format!(
+            r#"#!/bin/bash
+log="{log}"
+if [[ "$1" == "--version" ]]; then
+  echo "codex 1.2.3"
+elif [[ "$1" == "features" && "$2" == "list" && "$3" == "--json" ]]; then
+  echo '{{"features":["output_schema","add_dir","mcp_login"]}}'
+elif [[ "$1" == "features" && "$2" == "list" ]]; then
+  echo "output_schema add_dir login --mcp"
+elif [[ "$1" == "--help" ]]; then
+  echo "Usage: codex --output-schema add-dir login --mcp"
+elif [[ "$1" == "exec" ]]; then
+  echo "$@" >> "$log"
+  echo "ok"
+fi
+"#,
+            log = log_path.display()
+        );
+        let binary = write_fake_codex(temp.path(), &script);
+        let client = CodexClient::builder()
+            .binary(&binary)
+            .timeout(Duration::from_secs(5))
+            .add_dir("src")
+            .output_schema(true)
+            .quiet(true)
+            .mirror_stdout(false)
+            .build();
+
+        let response = client.send_prompt("hello").await.unwrap();
+        assert_eq!(response.trim(), "ok");
+
+        let logged = fs::read_to_string(&log_path).unwrap();
+        assert!(logged.contains("--add-dir"));
+        assert!(logged.contains("src"));
+        assert!(logged.contains("--output-schema"));
+    }
+
+    #[tokio::test]
+    async fn exec_skips_guarded_flags_when_unknown() {
+        let _guard = env_guard();
+        clear_capability_cache();
+
+        let temp = tempfile::tempdir().unwrap();
+        let log_path = temp.path().join("exec.log");
+        let script = format!(
+            r#"#!/bin/bash
+log="{log}"
+if [[ "$1" == "--version" ]]; then
+  echo "codex 0.9.0"
+elif [[ "$1" == "features" && "$2" == "list" && "$3" == "--json" ]]; then
+  echo "feature list unavailable" >&2
+  exit 1
+elif [[ "$1" == "features" && "$2" == "list" ]]; then
+  echo "feature list unavailable" >&2
+  exit 1
+elif [[ "$1" == "--help" ]]; then
+  echo "Usage: codex exec"
+elif [[ "$1" == "exec" ]]; then
+  echo "$@" >> "$log"
+  echo "ok"
+fi
+"#,
+            log = log_path.display()
+        );
+        let binary = write_fake_codex(temp.path(), &script);
+        let client = CodexClient::builder()
+            .binary(&binary)
+            .timeout(Duration::from_secs(5))
+            .add_dir("src")
+            .output_schema(true)
+            .quiet(true)
+            .mirror_stdout(false)
+            .build();
+
+        let response = client.send_prompt("hello").await.unwrap();
+        assert_eq!(response.trim(), "ok");
+
+        let logged = fs::read_to_string(&log_path).unwrap();
+        assert!(!logged.contains("--add-dir"));
+        assert!(!logged.contains("--output-schema"));
+    }
+
+    #[tokio::test]
+    async fn mcp_login_skips_when_unsupported() {
+        let _guard = env_guard();
+        clear_capability_cache();
+
+        let temp = tempfile::tempdir().unwrap();
+        let log_path = temp.path().join("login.log");
+        let script = format!(
+            r#"#!/bin/bash
+log="{log}"
+if [[ "$1" == "--version" ]]; then
+  echo "codex 1.0.0"
+elif [[ "$1" == "features" && "$2" == "list" && "$3" == "--json" ]]; then
+  echo '{{"features":["output_schema","add_dir"]}}'
+elif [[ "$1" == "features" && "$2" == "list" ]]; then
+  echo "output_schema add-dir"
+elif [[ "$1" == "--help" ]]; then
+  echo "Usage: codex exec"
+elif [[ "$1" == "login" ]]; then
+  echo "$@" >> "$log"
+  echo "login invoked"
+fi
+"#,
+            log = log_path.display()
+        );
+        let binary = write_fake_codex(temp.path(), &script);
+        let client = CodexClient::builder()
+            .binary(&binary)
+            .timeout(Duration::from_secs(5))
+            .build();
+
+        let login = client.spawn_mcp_login_process().await.unwrap();
+        assert!(login.is_none());
+        assert!(!log_path.exists());
+    }
+
+    #[tokio::test]
+    async fn mcp_login_runs_when_supported() {
+        let _guard = env_guard();
+        clear_capability_cache();
+
+        let temp = tempfile::tempdir().unwrap();
+        let log_path = temp.path().join("login.log");
+        let script = format!(
+            r#"#!/bin/bash
+log="{log}"
+if [[ "$1" == "--version" ]]; then
+  echo "codex 2.0.0"
+elif [[ "$1" == "features" && "$2" == "list" && "$3" == "--json" ]]; then
+  echo '{{"features":["output_schema","add_dir"],"mcp_login":true}}'
+elif [[ "$1" == "features" && "$2" == "list" ]]; then
+  echo "output_schema add_dir login --mcp"
+elif [[ "$1" == "--help" ]]; then
+  echo "Usage: codex --output-schema add-dir login --mcp"
+elif [[ "$1" == "login" ]]; then
+  echo "$@" >> "$log"
+  echo "login invoked"
+fi
+"#,
+            log = log_path.display()
+        );
+        let binary = write_fake_codex(temp.path(), &script);
+        let client = CodexClient::builder()
+            .binary(&binary)
+            .timeout(Duration::from_secs(5))
+            .build();
+
+        let login = client
+            .spawn_mcp_login_process()
+            .await
+            .unwrap()
+            .expect("expected login child");
+        let output = login.wait_with_output().await.unwrap();
+        assert!(output.status.success());
+
+        let logged = fs::read_to_string(&log_path).unwrap();
+        assert!(logged.contains("login --mcp"));
     }
 
     #[tokio::test]
