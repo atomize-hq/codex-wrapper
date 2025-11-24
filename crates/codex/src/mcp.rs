@@ -1,12 +1,20 @@
-//! Launch and interact with `codex mcp-server` over stdio JSON-RPC.
+//! Launch and interact with Codex MCP + app servers using stored runtime definitions.
+//!
+//! - Spawn `codex mcp-server`, call `codex/codex` or `codex/codex-reply`, and stream
+//!   `codex/event` notifications (task completion, approvals, cancellations, errors).
+//! - Start `codex app-server` threads/turns and surface item/task_complete notifications.
+//! - Manage `[mcp_servers]` and `[app_runtimes]` config entries, resolve them into launch-ready
+//!   runtimes, and expose read-only APIs (including pooled app runtimes) without mutating stored
+//!   config or thread metadata.
+//! - Requests may be cancelled via the JSON-RPC `$ /cancelRequest` flow.
 //!
 //! The MCP server exposes two tool entrypoints:
 //! - `codex/codex`: start a new Codex session with a prompt.
 //! - `codex/codex-reply`: continue an existing session by conversation ID.
 //!
-//! This module spawns the MCP server, sends requests over stdio, and streams
-//! `codex/event` notifications (task completion, approvals, cancellations,
-//! errors). Requests can be cancelled via JSON-RPC `$ /cancelRequest`.
+//! The app-server supports `thread/start`, `thread/resume`, `turn/start`, and `turn/interrupt`
+//! requests. Runtime and pool helpers keep resume hints/metadata intact while starting,
+//! reusing, and stopping app-server instances.
 
 use std::{
     collections::{BTreeMap, HashMap},
@@ -1178,6 +1186,8 @@ impl AppRuntimeApi {
 }
 
 /// Async pool that starts, reuses, and stops app runtimes without mutating config.
+///
+/// Runtime metadata and resume hints remain intact when runtimes are reused or restarted.
 #[derive(Clone, Debug)]
 pub struct AppRuntimePool {
     manager: AppRuntimeManager,
@@ -1300,6 +1310,9 @@ impl AppRuntimePool {
 }
 
 /// Public API around [`AppRuntimePool`] that exposes pooled lifecycle helpers.
+///
+/// Operations reuse running runtimes when available while preserving stored definitions
+/// and app metadata/resume hints.
 #[derive(Clone, Debug)]
 pub struct AppRuntimePoolApi {
     pool: AppRuntimePool,
@@ -1377,7 +1390,11 @@ impl AppRuntimePoolApi {
     }
 }
 
-/// Helper to load and mutate MCP config stored under `[mcp_servers]`.
+/// Helper to load and mutate MCP + app runtime config stored under `[mcp_servers]` and
+/// `[app_runtimes]`.
+///
+/// Runtime, API, and pool helpers consume this manager in a read-only fashion so stored
+/// definitions, auth hints, and metadata are left untouched while preparing launch configs.
 pub struct McpConfigManager {
     config_path: PathBuf,
 }
@@ -4483,6 +4500,56 @@ time.sleep(30)
         let pooled_summary = &available[0];
         assert_eq!(pooled_summary.name, "pooled");
         assert_eq!(pooled_summary.metadata, metadata);
+
+        let launcher = api.launcher("pooled").expect("pooled launcher");
+        assert_eq!(launcher.description.as_deref(), Some("pooled app"));
+        assert_eq!(launcher.metadata, metadata);
+
+        let launcher_config = launcher.config.clone();
+        assert_eq!(launcher_config.binary, server_path);
+        assert_eq!(
+            launcher_config.code_home.as_deref(),
+            Some(code_home.as_path())
+        );
+        assert_eq!(launcher_config.startup_timeout, Duration::from_secs(2));
+
+        let launcher_env: HashMap<OsString, OsString> =
+            launcher_config.env.into_iter().collect();
+        assert_eq!(
+            launcher_env.get(&OsString::from("CODEX_HOME")),
+            Some(&code_home.as_os_str().to_os_string())
+        );
+        assert_eq!(
+            launcher_env.get(&OsString::from("POOL_ONLY")),
+            Some(&OsString::from("base"))
+        );
+        assert_eq!(
+            launcher_env.get(&OsString::from("APP_POOL_ENV")),
+            Some(&OsString::from("runtime"))
+        );
+
+        let stdio_config = api
+            .stdio_config("pooled")
+            .expect("pooled stdio config without starting");
+        assert_eq!(stdio_config.binary, server_path);
+        assert_eq!(
+            stdio_config.code_home.as_deref(),
+            Some(code_home.as_path())
+        );
+        let stdio_env: HashMap<OsString, OsString> =
+            stdio_config.env.into_iter().collect();
+        assert_eq!(
+            stdio_env.get(&OsString::from("POOL_ONLY")),
+            Some(&OsString::from("base"))
+        );
+        assert_eq!(
+            stdio_env.get(&OsString::from("CODEX_HOME")),
+            Some(&code_home.as_os_str().to_os_string())
+        );
+        assert_eq!(
+            stdio_env.get(&OsString::from("APP_POOL_ENV")),
+            Some(&OsString::from("runtime"))
+        );
 
         assert!(api.running().await.is_empty());
 
