@@ -47,5 +47,16 @@
     "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
     "tests": ["cargo test -p codex"],
     "outputs": ["API + helpers", "Config JSON schema"]
+  },
+  {
+    "id": "E6-mcp-runtime-config",
+    "title": "Resolve MCP runtime configs",
+    "status": "doing",
+    "description": "Wire MCP config/runtime resolution so stdio and streamable_http entries from [mcp_servers] can be loaded and turned into runnable configs (stdio spawn params + HTTP client metadata), including tool enable/disable hints and bearer env var handling.",
+    "dependencies": ["E5-mcp-management"],
+    "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
+    "tests": ["cargo test -p codex"],
+    "outputs": ["Config runtime helpers", "Tests for stdio + HTTP auth/tool hints"],
+    "notes": "Ensure JSON-serializable inputs/outputs and reuse Workstream A env helpers"
   }
 ]
