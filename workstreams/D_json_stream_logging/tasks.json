@@ -22,6 +22,7 @@
     "id": "D3-tests-example",
     "title": "Tests and example for streaming",
     "description": "Add unit/integration tests for event ordering, tool call parsing, error propagation, idle timeout behavior. Add example showing real-time consumption and writing last message file; document in README (coordinate with H).",
+    "status": "done",
     "dependencies": ["D2-implement-stream"],
     "files": ["crates/codex/src/lib.rs", "crates/codex/examples"],
     "tests": ["cargo test -p codex"],
