@@ -4,3 +4,4 @@ Append entries: `[START ...] [END ...] Agent: <name> | Task(s): <IDs> | Branch: 
 
 [START 2025-11-23 23:24:37Z] Agent: Codex | Task(s): H1-plan-docs | Branch: ws/H_docs_examples | Notes: Session start; marking task doing and creating task branch/worktree
 [END 2025-11-23 23:29:58Z] Agent: Codex | Task(s): H1-plan-docs | Branch: ws/H_docs_examples | Notes: Doc plan note drafted/merged; ready for examples + README updates
+[START 2025-11-24 01:36:26Z] Agent: Codex | Task(s): H2-examples-update | Branch: ws/H_docs_examples | Notes: Starting task; will create task branch/worktree next
