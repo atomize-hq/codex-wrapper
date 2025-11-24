@@ -1014,18 +1014,31 @@ def send(payload):
     sys.stdout.write(json.dumps(payload) + "\n")
     sys.stdout.flush()
 
-def handle_codex(req_id):
-    pending[str(req_id)] = "pending"
+def mark_cancelled(target, reason="cancelled"):
+    if target is None:
+        return
+    state = pending.get(str(target)) or {}
+    conv_id = state.get("conversation_id")
+    pending[str(target)] = {"status": "cancelled", "conversation_id": conv_id}
+    if conv_id:
+        send({"jsonrpc": "2.0", "method": "codex/event", "params": {"type": "cancelled", "conversation_id": conv_id, "reason": reason}})
+    send({"jsonrpc": "2.0", "id": target, "error": {"code": -32800, "message": reason}})
+
+def handle_codex(req_id, params):
+    conversation_id = params.get("conversation_id") or f"conv-{req_id}"
+    pending[str(req_id)] = {"status": "pending", "conversation_id": conversation_id}
     def worker():
         time.sleep(0.05)
-        if pending.get(str(req_id)) == "cancelled":
+        state = pending.get(str(req_id))
+        if not state or state.get("status") == "cancelled":
             return
-        send({"jsonrpc": "2.0", "method": "codex/event", "params": {"type": "approval_required", "approval_id": "ap-1", "kind": "exec", "payload": {"cmd": "echo hi"}}})
+        send({"jsonrpc": "2.0", "method": "codex/event", "params": {"type": "approval_required", "approval_id": f"ap-{req_id}", "kind": "exec"}})
         time.sleep(0.05)
-        if pending.get(str(req_id)) == "cancelled":
+        state = pending.get(str(req_id))
+        if not state or state.get("status") == "cancelled":
             return
-        send({"jsonrpc": "2.0", "method": "codex/event", "params": {"type": "task_complete", "conversation_id": "conv-1", "result": {"ok": True}}})
-        send({"jsonrpc": "2.0", "id": req_id, "result": {"conversation_id": "conv-1", "output": {"ok": True}}})
+        send({"jsonrpc": "2.0", "method": "codex/event", "params": {"type": "task_complete", "conversation_id": conversation_id, "result": {"ok": True}}})
+        send({"jsonrpc": "2.0", "id": req_id, "result": {"conversation_id": conversation_id, "output": {"ok": True}}})
         pending.pop(str(req_id), None)
     threading.Thread(target=worker, daemon=True).start()
 
@@ -1037,11 +1050,10 @@ for line in sys.stdin:
     if method == "initialize":
         send({"jsonrpc": "2.0", "id": msg.get("id"), "result": {"ready": True}})
     elif method == "codex/codex" or method == "codex/codex-reply":
-        handle_codex(msg.get("id"))
+        handle_codex(msg.get("id"), msg.get("params", {}))
     elif method == "$/cancelRequest":
         target = msg.get("params", {}).get("id")
-        pending[str(target)] = "cancelled"
-        send({"jsonrpc": "2.0", "id": target, "error": {"code": -32800, "message": "cancelled"}})
+        mark_cancelled(target, reason="client_cancel")
     elif method == "shutdown":
         send({"jsonrpc": "2.0", "id": msg.get("id"), "result": {"ok": True}})
         break
@@ -1072,19 +1084,32 @@ def send(payload):
     sys.stdout.write(json.dumps(payload) + "\n")
     sys.stdout.flush()
 
+def mark_cancelled(req_id, reason="cancelled"):
+    if req_id is None:
+        return
+    state = pending.get(str(req_id)) or {}
+    thread_id = state.get("thread_id") or "thread-unknown"
+    turn_id = state.get("turn_id")
+    pending[str(req_id)] = {"status": "cancelled", "thread_id": thread_id, "turn_id": turn_id}
+    if turn_id:
+        send({"jsonrpc": "2.0", "method": "task/notification", "params": {"type": "task_complete", "thread_id": thread_id, "turn_id": turn_id, "result": {"cancelled": True, "reason": reason}}})
+    send({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32800, "message": reason}})
+
 def handle_turn(req_id, params):
     thread_id = params.get("thread_id") or "thread-unknown"
-    turn_id = f"turn-{req_id}"
-    pending[str(req_id)] = "pending"
+    turn_id = params.get("turn_id") or f"turn-{req_id}"
+    pending[str(req_id)] = {"status": "pending", "thread_id": thread_id, "turn_id": turn_id}
     turn_lookup[turn_id] = req_id
 
     def worker():
         time.sleep(0.05)
-        if pending.get(str(req_id)) == "cancelled":
+        state = pending.get(str(req_id))
+        if not state or state.get("status") == "cancelled":
             return
         send({"jsonrpc": "2.0", "method": "task/notification", "params": {"type": "item", "thread_id": thread_id, "turn_id": turn_id, "item": {"message": "processing"}}})
         time.sleep(0.05)
-        if pending.get(str(req_id)) == "cancelled":
+        state = pending.get(str(req_id))
+        if not state or state.get("status") == "cancelled":
             return
         send({"jsonrpc": "2.0", "method": "task/notification", "params": {"type": "task_complete", "thread_id": thread_id, "turn_id": turn_id, "result": {"ok": True}}})
         send({"jsonrpc": "2.0", "id": req_id, "result": {"turn_id": turn_id, "accepted": True}})
@@ -1115,12 +1140,13 @@ for line in sys.stdin:
         turn_id = params.get("turn_id")
         req_id = turn_lookup.get(turn_id)
         if req_id:
-            pending[str(req_id)] = "cancelled"
+            mark_cancelled(req_id, reason="interrupted")
+            turn_lookup.pop(turn_id, None)
+            pending.pop(str(req_id), None)
         send({"jsonrpc": "2.0", "id": msg.get("id"), "result": {"interrupted": True}})
     elif method == "$/cancelRequest":
         target = msg.get("params", {}).get("id")
-        pending[str(target)] = "cancelled"
-        send({"jsonrpc": "2.0", "id": target, "error": {"code": -32800, "message": "cancelled"}})
+        mark_cancelled(target, reason="client_cancel")
     elif method == "shutdown":
         send({"jsonrpc": "2.0", "id": msg.get("id"), "result": {"ok": True}})
         break
@@ -1146,18 +1172,36 @@ for line in sys.stdin:
         }
     }
 
-    #[tokio::test]
-    async fn codex_flow_streams_events_and_response() {
-        let (_dir, script) = write_fake_mcp_server();
-        let config = test_config(script);
-        let client = ClientInfo {
+    fn test_client() -> ClientInfo {
+        ClientInfo {
             name: "tests".to_string(),
             version: "0.0.0".to_string(),
-        };
+        }
+    }
 
+    async fn start_fake_mcp_server() -> (tempfile::TempDir, CodexMcpServer) {
+        let (dir, script) = write_fake_mcp_server();
+        let config = test_config(script);
+        let client = test_client();
         let server = CodexMcpServer::start(config, client)
             .await
-            .expect("spawn server");
+            .expect("spawn mcp server");
+        (dir, server)
+    }
+
+    async fn start_fake_app_server() -> (tempfile::TempDir, CodexAppServer) {
+        let (dir, script) = write_fake_app_server();
+        let config = test_config(script);
+        let client = test_client();
+        let server = CodexAppServer::start(config, client)
+            .await
+            .expect("spawn app server");
+        (dir, server)
+    }
+
+    #[tokio::test]
+    async fn codex_flow_streams_events_and_response() {
+        let (_dir, server) = start_fake_mcp_server().await;
 
         let params = CodexCallParams {
             prompt: "hello".into(),
@@ -1176,7 +1220,7 @@ for line in sys.stdin:
             .expect("event value");
         match first_event {
             CodexEvent::ApprovalRequired(req) => {
-                assert_eq!(req.approval_id, "ap-1");
+                assert!(req.approval_id.starts_with("ap-"));
                 assert_eq!(req.kind, ApprovalKind::Exec);
             }
             other => panic!("unexpected event: {other:?}"),
@@ -1186,16 +1230,22 @@ for line in sys.stdin:
             .await
             .expect("event timeout")
             .expect("event value");
-        assert!(
-            matches!(second_event, CodexEvent::TaskComplete { conversation_id, .. } if conversation_id == "conv-1")
-        );
+        let event_conversation = match second_event {
+            CodexEvent::TaskComplete {
+                conversation_id, ..
+            } => {
+                assert!(!conversation_id.is_empty());
+                conversation_id
+            }
+            other => panic!("unexpected event: {other:?}"),
+        };
 
         let response = time::timeout(Duration::from_secs(2), handle.response)
             .await
             .expect("response timeout")
             .expect("response recv");
         let response = response.expect("response ok");
-        assert_eq!(response.conversation_id, "conv-1");
+        assert_eq!(response.conversation_id, event_conversation);
         assert_eq!(response.output, serde_json::json!({ "ok": true }));
 
         let _ = server.shutdown().await;
@@ -1203,16 +1253,7 @@ for line in sys.stdin:
 
     #[tokio::test]
     async fn canceling_request_returns_cancelled_error() {
-        let (_dir, script) = write_fake_mcp_server();
-        let config = test_config(script);
-        let client = ClientInfo {
-            name: "tests".to_string(),
-            version: "0.0.0".to_string(),
-        };
-
-        let server = CodexMcpServer::start(config, client)
-            .await
-            .expect("spawn server");
+        let (_dir, server) = start_fake_mcp_server().await;
 
         let params = CodexCallParams {
             prompt: "cancel me".into(),
@@ -1223,8 +1264,27 @@ for line in sys.stdin:
             config: BTreeMap::new(),
         };
 
-        let handle = server.codex(params).await.expect("codex call");
+        let mut handle = server.codex(params).await.expect("codex call");
         server.cancel(handle.request_id).expect("cancel send");
+
+        let expected_conversation = format!("conv-{}", handle.request_id);
+        let cancel_event = time::timeout(Duration::from_secs(2), handle.events.recv())
+            .await
+            .expect("event timeout")
+            .expect("cancel notification");
+        match cancel_event {
+            CodexEvent::Cancelled {
+                conversation_id,
+                reason,
+            } => {
+                assert_eq!(
+                    conversation_id.as_deref(),
+                    Some(expected_conversation.as_str())
+                );
+                assert_eq!(reason.as_deref(), Some("client_cancel"));
+            }
+            other => panic!("expected cancellation event, got {other:?}"),
+        }
 
         let response = time::timeout(Duration::from_secs(2), handle.response)
             .await
@@ -1236,17 +1296,76 @@ for line in sys.stdin:
     }
 
     #[tokio::test]
-    async fn app_flow_streams_notifications_and_response() {
-        let (_dir, script) = write_fake_app_server();
-        let config = test_config(script);
-        let client = ClientInfo {
-            name: "tests".to_string(),
-            version: "0.0.0".to_string(),
-        };
+    async fn codex_reply_streams_follow_up_notifications() {
+        let (_dir, server) = start_fake_mcp_server().await;
 
-        let server = CodexAppServer::start(config, client)
+        let params = CodexCallParams {
+            prompt: "hello".into(),
+            model: None,
+            cwd: None,
+            sandbox: None,
+            approval_policy: None,
+            config: BTreeMap::new(),
+        };
+        let first = server.codex(params).await.expect("start codex");
+        let first_response = time::timeout(Duration::from_secs(2), first.response)
             .await
-            .expect("spawn server");
+            .expect("response timeout")
+            .expect("recv")
+            .expect("ok");
+        let conversation_id = first_response.conversation_id;
+        assert!(!conversation_id.is_empty());
+
+        let reply_params = CodexReplyParams {
+            conversation_id: conversation_id.clone(),
+            prompt: "follow up".into(),
+            model: None,
+            cwd: None,
+            sandbox: None,
+            approval_policy: None,
+            config: BTreeMap::new(),
+        };
+        let mut reply = server.codex_reply(reply_params).await.expect("codex reply");
+
+        let expected_approval = format!("ap-{}", reply.request_id);
+        let approval = time::timeout(Duration::from_secs(2), reply.events.recv())
+            .await
+            .expect("event timeout")
+            .expect("approval");
+        match approval {
+            CodexEvent::ApprovalRequired(req) => {
+                assert_eq!(req.approval_id, expected_approval);
+                assert_eq!(req.kind, ApprovalKind::Exec);
+            }
+            other => panic!("unexpected event: {other:?}"),
+        }
+
+        let complete = time::timeout(Duration::from_secs(2), reply.events.recv())
+            .await
+            .expect("event timeout")
+            .expect("task completion");
+        match complete {
+            CodexEvent::TaskComplete {
+                conversation_id: event_conv,
+                ..
+            } => assert_eq!(event_conv, conversation_id),
+            other => panic!("unexpected event: {other:?}"),
+        }
+
+        let reply_response = time::timeout(Duration::from_secs(2), reply.response)
+            .await
+            .expect("response timeout")
+            .expect("recv")
+            .expect("ok");
+        assert_eq!(reply_response.conversation_id, conversation_id);
+        assert_eq!(reply_response.output, serde_json::json!({ "ok": true }));
+
+        let _ = server.shutdown().await;
+    }
+
+    #[tokio::test]
+    async fn app_flow_streams_notifications_and_response() {
+        let (_dir, server) = start_fake_app_server().await;
 
         let thread_params = ThreadStartParams {
             thread_id: None,
@@ -1328,16 +1447,7 @@ for line in sys.stdin:
 
     #[tokio::test]
     async fn canceling_app_request_returns_cancelled_error() {
-        let (_dir, script) = write_fake_app_server();
-        let config = test_config(script);
-        let client = ClientInfo {
-            name: "tests".to_string(),
-            version: "0.0.0".to_string(),
-        };
-
-        let server = CodexAppServer::start(config, client)
-            .await
-            .expect("spawn server");
+        let (_dir, server) = start_fake_app_server().await;
 
         let thread_params = ThreadStartParams {
             thread_id: None,
@@ -1359,20 +1469,246 @@ for line in sys.stdin:
             .to_string();
 
         let params = TurnStartParams {
-            thread_id,
+            thread_id: thread_id.clone(),
             prompt: "cancel me".into(),
             model: None,
             config: BTreeMap::new(),
         };
 
-        let handle = server.turn_start(params).await.expect("turn start");
+        let mut handle = server.turn_start(params).await.expect("turn start");
         server.cancel(handle.request_id).expect("send cancel");
+
+        let cancel_event = time::timeout(Duration::from_secs(2), handle.events.recv())
+            .await
+            .expect("event timeout")
+            .expect("cancel event");
+        match cancel_event {
+            AppNotification::TaskComplete {
+                thread_id: tid,
+                turn_id,
+                result,
+            } => {
+                assert_eq!(tid, thread_id);
+                assert!(turn_id.is_some());
+                assert_eq!(result.get("cancelled"), Some(&Value::Bool(true)));
+                assert_eq!(
+                    result.get("reason"),
+                    Some(&Value::String("client_cancel".into()))
+                );
+            }
+            other => panic!("unexpected cancellation notification: {other:?}"),
+        }
 
         let response = time::timeout(Duration::from_secs(2), handle.response)
             .await
             .expect("response timeout")
             .expect("recv");
         assert!(matches!(response, Err(McpError::Cancelled)));
+
+        let _ = server.shutdown().await;
+    }
+
+    #[tokio::test]
+    async fn thread_resume_allows_follow_up_turns() {
+        let (_dir, server) = start_fake_app_server().await;
+
+        let thread_params = ThreadStartParams {
+            thread_id: None,
+            metadata: Value::Null,
+        };
+        let thread_handle = server
+            .thread_start(thread_params)
+            .await
+            .expect("thread start");
+        let thread_response = time::timeout(Duration::from_secs(2), thread_handle.response)
+            .await
+            .expect("thread response timeout")
+            .expect("recv")
+            .expect("ok");
+        let thread_id = thread_response
+            .get("thread_id")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+
+        let resume_params = ThreadResumeParams {
+            thread_id: thread_id.clone(),
+        };
+        let resume_handle = server
+            .thread_resume(resume_params)
+            .await
+            .expect("thread resume");
+        let resume_response = time::timeout(Duration::from_secs(2), resume_handle.response)
+            .await
+            .expect("resume response timeout")
+            .expect("recv")
+            .expect("ok");
+        assert_eq!(
+            resume_response
+                .get("thread_id")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+            thread_id
+        );
+        assert_eq!(
+            resume_response
+                .get("resumed")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+            true
+        );
+
+        let params = TurnStartParams {
+            thread_id: thread_id.clone(),
+            prompt: "resume flow".into(),
+            model: None,
+            config: BTreeMap::new(),
+        };
+        let mut turn = server.turn_start(params).await.expect("turn start");
+
+        let item = time::timeout(Duration::from_secs(2), turn.events.recv())
+            .await
+            .expect("event timeout")
+            .expect("item event");
+        let turn_id = match item {
+            AppNotification::Item {
+                thread_id: tid,
+                turn_id: Some(turn_id),
+                ..
+            } => {
+                assert_eq!(tid, thread_id);
+                turn_id
+            }
+            other => panic!("unexpected event: {other:?}"),
+        };
+
+        let complete = time::timeout(Duration::from_secs(2), turn.events.recv())
+            .await
+            .expect("event timeout")
+            .expect("completion event");
+        match complete {
+            AppNotification::TaskComplete {
+                thread_id: tid,
+                turn_id: event_turn,
+                result,
+            } => {
+                assert_eq!(tid, thread_id);
+                assert_eq!(event_turn.as_deref(), Some(turn_id.as_str()));
+                assert_eq!(result, serde_json::json!({ "ok": true }));
+            }
+            other => panic!("unexpected event: {other:?}"),
+        }
+
+        let turn_response = time::timeout(Duration::from_secs(2), turn.response)
+            .await
+            .expect("response timeout")
+            .expect("recv")
+            .expect("ok");
+        assert_eq!(
+            turn_response
+                .get("turn_id")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+            turn_id
+        );
+
+        let _ = server.shutdown().await;
+    }
+
+    #[tokio::test]
+    async fn turn_interrupt_sends_cancel_notification() {
+        let (_dir, server) = start_fake_app_server().await;
+
+        let thread_params = ThreadStartParams {
+            thread_id: None,
+            metadata: Value::Null,
+        };
+        let thread_handle = server
+            .thread_start(thread_params)
+            .await
+            .expect("thread start");
+        let thread_response = time::timeout(Duration::from_secs(2), thread_handle.response)
+            .await
+            .expect("thread response timeout")
+            .expect("recv")
+            .expect("ok");
+        let thread_id = thread_response
+            .get("thread_id")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+
+        let params = TurnStartParams {
+            thread_id: thread_id.clone(),
+            prompt: "please interrupt".into(),
+            model: None,
+            config: BTreeMap::new(),
+        };
+        let mut turn = server.turn_start(params).await.expect("turn start");
+
+        let first_event = time::timeout(Duration::from_secs(2), turn.events.recv())
+            .await
+            .expect("event timeout")
+            .expect("event value");
+        let turn_id = match first_event {
+            AppNotification::Item {
+                thread_id: tid,
+                turn_id: Some(turn),
+                ..
+            } => {
+                assert_eq!(tid, thread_id);
+                turn
+            }
+            other => panic!("unexpected event: {other:?}"),
+        };
+
+        let interrupt = server
+            .turn_interrupt(TurnInterruptParams {
+                thread_id: Some(thread_id.clone()),
+                turn_id: turn_id.clone(),
+            })
+            .await
+            .expect("send interrupt");
+
+        let cancel_event = time::timeout(Duration::from_secs(2), turn.events.recv())
+            .await
+            .expect("event timeout")
+            .expect("cancel event");
+        match cancel_event {
+            AppNotification::TaskComplete {
+                thread_id: tid,
+                turn_id: event_turn,
+                result,
+            } => {
+                assert_eq!(tid, thread_id);
+                assert_eq!(event_turn.as_deref(), Some(turn_id.as_str()));
+                assert_eq!(result.get("cancelled"), Some(&Value::Bool(true)));
+                assert_eq!(
+                    result.get("reason"),
+                    Some(&Value::String("interrupted".into()))
+                );
+            }
+            other => panic!("unexpected cancel notification: {other:?}"),
+        }
+
+        let turn_response = time::timeout(Duration::from_secs(2), turn.response)
+            .await
+            .expect("response timeout")
+            .expect("recv");
+        assert!(matches!(turn_response, Err(McpError::Cancelled)));
+
+        let interrupt_response = time::timeout(Duration::from_secs(2), interrupt.response)
+            .await
+            .expect("interrupt response timeout")
+            .expect("recv")
+            .expect("ok");
+        assert_eq!(
+            interrupt_response
+                .get("interrupted")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+            true
+        );
 
         let _ = server.shutdown().await;
     }
