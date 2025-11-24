@@ -69,15 +69,7 @@ async fn stream_and_log(
 
     let mut command = Command::new(binary);
     command
-        .args([
-            "exec",
-            "--json",
-            "--skip-git-repo-check",
-            "--sandbox",
-            "read-only",
-            "--color",
-            "never",
-        ])
+        .args(["exec", "--json", "--skip-git-repo-check"])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::inherit())
