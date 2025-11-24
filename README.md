@@ -37,7 +37,7 @@ Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, 
   - ANSI colors off by default (`ColorMode::Never`)
   - mirrors stdout by default; set `.mirror_stdout(false)` when parsing JSON
   - `RUST_LOG=error` if unset to keep the console quiet
-  - model-specific reasoning config for `gpt-5`/`gpt-5-codex`
+  - model-specific reasoning config for `gpt-5*`/`gpt-5.1*` defaults to **medium** effort to avoid unsupported “minimal” errors on current models
 - Other builder flags: `.model("gpt-5-codex")`, `.image("/path/mock.png")`, `.json(true)` (pipes prompt via stdin), `.quiet(true)`.
 - Example `crates/codex/examples/send_prompt.rs` covers the baseline; `working_dir(_json).rs`, `timeout*.rs`, `image_json.rs`, `color_always.rs`, `quiet.rs`, and `no_stdout_mirror.rs` expand on inputs and output handling.
 

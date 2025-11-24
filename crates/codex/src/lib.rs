@@ -7,6 +7,9 @@
 //!   `.credentials.json`, `history.jsonl`, `conversations/*.jsonl`, `logs/codex-*.log`).
 //! - Wrapper defaults: temp working dir per call (unless `working_dir` is set), `--skip-git-repo-check`,
 //!   120s timeout (use `Duration::ZERO` to disable), ANSI colors off, `RUST_LOG=error` if unset.
+//! - Model reasoning defaults: for `gpt-5*`/`gpt-5.1*` (including codex variants) the wrapper
+//!   applies `model_reasoning_effort="medium"`/`model_reasoning_summary="auto"`/`model_verbosity="low"`
+//!   to avoid unsupported “minimal” combinations on current releases.
 //!
 //! ```rust,no_run
 //! use codex::CodexClient;
@@ -101,13 +104,19 @@ use tracing::debug;
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(120);
 const DEFAULT_REASONING_CONFIG_GPT5: &[(&str, &str)] = &[
-    ("model_reasoning_effort", "minimal"),
+    ("model_reasoning_effort", "medium"),
     ("model_reasoning_summary", "auto"),
     ("model_verbosity", "low"),
 ];
 
 const DEFAULT_REASONING_CONFIG_GPT5_CODEX: &[(&str, &str)] = &[
-    ("model_reasoning_effort", "low"),
+    ("model_reasoning_effort", "medium"),
+    ("model_reasoning_summary", "auto"),
+    ("model_verbosity", "low"),
+];
+
+const DEFAULT_REASONING_CONFIG_GPT5_1: &[(&str, &str)] = &[
+    ("model_reasoning_effort", "medium"),
     ("model_reasoning_summary", "auto"),
     ("model_verbosity", "low"),
 ];
@@ -619,10 +628,12 @@ impl ColorMode {
 }
 
 fn reasoning_config_for(model: Option<&str>) -> Option<&'static [(&'static str, &'static str)]> {
-    match model {
-        Some(name) if name.eq_ignore_ascii_case("gpt-5-codex") => {
-            Some(DEFAULT_REASONING_CONFIG_GPT5_CODEX)
-        }
+    let name = model.map(|value| value.to_ascii_lowercase());
+    match name.as_deref() {
+        Some(name) if name.starts_with("gpt-5.1-codex") => Some(DEFAULT_REASONING_CONFIG_GPT5_1),
+        Some(name) if name.starts_with("gpt-5.1") => Some(DEFAULT_REASONING_CONFIG_GPT5_1),
+        Some(name) if name == "gpt-5-codex" => Some(DEFAULT_REASONING_CONFIG_GPT5_CODEX),
+        Some(name) if name.starts_with("gpt-5") => Some(DEFAULT_REASONING_CONFIG_GPT5),
         _ => Some(DEFAULT_REASONING_CONFIG_GPT5),
     }
 }
@@ -756,6 +767,10 @@ mod tests {
         assert_eq!(
             reasoning_config_for(Some("gpt-5")).unwrap(),
             DEFAULT_REASONING_CONFIG_GPT5
+        );
+        assert_eq!(
+            reasoning_config_for(Some("gpt-5.1-codex-max")).unwrap(),
+            DEFAULT_REASONING_CONFIG_GPT5_1
         );
         assert_eq!(
             reasoning_config_for(Some("gpt-5-codex")).unwrap(),
