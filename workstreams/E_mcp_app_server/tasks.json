@@ -138,5 +138,15 @@
     "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
     "tests": ["cargo test -p codex"],
     "outputs": ["Docs/tests adjustments", "Post-workstream review fixes"]
+  },
+  {
+    "id": "E15-handoff-prep",
+    "title": "Handoff prep for MCP + app-server",
+    "status": "done",
+    "description": "Produce the handoff package for the MCP and app-server surfaces: tighten README/docs around runtime/pool APIs, capture release notes/checklist, and verify shipped examples/tests match documented behavior without mutating stored config or thread metadata.",
+    "dependencies": ["E14-post-workstream-review"],
+    "files": ["crates/codex/README.md", "crates/codex/EXAMPLES.md", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
+    "tests": ["cargo test -p codex"],
+    "outputs": ["Handoff notes/checklist", "Doc polish for MCP/app runtimes and pool"]
   }
 ]

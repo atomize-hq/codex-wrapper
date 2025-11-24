@@ -31,3 +31,5 @@ Record per session: `[START ...] [END ...] Agent: <name> | Task(s): <IDs> | Bran
 
 [START 2025-11-24T14:14:50-05:00] Agent: Codex | Task(s): E14-post-workstream-review | Branch: ws/E_mcp_app_server | Notes: Session start
 [END 2025-11-24T14:24:49-05:00] Agent: Codex | Task(s): E14-post-workstream-review | Branch: ws/E_mcp_app_server | Notes: Merged task/E14-post-workstream-review
+[START 2025-11-24T14:40:02-05:00] Agent: Codex | Task(s): E15-handoff-prep | Branch: ws/E_mcp_app_server | Notes: Session start
+[END 2025-11-24T14:48:07-05:00] Agent: Codex | Task(s): E15-handoff-prep | Branch: ws/E_mcp_app_server | Notes: Merged task/E15-handoff-prep
