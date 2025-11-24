@@ -35,8 +35,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     } else {
         None
     };
-    let conversation_id = conversation_id_arg
-        .or_else(|| env::var("CODEX_CONVERSATION_ID").ok());
+    let conversation_id = conversation_id_arg.or_else(|| env::var("CODEX_CONVERSATION_ID").ok());
     let prompt = if args.is_empty() {
         "Resume the last Codex turn".to_string()
     } else {
@@ -101,9 +100,7 @@ async fn demo_codex_reply(
         }
     });
 
-    stdin
-        .write_all(request.to_string().as_bytes())
-        .await?;
+    stdin.write_all(request.to_string().as_bytes()).await?;
     stdin.write_all(b"\n").await?;
     stdin.flush().await?;
 

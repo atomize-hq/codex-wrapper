@@ -2,7 +2,8 @@
 //!
 //! This example streams events from `codex resume --json` (using `--last` or a provided
 //! conversation ID) and then calls `codex diff`/`codex apply` to preview and apply the staged
-//! changes. Pass `--sample` to replay bundled payloads when you do not have a Codex binary.
+//! changes. Pass `--sample` to replay bundled payloads from
+//! `crates/codex/examples/fixtures/` when you do not have a Codex binary.
 //!
 //! Examples:
 //! ```bash
@@ -18,41 +19,28 @@ use std::{
     process::Stdio,
 };
 
+#[path = "support/fixtures.rs"]
+mod fixtures;
+
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
 };
-
-const SAMPLE_RESUME_EVENTS: &[&str] = &[
-    r#"{"type":"thread.resumed","thread_id":"demo-thread"}"#,
-    r#"{"type":"turn.started","turn_id":"turn-9","thread_id":"demo-thread"}"#,
-    r#"{"type":"item.created","item":{"type":"reasoning","id":"r1","content":"Resuming the prior task and rebuilding context."}}"#,
-    r#"{"type":"item.created","item":{"type":"command_execution","id":"cmd-42","status":"completed","content":"cargo fmt --all"}}"#,
-    r#"{"type":"item.created","item":{"type":"file_change","id":"chg-3","status":"completed","content":"Patched src/lib.rs"}}"#,
-    r#"{"type":"item.created","item":{"type":"agent_message","id":"msg-2","status":"completed","content":"Rebased the patch; ready to apply."}}"#,
-    r#"{"type":"turn.completed","turn_id":"turn-9","thread_id":"demo-thread"}"#,
-];
-
-const SAMPLE_DIFF: &str = "diff --git a/src/lib.rs b/src/lib.rs\n@@ -1,3 +1,5 @@\n+// resumed turn applies pending diff\n pub fn demo() {}\n";
-const SAMPLE_APPLY_RESULT: &str = r#"{
-  "type": "apply.result",
-  "exit_code": 0,
-  "stdout": "Applied 1 file (src/lib.rs)\n",
-  "stderr": ""
-}"#;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut args: Vec<String> = env::args().skip(1).collect();
     let use_sample = take_flag(&mut args, "--sample");
     let skip_apply = take_flag(&mut args, "--no-apply");
-    let resume_id = take_value(&mut args, "--resume-id")
-        .or_else(|| env::var("CODEX_CONVERSATION_ID").ok());
+    let resume_id =
+        take_value(&mut args, "--resume-id").or_else(|| env::var("CODEX_CONVERSATION_ID").ok());
 
     let binary = resolve_binary();
     if use_sample || !binary_exists(&binary) {
         eprintln!(
-            "Using sample resume/apply payloads; set CODEX_BINARY and drop --sample to hit the real binary."
+            "Using sample resume/apply payloads from {} and {}; set CODEX_BINARY and drop --sample to hit the real binary.",
+            fixtures::RESUME_FIXTURE_PATH,
+            fixtures::APPLY_FIXTURE_PATH
         );
         replay_samples(!skip_apply);
         return Ok(());
@@ -130,16 +118,16 @@ async fn run_diff_and_apply(binary: &Path) -> Result<(), Box<dyn Error>> {
 
 fn replay_samples(include_apply: bool) {
     println!("--- resume stream (sample) ---");
-    for line in SAMPLE_RESUME_EVENTS {
+    for line in fixtures::resume_events() {
         println!("{line}");
     }
 
     println!("--- diff preview (sample) ---");
-    println!("{SAMPLE_DIFF}");
+    print!("{}", fixtures::sample_diff());
 
     if include_apply {
         println!("--- apply (sample) ---");
-        println!("{SAMPLE_APPLY_RESULT}");
+        println!("{}", fixtures::apply_result());
     }
 }
 

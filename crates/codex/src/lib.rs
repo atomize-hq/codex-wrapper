@@ -30,7 +30,8 @@
 //!   `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`,
 //!   `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus
 //!   optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`.
-//!   Sample payloads ship with the streaming examples for offline inspection.
+//!   Sample payloads ship with the streaming examples for offline inspection; the fixtures live at
+//!   `crates/codex/examples/fixtures/*` to keep docs/examples aligned with the CLI surface.
 //! - `.mirror_stdout(true)` (default) lets you watch the stream live while the wrapper buffers it;
 //!   set `.mirror_stdout(false)` when you need to parse the JSON yourself.
 //! - Persist artifacts via CLI flags (`--output-last-message`, `--output-schema`) and tee events to
@@ -75,7 +76,8 @@
 //! - Gate optional flags with `crates/codex/examples/feature_detection.rs`, which parses
 //!   `codex --version` + `codex features list` to decide whether to enable streaming, log tee,
 //!   resume/apply/diff helpers, or app-server endpoints. Cache feature probes per binary path and
-//!   emit upgrade advisories when required capabilities are missing.
+//!   refresh them when the Codex binary path, mtime, or reported version changes; emit upgrade
+//!   advisories when required capabilities are missing.
 //!
 //! More end-to-end flows and CLI mappings live in `README.md` and `crates/codex/EXAMPLES.md`.
 

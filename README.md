@@ -43,6 +43,7 @@ Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, 
 
 ## Streaming Output & Artifacts
 - Event schema: JSONL lines carry `type` plus thread/turn IDs and status. Expect `thread.started` (or `thread.resumed` when continuing a run), `turn.started/turn.completed/turn.failed`, and `item.created/item.updated` where `item.type` can be `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` with optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`. Examples ship `--sample` payloads so you can inspect shapes without a binary.
+- Sample streaming/resume/apply payloads live under `crates/codex/examples/fixtures/*` and power the `--sample` flags in examples; refresh them whenever the CLI JSON surface changes so docs stay aligned.
 - Enable JSONL streaming with `.json(true)` or by invoking the CLI directly. The crate returns captured output; use the examples to consume the stream yourself:
   - `crates/codex/examples/stream_events.rs`: typed consumer for `thread/turn/item` events (success + failure), uses `--timeout 0` to keep streaming, includes idle timeout handling, and a `--sample` replay path.
   - `crates/codex/examples/stream_last_message.rs`: runs `--output-last-message` + `--output-schema`, reads the emitted files, and ships sample payloads if the binary is missing.
@@ -75,7 +76,7 @@ Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, 
 - Sample streams, resume/apply payloads, and feature names reflect the current CLI surface but are not validated against a live binary here; gate risky flags behind capability checks and prefer `--sample` payloads while developing.
 - The crate still buffers stdout/stderr from streaming/apply flows instead of exposing a typed stream API; use the examples to consume JSONL incrementally until a typed interface lands.
 - Apply/diff flows depend on Codex emitting JSON-friendly stdout/stderr; handle non-JSON output defensively in host apps.
-- Capability detection caches are keyed to the binary path for a single process; invalidate them when the binary version or mtime changes, and treat `codex features list` output as best-effort hints that may drift across releases.
+- Capability detection caches are keyed to a binary path/version pairing; refresh them whenever the Codex binary path, mtime, or `--version` output changes instead of reusing stale results across upgrades. Treat `codex features list` output as best-effort hints that may drift across releases and fall back to the fixtures above when probing fails.
 
 ## Examples Index
 - The full wrapper vs. native CLI matrix lives in `crates/codex/EXAMPLES.md`.

@@ -2,7 +2,8 @@
 //!
 //! This is a lightweight stand-in for a built-in log tee option: it mirrors Codex stdout to the
 //! console and appends the same lines to `CODEX_LOG_PATH` (default: `codex-stream.log`).
-//! Use `--sample` to avoid spawning Codex and log the demo events instead.
+//! Use `--sample` to avoid spawning Codex and log the demo events from
+//! `crates/codex/examples/fixtures/streaming.jsonl` instead.
 //!
 //! Example:
 //! ```bash
@@ -19,19 +20,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[path = "support/fixtures.rs"]
+mod fixtures;
+
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::Command,
 };
-
-const SAMPLE_EVENTS: &[&str] = &[
-    r#"{"type":"thread.started","thread_id":"demo-thread"}"#,
-    r#"{"type":"turn.started","turn_id":"turn-1","thread_id":"demo-thread"}"#,
-    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"command_execution","id":"cmd-1","status":"in_progress","content":"npm test"}}"#,
-    r#"{"type":"item.updated","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"command_execution","id":"cmd-1","status":"completed","content":"npm test"}}"#,
-    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"agent_message","id":"msg-1","status":"completed","content":"Streaming log tee demo."}}"#,
-    r#"{"type":"turn.completed","turn_id":"turn-1","thread_id":"demo-thread"}"#,
-];
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -49,7 +44,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let binary = resolve_binary();
     if use_sample || !binary_exists(&binary) {
         eprintln!(
-            "Using sample events; set CODEX_BINARY and drop --sample to stream from the real binary."
+            "Using sample events from {}; set CODEX_BINARY and drop --sample to stream from the real binary.",
+            fixtures::STREAMING_FIXTURE_PATH
         );
         append_sample_events(&log_path)?;
         println!("Log written to {}", log_path.display());
@@ -117,7 +113,7 @@ fn prepare_log_dir(path: &Path) -> Result<(), Box<dyn Error>> {
 
 fn append_sample_events(path: &Path) -> Result<(), Box<dyn Error>> {
     let mut file = OpenOptions::new().create(true).append(true).open(path)?;
-    for line in SAMPLE_EVENTS {
+    for line in fixtures::streaming_events() {
         writeln!(file, "{line}")?;
         println!("{line}");
     }
