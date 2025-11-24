@@ -1,6 +1,6 @@
 # Codex Rust Wrapper
 
-Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, apply/diff helpers, and stdio servers. The crate shells out to `codex`, applies safe defaults (temp working dirs, timeouts, quiet stderr mirroring), and supports bundled binaries plus capability-aware streaming/app-server flows.
+Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, apply/diff helpers, and stdio servers. The crate shells out to `codex`, applies safe defaults (temp working dirs, timeouts, quiet stderr mirroring), and supports bundled binaries plus capability-aware streaming and typed MCP/app-server helpers.
 
 ## Getting Started
 - Add the dependency:
@@ -119,8 +119,12 @@ println!("stderr: {}", apply.stderr);
 ```
 
 ## MCP + App-Server flows
+- `crates/codex/src/mcp.rs`: typed helpers to launch `codex mcp-server`/`codex app-server` over stdio, manage `[mcp_servers]`/`[app_runtimes]` entries, and stream approvals/notifications.
+- Use `CodexClient::spawn_mcp_login_process` (capability-guarded) to collect bearer tokens for HTTP transports before storing them with `McpConfigManager::login`.
+- `crates/codex/examples/mcp_codex_flow.rs`: use `CodexMcpServer` to call `codex/codex`, stream `codex/event`, optionally cancel, and follow up with `codex/codex-reply` when a conversation ID is returned.
 - `crates/codex/examples/mcp_codex_tool.rs`: start `codex mcp-server --stdio`, call `tools/codex` with prompt/cwd/model/sandbox, and watch `approval_required`/`task_complete` notifications (supports `--sample`).
 - `crates/codex/examples/mcp_codex_reply.rs`: resume a session via `tools/codex-reply`, taking `CODEX_CONVERSATION_ID` or a CLI arg; supports `--sample`.
+- `crates/codex/examples/app_server_turns.rs`: use `CodexAppServer` to start or resume threads, stream items/task_complete, and optionally send `turn/interrupt` after a delay.
 - `crates/codex/examples/app_server_thread_turn.rs`: launch `codex app-server --stdio`, send `thread/start` then `turn/start`, and stream task notifications; supports `--sample` and `CODEX_HOME` isolation.
 
 ## Feature detection and upgrades
@@ -130,4 +134,4 @@ println!("stderr: {}", apply.stderr);
 ## Release notes
 - Streaming docs cover `ExecStreamRequest` fields, idle timeouts, artifact paths, and the `events`/`completion` contract alongside JSON event log teeing.
 - Binary and `CODEX_HOME` isolation guidance is consolidated with bundled-binary fallbacks and layout helpers.
-- MCP/app-server, feature detection, and capability-guarded usage now ship examples and README pointers.
+- MCP/app-server coverage now includes `codex::mcp` helpers, feature detection gates, and expanded example pointers.

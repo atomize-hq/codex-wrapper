@@ -135,6 +135,12 @@ When you stream JSONL events, apply/diff output is also emitted inside `file_cha
 
 If `RUST_LOG` is unset, the wrapper injects `RUST_LOG=error` for spawned commands to silence verbose upstream tracing. Any existing `RUST_LOG` value is respected.
 
+## MCP + app-server helpers
+
+- `codex::mcp` offers typed clients for `codex mcp-server --stdio` and `codex app-server --stdio`, along with config managers for `[mcp_servers]` and `[app_runtimes]` plus launcher helpers when you want to spawn from saved config.
+- Use `CodexClient::spawn_mcp_login_process` (capability-guarded) when you need an interactive bearer token for HTTP transports before persisting it via `McpConfigManager::login`.
+- Examples: `mcp_codex_flow` (typed `codex/codex` + `codex/codex-reply` with optional cancellation), `mcp_codex_tool`/`mcp_codex_reply` (raw tool calls with `--sample` payloads), and `app_server_turns`/`app_server_thread_turn` (thread start/resume + optional interrupt). Pair these with `feature_detection` if the binary may be missing server endpoints.
+
 ## Examples
 
 See `crates/codex/EXAMPLES.md` for one-to-one CLI parity examples, including `bundled_binary_home` to run Codex from an embedded binary with isolated state.

@@ -20,10 +20,12 @@
 //! - Events include `thread.started`, `turn.started`/`turn.completed`/`turn.failed`, and `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus optional `status`/`content`/`input`.
 //!
 //! Servers and capability detection:
-//! - Integrate the stdio servers via `codex mcp-server --stdio` (`crates/codex/examples/mcp_codex_tool.rs`, `crates/codex/examples/mcp_codex_reply.rs`) and `codex app-server --stdio` (`crates/codex/examples/app_server_thread_turn.rs`) to drive JSON-RPC flows and approvals.
-//! - Gate optional flags with `crates/codex/examples/feature_detection.rs`, which parses `codex --version` + `codex features list` to decide whether to enable streaming, log tee, or app-server endpoints and to emit upgrade advisories.
+//! - Use `codex::mcp` to launch `codex mcp-server --stdio` / `codex app-server --stdio`, stream JSON-RPC events, and manage runtime config (`crates/codex/examples/mcp_codex_flow.rs`, `crates/codex/examples/mcp_codex_tool.rs`, `crates/codex/examples/mcp_codex_reply.rs`, `crates/codex/examples/app_server_turns.rs`, `crates/codex/examples/app_server_thread_turn.rs`).
+//! - Gate optional flags with `crates/codex/examples/feature_detection.rs`, which parses `codex --version` + `codex features list` to decide whether to enable streaming, log tee, or app-server endpoints and to emit upgrade advisories (hooks into `CodexCapabilities` and `CapabilityGuard`).
 //!
 //! More end-to-end flows and CLI mappings live in `README.md` and `crates/codex/EXAMPLES.md`.
+
+pub mod mcp;
 
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
