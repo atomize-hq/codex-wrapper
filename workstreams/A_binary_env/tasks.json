@@ -54,5 +54,16 @@
     "status": "done",
     "tests": ["cargo test -p codex"],
     "notes": "Keep helpers read-only unless create_home_dirs is true; document expected file locations for host apps."
+  },
+  {
+    "id": "A6-release-polish",
+    "title": "Polish and release binary/env isolation",
+    "description": "Finalize docs/metadata/versioning for binary/CODEX_HOME isolation so host apps can adopt the helpers cleanly.",
+    "dependencies": ["A5-home-path-helpers"],
+    "files": ["crates/codex/src/lib.rs", "crates/codex/EXAMPLES.md", "crates/codex/tests", "workstreams/A_binary_env/BRIEF.md"],
+    "outputs": ["Release-ready docs/notes and metadata updates"],
+    "status": "doing",
+    "tests": ["cargo test -p codex"],
+    "notes": "Focus on release polish (README/notes/version bumps) and ensure tests remain green."
   }
 ]
