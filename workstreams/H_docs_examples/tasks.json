@@ -35,6 +35,6 @@
     "files": ["crates/codex/src/lib.rs", "crates/codex/examples"],
     "tests": ["cargo test -p codex --doc", "cargo test -p codex --examples"],
     "outputs": ["Updated rustdoc"],
-    "status": "doing"
+    "status": "done"
   }
 ]
