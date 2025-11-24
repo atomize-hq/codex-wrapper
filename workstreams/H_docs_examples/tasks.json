@@ -16,7 +16,7 @@
     "files": ["crates/codex/examples", "crates/codex/EXAMPLES.md"],
     "tests": ["cargo test -p codex --examples"],
     "outputs": ["New/updated example files"],
-    "status": "doing"
+    "status": "done"
   },
   {
     "id": "H3-readme",
