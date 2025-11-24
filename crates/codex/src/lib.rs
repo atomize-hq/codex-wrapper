@@ -38,6 +38,7 @@ use std::{
 };
 
 use semver::{Prerelease, Version};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 use tempfile::TempDir;
 use thiserror::Error;
@@ -73,7 +74,7 @@ const DEFAULT_RUST_LOG: &str = "error";
 /// keeps probes cheap; entries should use canonical binary paths where possible and
 /// ship a [`BinaryFingerprint`] so we can invalidate stale snapshots when the binary
 /// on disk changes.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CodexCapabilities {
     /// Canonical path used as the cache key.
     pub cache_key: CapabilityCacheKey,
@@ -90,7 +91,7 @@ pub struct CodexCapabilities {
 }
 
 /// Parsed version details emitted by `codex --version`.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CodexVersionInfo {
     /// Raw stdout from `codex --version` so we do not lose channel/build metadata.
     pub raw: String,
@@ -103,7 +104,7 @@ pub struct CodexVersionInfo {
 }
 
 /// Release channel segments inferred from the Codex version string.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum CodexReleaseChannel {
     Stable,
     Beta,
@@ -125,7 +126,7 @@ impl std::fmt::Display for CodexReleaseChannel {
 }
 
 /// Release metadata for a specific Codex build channel.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CodexRelease {
     /// Release channel (stable/beta/nightly/custom).
     pub channel: CodexReleaseChannel,
@@ -139,7 +140,7 @@ pub struct CodexRelease {
 /// with data from their preferred distribution channel (e.g. `npm view
 /// @openai/codex version`, `brew info codex --json`, or the GitHub releases
 /// API) before requesting an update advisory.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CodexLatestReleases {
     /// Latest stable release version.
     pub stable: Option<Version>,
@@ -209,7 +210,7 @@ impl CodexLatestReleases {
 }
 
 /// Update guidance derived from comparing local and latest Codex versions.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CodexUpdateAdvisory {
     /// Local release as parsed from `codex --version`.
     pub local_release: Option<CodexRelease>,
@@ -234,7 +235,7 @@ impl CodexUpdateAdvisory {
 }
 
 /// Enum summarizing whether an update is needed based on provided release data.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum CodexUpdateStatus {
     /// Local binary matches the latest known release for the comparison channel.
     UpToDate,
@@ -252,7 +253,7 @@ pub enum CodexUpdateStatus {
 ///
 /// All fields default to `false` so callers can conservatively avoid passing flags
 /// unless probes prove that the binary understands them.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CodexFeatureFlags {
     /// True when `codex features list` is available.
     pub supports_features_list: bool,
@@ -265,7 +266,7 @@ pub struct CodexFeatureFlags {
 }
 
 /// Optional overrides for feature detection that can be layered onto probe results.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CapabilityFeatureOverrides {
     /// Override for `codex features list` support; `None` defers to probes.
     pub supports_features_list: Option<bool>,
@@ -310,7 +311,7 @@ impl CapabilityFeatureOverrides {
 /// Caller-supplied capability data that can short-circuit or adjust probing.
 /// Manual snapshots override cached/probed data, and feature/version overrides
 /// apply on top of whichever snapshot is returned.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CapabilityOverrides {
     /// Manual snapshot to return instead of probing when present (after applying feature/version overrides).
     pub snapshot: Option<CodexCapabilities>,
@@ -325,6 +326,204 @@ impl CapabilityOverrides {
     pub fn is_empty(&self) -> bool {
         self.snapshot.is_none() && self.version.is_none() && self.features.is_empty()
     }
+}
+
+/// Supported serialization formats for capability snapshots and overrides.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CapabilitySnapshotFormat {
+    Json,
+    Toml,
+}
+
+impl CapabilitySnapshotFormat {
+    fn from_path(path: &Path) -> Option<Self> {
+        let ext = path.extension()?.to_string_lossy().to_lowercase();
+        match ext.as_str() {
+            "json" => Some(Self::Json),
+            "toml" => Some(Self::Toml),
+            _ => None,
+        }
+    }
+}
+
+/// Errors encountered while saving or loading capability snapshots.
+#[derive(Debug, Error)]
+pub enum CapabilitySnapshotError {
+    #[error("failed to read capability snapshot from `{path}`: {source}")]
+    ReadSnapshot {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("failed to write capability snapshot to `{path}`: {source}")]
+    WriteSnapshot {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("failed to decode capability snapshot from JSON: {source}")]
+    JsonDecode {
+        #[source]
+        source: serde_json::Error,
+    },
+    #[error("failed to encode capability snapshot to JSON: {source}")]
+    JsonEncode {
+        #[source]
+        source: serde_json::Error,
+    },
+    #[error("failed to decode capability snapshot from TOML: {source}")]
+    TomlDecode {
+        #[source]
+        source: toml::de::Error,
+    },
+    #[error("failed to encode capability snapshot to TOML: {source}")]
+    TomlEncode {
+        #[source]
+        source: toml::ser::Error,
+    },
+    #[error("unsupported capability snapshot format for `{path}`; use .json/.toml or supply a format explicitly")]
+    UnsupportedFormat { path: PathBuf },
+}
+
+fn serialize_snapshot<T: Serialize>(
+    value: &T,
+    format: CapabilitySnapshotFormat,
+) -> Result<String, CapabilitySnapshotError> {
+    match format {
+        CapabilitySnapshotFormat::Json => serde_json::to_string_pretty(value)
+            .map_err(|source| CapabilitySnapshotError::JsonEncode { source }),
+        CapabilitySnapshotFormat::Toml => toml::to_string_pretty(value)
+            .map_err(|source| CapabilitySnapshotError::TomlEncode { source }),
+    }
+}
+
+fn deserialize_snapshot<T: DeserializeOwned>(
+    input: &str,
+    format: CapabilitySnapshotFormat,
+) -> Result<T, CapabilitySnapshotError> {
+    match format {
+        CapabilitySnapshotFormat::Json => serde_json::from_str(input)
+            .map_err(|source| CapabilitySnapshotError::JsonDecode { source }),
+        CapabilitySnapshotFormat::Toml => {
+            toml::from_str(input).map_err(|source| CapabilitySnapshotError::TomlDecode { source })
+        }
+    }
+}
+
+fn resolve_snapshot_format(
+    format: Option<CapabilitySnapshotFormat>,
+    path: &Path,
+) -> Result<CapabilitySnapshotFormat, CapabilitySnapshotError> {
+    format
+        .or_else(|| CapabilitySnapshotFormat::from_path(path))
+        .ok_or_else(|| CapabilitySnapshotError::UnsupportedFormat {
+            path: path.to_path_buf(),
+        })
+}
+
+/// Serializes a capability snapshot to a JSON or TOML string.
+pub fn serialize_capabilities_snapshot(
+    snapshot: &CodexCapabilities,
+    format: CapabilitySnapshotFormat,
+) -> Result<String, CapabilitySnapshotError> {
+    serialize_snapshot(snapshot, format)
+}
+
+/// Parses a capability snapshot from serialized JSON or TOML.
+pub fn deserialize_capabilities_snapshot(
+    input: &str,
+    format: CapabilitySnapshotFormat,
+) -> Result<CodexCapabilities, CapabilitySnapshotError> {
+    deserialize_snapshot(input, format)
+}
+
+/// Writes a capability snapshot to disk, inferring format from the file extension when absent.
+pub fn write_capabilities_snapshot(
+    path: impl AsRef<Path>,
+    snapshot: &CodexCapabilities,
+    format: Option<CapabilitySnapshotFormat>,
+) -> Result<(), CapabilitySnapshotError> {
+    let path = path.as_ref();
+    let resolved_format = resolve_snapshot_format(format, path)?;
+    let contents = serialize_capabilities_snapshot(snapshot, resolved_format)?;
+    fs::write(path, contents).map_err(|source| CapabilitySnapshotError::WriteSnapshot {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+/// Loads a capability snapshot from disk, inferring format from the file extension when absent.
+pub fn read_capabilities_snapshot(
+    path: impl AsRef<Path>,
+    format: Option<CapabilitySnapshotFormat>,
+) -> Result<CodexCapabilities, CapabilitySnapshotError> {
+    let path = path.as_ref();
+    let resolved_format = resolve_snapshot_format(format, path)?;
+    let contents =
+        fs::read_to_string(path).map_err(|source| CapabilitySnapshotError::ReadSnapshot {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    deserialize_capabilities_snapshot(&contents, resolved_format)
+}
+
+/// Serializes capability overrides (snapshot, version, feature flags) to a JSON or TOML string.
+pub fn serialize_capability_overrides(
+    overrides: &CapabilityOverrides,
+    format: CapabilitySnapshotFormat,
+) -> Result<String, CapabilitySnapshotError> {
+    serialize_snapshot(overrides, format)
+}
+
+/// Parses capability overrides from serialized JSON or TOML.
+pub fn deserialize_capability_overrides(
+    input: &str,
+    format: CapabilitySnapshotFormat,
+) -> Result<CapabilityOverrides, CapabilitySnapshotError> {
+    deserialize_snapshot(input, format)
+}
+
+/// Writes capability overrides to disk, inferring format from the file extension when absent.
+pub fn write_capability_overrides(
+    path: impl AsRef<Path>,
+    overrides: &CapabilityOverrides,
+    format: Option<CapabilitySnapshotFormat>,
+) -> Result<(), CapabilitySnapshotError> {
+    let path = path.as_ref();
+    let resolved_format = resolve_snapshot_format(format, path)?;
+    let contents = serialize_capability_overrides(overrides, resolved_format)?;
+    fs::write(path, contents).map_err(|source| CapabilitySnapshotError::WriteSnapshot {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+/// Reads capability overrides from disk, inferring format from the file extension when absent.
+pub fn read_capability_overrides(
+    path: impl AsRef<Path>,
+    format: Option<CapabilitySnapshotFormat>,
+) -> Result<CapabilityOverrides, CapabilitySnapshotError> {
+    let path = path.as_ref();
+    let resolved_format = resolve_snapshot_format(format, path)?;
+    let contents =
+        fs::read_to_string(path).map_err(|source| CapabilitySnapshotError::ReadSnapshot {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    deserialize_capability_overrides(&contents, resolved_format)
+}
+
+/// True when the snapshot was captured for the same binary path and fingerprint.
+///
+/// Hosts can consult this before applying a serialized snapshot to avoid
+/// reusing stale capability data after binary upgrades.
+pub fn capability_snapshot_matches_binary(snapshot: &CodexCapabilities, binary: &Path) -> bool {
+    let cache_key = capability_cache_key(binary);
+    if snapshot.cache_key != cache_key {
+        return false;
+    }
+    let current = current_fingerprint(&cache_key);
+    fingerprints_match(&snapshot.fingerprint, &current)
 }
 
 /// High-level view of whether a specific feature can be used safely.
@@ -419,7 +618,7 @@ impl CapabilityGuard {
 /// Probes should prefer an explicit feature list when available, fall back to parsing
 /// `codex --help` flags, and finally rely on coarse version heuristics. Each attempted
 /// step is recorded so hosts can trace why a particular flag was enabled or skipped.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CapabilityProbePlan {
     /// Steps attempted in order; consumers should push entries as probes run.
     pub steps: Vec<CapabilityProbeStep>,
@@ -432,7 +631,7 @@ impl Default for CapabilityProbePlan {
 }
 
 /// Command-level probes used to infer feature support.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum CapabilityProbeStep {
     /// Invoke `codex --version` to capture version/build metadata.
     VersionFlag,
@@ -552,14 +751,14 @@ fn log_guard_skip(guard: &CapabilityGuard) {
 ///
 /// Cache lookups should canonicalize the path when possible so symlinked binaries
 /// collapse to a single entry.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct CapabilityCacheKey {
     /// Canonical binary path when resolvable; otherwise the original path.
     pub binary_path: PathBuf,
 }
 
 /// File metadata used to invalidate cached capability snapshots when the binary changes.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BinaryFingerprint {
     /// Canonical path if the binary resolves through symlinks.
     pub canonical_path: Option<PathBuf>,
@@ -1415,6 +1614,8 @@ impl CodexClientBuilder {
     }
 
     /// Supplies a precomputed capability snapshot for pinned or bundled Codex builds.
+    /// Combine with `write_capabilities_snapshot` / `read_capabilities_snapshot`
+    /// to persist probe results between processes.
     pub fn capability_snapshot(mut self, snapshot: CodexCapabilities) -> Self {
         self.capability_overrides.snapshot = Some(snapshot);
         self
@@ -2085,6 +2286,52 @@ mod tests {
         }
     }
 
+    fn sample_capabilities_snapshot() -> CodexCapabilities {
+        CodexCapabilities {
+            cache_key: CapabilityCacheKey {
+                binary_path: PathBuf::from("/tmp/codex"),
+            },
+            fingerprint: Some(BinaryFingerprint {
+                canonical_path: Some(PathBuf::from("/tmp/codex")),
+                modified: Some(SystemTime::UNIX_EPOCH + Duration::from_secs(5)),
+                len: Some(1234),
+            }),
+            version: Some(CodexVersionInfo {
+                raw: "codex 3.4.5-beta (commit cafe)".to_string(),
+                semantic: Some((3, 4, 5)),
+                commit: Some("cafe".to_string()),
+                channel: CodexReleaseChannel::Beta,
+            }),
+            features: CodexFeatureFlags {
+                supports_features_list: true,
+                supports_output_schema: true,
+                supports_add_dir: false,
+                supports_mcp_login: true,
+            },
+            probe_plan: CapabilityProbePlan {
+                steps: vec![
+                    CapabilityProbeStep::VersionFlag,
+                    CapabilityProbeStep::FeaturesListJson,
+                    CapabilityProbeStep::ManualOverride,
+                ],
+            },
+            collected_at: SystemTime::UNIX_EPOCH + Duration::from_secs(10),
+        }
+    }
+
+    fn sample_capability_overrides() -> CapabilityOverrides {
+        CapabilityOverrides {
+            snapshot: Some(sample_capabilities_snapshot()),
+            version: Some(parse_version_output("codex 9.9.9-nightly")),
+            features: CapabilityFeatureOverrides {
+                supports_features_list: Some(true),
+                supports_output_schema: Some(true),
+                supports_add_dir: Some(true),
+                supports_mcp_login: None,
+            },
+        }
+    }
+
     #[test]
     fn builder_defaults_are_sane() {
         let builder = CodexClient::builder();
@@ -2307,6 +2554,67 @@ mod tests {
             .notes
             .iter()
             .any(|note| note.contains("comparing against stable")));
+    }
+
+    #[test]
+    fn capability_snapshots_serialize_to_json_and_toml() {
+        let snapshot = sample_capabilities_snapshot();
+
+        let json = serialize_capabilities_snapshot(&snapshot, CapabilitySnapshotFormat::Json)
+            .expect("serialize json");
+        let parsed_json = deserialize_capabilities_snapshot(&json, CapabilitySnapshotFormat::Json)
+            .expect("parse json");
+        assert_eq!(parsed_json, snapshot);
+
+        let toml = serialize_capabilities_snapshot(&snapshot, CapabilitySnapshotFormat::Toml)
+            .expect("serialize toml");
+        let parsed_toml = deserialize_capabilities_snapshot(&toml, CapabilitySnapshotFormat::Toml)
+            .expect("parse toml");
+        assert_eq!(parsed_toml, snapshot);
+    }
+
+    #[test]
+    fn capability_snapshots_and_overrides_round_trip_via_files() {
+        let snapshot = sample_capabilities_snapshot();
+        let overrides = sample_capability_overrides();
+        let temp = tempfile::tempdir().unwrap();
+
+        let snapshot_path = temp.path().join("capabilities.toml");
+        write_capabilities_snapshot(&snapshot_path, &snapshot, None).unwrap();
+        let loaded_snapshot = read_capabilities_snapshot(&snapshot_path, None).unwrap();
+        assert_eq!(loaded_snapshot, snapshot);
+
+        let overrides_path = temp.path().join("overrides.json");
+        write_capability_overrides(&overrides_path, &overrides, None).unwrap();
+        let loaded_overrides = read_capability_overrides(&overrides_path, None).unwrap();
+        assert_eq!(loaded_overrides, overrides);
+    }
+
+    #[test]
+    fn capability_snapshot_match_checks_fingerprint() {
+        let temp = tempfile::tempdir().unwrap();
+        let script = "#!/bin/bash\necho ok";
+        let binary = write_fake_codex(temp.path(), script);
+        let cache_key = capability_cache_key(&binary);
+        let fingerprint = current_fingerprint(&cache_key);
+
+        let snapshot = CodexCapabilities {
+            cache_key: cache_key.clone(),
+            fingerprint: fingerprint.clone(),
+            version: None,
+            features: CodexFeatureFlags::default(),
+            probe_plan: CapabilityProbePlan::default(),
+            collected_at: SystemTime::UNIX_EPOCH,
+        };
+
+        assert!(capability_snapshot_matches_binary(&snapshot, &binary));
+
+        fs::write(&binary, "#!/bin/bash\necho changed").unwrap();
+        let mut perms = fs::metadata(&binary).unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&binary, perms).unwrap();
+
+        assert!(!capability_snapshot_matches_binary(&snapshot, &binary));
     }
 
     #[test]
