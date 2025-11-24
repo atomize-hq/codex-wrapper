@@ -47,5 +47,15 @@
     "files": ["README.md", "crates/codex/src/lib.rs", "workstreams/D_json_stream_logging/BRIEF.md"],
     "tests": ["cargo test -p codex"],
     "outputs": ["Documented streaming/logging usage and release notes"]
+  },
+  {
+    "id": "D6-apply-artifacts",
+    "title": "Capture apply/diff outputs",
+    "description": "Capture apply/diff artifacts from Codex so callers receive stdout/stderr/exit status when applying changes. Ensure clean integration with streaming/log tee behavior and RUST_LOG defaults.",
+    "status": "doing",
+    "dependencies": ["D5-docs-release"],
+    "files": ["crates/codex/src/lib.rs", "workstreams/D_json_stream_logging/BRIEF.md"],
+    "tests": ["cargo test -p codex"],
+    "outputs": ["Apply/diff helper surface with tests covering success/failure and stdout/stderr capture"]
   }
 ]
