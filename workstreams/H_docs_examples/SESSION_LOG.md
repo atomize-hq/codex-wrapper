@@ -19,3 +19,5 @@ Append entries: `[START ...] [END ...] Agent: <name> | Task(s): <IDs> | Branch: 
 [END 2025-11-24 04:12:05Z] Agent: Codex | Task(s): H6-docs-handoff | Branch: ws/H_docs_examples | Notes: Docs/examples handoff merged after cargo test -p codex --doc/--examples; added handoff note
 [START 2025-11-24 18:41:06Z] Agent: Codex | Task(s): H7-docs-backlog | Branch: ws/H_docs_examples | Notes: Starting docs backlog sweep; creating task branch/worktree next
 [END 2025-11-24 18:54:38Z] Agent: Codex | Task(s): H7-docs-backlog | Branch: ws/H_docs_examples | Notes: Docs/examples backlog swept; merged task branch after cargo test -p codex --doc/--examples
+[START 2025-11-24 20:38:11Z] Agent: Codex | Task(s): H8-docs-post-review | Branch: ws/H_docs_examples | Notes: Starting post-review task; will branch/worktree next
+[END 2025-11-24 20:50:52Z] Agent: Codex | Task(s): H8-docs-post-review | Branch: ws/H_docs_examples | Notes: Completed post-review; merged task branch after cargo test -p codex --doc/--examples; added upgrade/caching advisories

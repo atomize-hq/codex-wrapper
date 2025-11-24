@@ -137,5 +137,30 @@
       "Upgrade advisories/gaps note"
     ],
     "status": "done"
+  },
+  {
+    "id": "H8-docs-post-review",
+    "title": "Post-workstream docs/examples review",
+    "description": "Re-verify docs/examples against latest CLI surface, pull in late drift from other workstreams, and capture upgrade advisories or caching follow-ups.",
+    "dependencies": [
+      "H7-docs-backlog"
+    ],
+    "files": [
+      "README.md",
+      "crates/codex/EXAMPLES.md",
+      "crates/codex/src/lib.rs",
+      "crates/codex/examples",
+      "workstreams/H_docs_examples/BRIEF.md",
+      "workstreams/H_docs_examples/kickoff_prompts"
+    ],
+    "tests": [
+      "cargo test -p codex --doc",
+      "cargo test -p codex --examples"
+    ],
+    "outputs": [
+      "Final doc/example polish",
+      "Upgrade advisory note"
+    ],
+    "status": "done"
   }
 ]
