@@ -34,6 +34,12 @@ Every example under `crates/codex/examples/` maps to a `codex` CLI invocation. W
 | `cargo run -p codex --example stream_last_message -- "Summarize repo status"` | `codex exec --skip-git-repo-check --json --output-last-message <path> --output-schema <path> <<<"Summarize repo status"` | Reads `--output-last-message` + `--output-schema` files (thread/turn metadata included); ships sample payloads if no binary. |
 | `CODEX_LOG_PATH=/tmp/codex.log cargo run -p codex --example stream_with_log -- "Stream with logging"` | `echo "Stream with logging" \| codex exec --skip-git-repo-check --json` | Mirrors stdout and tees JSONL events to `CODEX_LOG_PATH` (or uses sample events with IDs/status). |
 
+## Resume & Apply/Diff
+
+| Wrapper example | Native command | Notes |
+| --- | --- | --- |
+| `CODEX_CONVERSATION_ID=abc cargo run -p codex --example resume_apply` | `codex resume --json --skip-git-repo-check --last` then `codex diff/apply --json --skip-git-repo-check` | Streams resume events for the last turn (or `--resume-id <id>`), previews the staged diff, and applies it; `--sample` and `--no-apply` supported. |
+
 ## MCP + App Server
 
 | Wrapper example | Native command | Notes |
@@ -46,4 +52,4 @@ Every example under `crates/codex/examples/` maps to a `codex` CLI invocation. W
 
 | Wrapper example | Native command | Notes |
 | --- | --- | --- |
-| `cargo run -p codex --example feature_detection` | `codex --version` and `codex features list` | Probes version + feature list, gates streaming/log-tee, and emits upgrade advisories; falls back to sample data. |
+| `cargo run -p codex --example feature_detection` | `codex --version` and `codex features list` | Probes version + feature list (per-binary cache), gates streaming/log-tee/resume/apply/artifact flags, and emits upgrade advisories; falls back to sample data. |
