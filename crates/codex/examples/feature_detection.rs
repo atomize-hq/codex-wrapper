@@ -39,12 +39,14 @@ static CAPABILITY_CACHE: OnceLock<Mutex<HashMap<PathBuf, Capability>>> = OnceLoc
 
 impl Version {
     fn parse(raw: &str) -> Option<Self> {
-        let tokens: Vec<&str> = raw
-            .split(|c: char| c.is_whitespace() || c == '-')
-            .collect();
-        let version_str = tokens
-            .iter()
-            .find(|token| token.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false))?;
+        let tokens: Vec<&str> = raw.split(|c: char| c.is_whitespace() || c == '-').collect();
+        let version_str = tokens.iter().find(|token| {
+            token
+                .chars()
+                .next()
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false)
+        })?;
         let parts: Vec<&str> = version_str.split('.').collect();
         if parts.len() < 2 {
             return None;
@@ -70,7 +72,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (capability, cached) = if binary_exists(&binary) {
         cached_probe(&binary).await
     } else {
-        eprintln!("Binary not found at {}. Using sample capability set.", binary.display());
+        eprintln!(
+            "Binary not found at {}. Using sample capability set.",
+            binary.display()
+        );
         (sample_capability(), false)
     };
 
@@ -83,7 +88,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("Capabilities served from cache for {}", binary.display());
     }
     println!("Features: {}", capability.features.join(", "));
-    println!("Cache scope: per binary path for this process; refresh probes after upgrading the binary.");
+    println!(
+        "Cache scope: per binary path for this process; refresh probes after upgrading the binary."
+    );
 
     if capability.supports("json-stream") {
         println!("-> Enable streaming examples (stream_events, stream_with_log).");
@@ -98,7 +105,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if capability.supports("resume") {
-        println!("-> Resume supported; enable resume_apply example and prompt for conversation IDs.");
+        println!(
+            "-> Resume supported; enable resume_apply example and prompt for conversation IDs."
+        );
     } else {
         println!("-> Resume unsupported; hide resume_apply in your UI.");
     }
@@ -151,10 +160,12 @@ async fn cached_probe(binary: &Path) -> (Capability, bool) {
 }
 
 async fn probe_capabilities(binary: &Path) -> Capability {
-    let version = run_version(binary).await.and_then(|raw| Version::parse(&raw));
-    let features = run_features(binary).await.unwrap_or_else(|| {
-        vec!["json-stream".into(), "output-last-message".into()]
-    });
+    let version = run_version(binary)
+        .await
+        .and_then(|raw| Version::parse(&raw));
+    let features = run_features(binary)
+        .await
+        .unwrap_or_else(|| vec!["json-stream".into(), "output-last-message".into()]);
     Capability { version, features }
 }
 

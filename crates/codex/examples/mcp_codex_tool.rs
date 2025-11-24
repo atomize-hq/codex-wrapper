@@ -55,7 +55,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn demo_mcp_server(binary: &Path, prompt: &str) -> Result<(), Box<dyn Error>> {
-    println!("Starting `codex mcp-server --stdio` using {}", binary.display());
+    println!(
+        "Starting `codex mcp-server --stdio` using {}",
+        binary.display()
+    );
 
     let mut command = Command::new(binary);
     command
@@ -83,9 +86,7 @@ async fn demo_mcp_server(binary: &Path, prompt: &str) -> Result<(), Box<dyn Erro
         }
     });
 
-    stdin
-        .write_all(request.to_string().as_bytes())
-        .await?;
+    stdin.write_all(request.to_string().as_bytes()).await?;
     stdin.write_all(b"\n").await?;
     stdin.flush().await?;
 

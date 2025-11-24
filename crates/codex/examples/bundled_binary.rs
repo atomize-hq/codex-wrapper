@@ -21,7 +21,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let binary = select_binary();
 
     println!("Selected Codex binary: {}", binary.display());
-    println!("Order: CODEX_BINARY > CODEX_BUNDLED_PATH > {}", default_bundled_hint().display());
+    println!(
+        "Order: CODEX_BINARY > CODEX_BUNDLED_PATH > {}",
+        default_bundled_hint().display()
+    );
 
     let client = CodexClient::builder()
         .binary(&binary)

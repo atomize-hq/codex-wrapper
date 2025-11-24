@@ -57,7 +57,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn demo_app_server(binary: &Path, prompt: &str) -> Result<(), Box<dyn Error>> {
-    println!("Starting `codex app-server --stdio` using {}", binary.display());
+    println!(
+        "Starting `codex app-server --stdio` using {}",
+        binary.display()
+    );
 
     let mut command = Command::new(binary);
     command
@@ -109,9 +112,7 @@ async fn demo_app_server(binary: &Path, prompt: &str) -> Result<(), Box<dyn Erro
             "sandbox": true
         }
     });
-    stdin
-        .write_all(turn_request.to_string().as_bytes())
-        .await?;
+    stdin.write_all(turn_request.to_string().as_bytes()).await?;
     stdin.write_all(b"\n").await?;
     stdin.flush().await?;
 

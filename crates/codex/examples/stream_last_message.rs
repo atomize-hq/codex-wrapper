@@ -92,9 +92,7 @@ async fn run_codex(
                 .to_str()
                 .ok_or("Non-UTF8 last message path")?,
             "--output-schema",
-            schema_path
-                .to_str()
-                .ok_or("Non-UTF8 schema path")?,
+            schema_path.to_str().ok_or("Non-UTF8 schema path")?,
         ])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
@@ -138,7 +136,10 @@ fn write_sample_outputs(
             "exit_code": {"type": "integer"}
         }
     });
-    fs::write(last_message_path, serde_json::to_string_pretty(&last_message)?)?;
+    fs::write(
+        last_message_path,
+        serde_json::to_string_pretty(&last_message)?,
+    )?;
     fs::write(schema_path, serde_json::to_string_pretty(&schema)?)?;
     Ok(())
 }
