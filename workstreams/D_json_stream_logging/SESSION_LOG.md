@@ -10,3 +10,4 @@ Append an entry per session: `[START ...] [END ...] Agent: <name> | Task(s): <ID
 [START 2025-11-23T21:07:49-05:00] Agent: Codex | Task(s): D4-log-tee | Branch: ws/D_json_stream_logging | Notes: Starting log tee task.
 [END 2025-11-23T21:21:32-05:00] Agent: Codex | Task(s): D4-log-tee | Branch: ws/D_json_stream_logging | Notes: Added JSON stream log tee + tests and merged task branch.
 [START 2025-11-23T22:18:51-05:00] Agent: Codex | Task(s): D5-docs-release | Branch: ws/D_json_stream_logging | Notes: Starting docs/release task.
+[END 2025-11-23T22:25:37-05:00] Agent: Codex | Task(s): D5-docs-release | Branch: ws/D_json_stream_logging | Notes: Documented streaming log tee and merged task branch.
