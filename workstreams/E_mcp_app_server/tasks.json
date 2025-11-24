@@ -72,7 +72,7 @@
   {
     "id": "E8-mcp-runtime-manager",
     "title": "MCP runtime manager",
-    "status": "doing",
+    "status": "done",
     "description": "Build a lightweight runtime manager that consumes resolved MCP runtime launchers/connectors, starts/stops stdio servers with Workstream A env prep, and exposes non-destructive HTTP connector metadata with tool hints intact.",
     "dependencies": ["E7-mcp-runtime-launchers"],
     "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
