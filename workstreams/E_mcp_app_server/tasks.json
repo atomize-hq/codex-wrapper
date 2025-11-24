@@ -62,7 +62,7 @@
   {
     "id": "E7-mcp-runtime-launchers",
     "title": "MCP runtime launcher/connectors",
-    "status": "doing",
+    "status": "done",
     "description": "Hook resolved MCP runtime configs into launcher/connector helpers that can spin up stdio servers (using Workstream A env prep) or connect to streamable HTTP endpoints with headers/timeouts applied. Surface tool enable/disable hints alongside the runtime configs.",
     "dependencies": ["E6-mcp-runtime-config"],
     "files": ["crates/codex/src/mcp.rs", "workstreams/E_mcp_app_server/BRIEF.md", "BACKLOG.md"],
