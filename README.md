@@ -42,7 +42,7 @@ Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, 
 - Example `crates/codex/examples/send_prompt.rs` covers the baseline; `working_dir(_json).rs`, `timeout*.rs`, `image_json.rs`, `color_always.rs`, `quiet.rs`, and `no_stdout_mirror.rs` expand on inputs and output handling.
 
 ## Streaming Output & Artifacts
-- Event schema: JSONL lines carry `type` plus IDs/status. Expect `thread.started`, `turn.started/turn.completed/turn.failed`, and `item.created/item.updated` where `item.type` can be `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` with optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`. Examples ship `--sample` payloads so you can inspect shapes without a binary.
+- Event schema: JSONL lines carry `type` plus thread/turn IDs and status. Expect `thread.started` (or `thread.resumed` when continuing a run), `turn.started/turn.completed/turn.failed`, and `item.created/item.updated` where `item.type` can be `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` with optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`. Examples ship `--sample` payloads so you can inspect shapes without a binary.
 - Enable JSONL streaming with `.json(true)` or by invoking the CLI directly. The crate returns captured output; use the examples to consume the stream yourself:
   - `crates/codex/examples/stream_events.rs`: typed consumer for `thread/turn/item` events (success + failure), uses `--timeout 0` to keep streaming, includes idle timeout handling, and a `--sample` replay path.
   - `crates/codex/examples/stream_last_message.rs`: runs `--output-last-message` + `--output-schema`, reads the emitted files, and ships sample payloads if the binary is missing.
@@ -51,8 +51,8 @@ Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, 
 - Artifacts: Codex can persist the final assistant message and the output schema alongside streaming output; point them at writable locations per the `stream_last_message` example. Apply/diff flows also surface stdout/stderr/exit (see below) so you can log or mirror them alongside the JSON stream.
 
 ## Resume, Diff, and Apply
-- Resume an existing conversation with `codex resume --json --skip-git-repo-check --last` (or `--id <conversationId>`/`CODEX_CONVERSATION_ID`). The event stream matches `exec` (`thread/turn/item` plus `turn.failed` on idle timeouts); reuse the streaming examples to consume it.
-- Preview a patch before applying it: `codex diff --json --skip-git-repo-check` emits the staged diff while preserving JSON-safe output. Pair it with `codex apply --json` to capture stdout, stderr, and the exit code for the apply step.
+- Resume an existing conversation with `codex resume --json --skip-git-repo-check --last` (or `--id <conversationId>`/`CODEX_CONVERSATION_ID`). Expect `thread.resumed` followed by the usual `thread/turn/item` stream plus `turn.failed` on idle timeouts; reuse the streaming examples to consume it.
+- Preview a patch before applying it: `codex diff --json --skip-git-repo-check` emits the staged diff while preserving JSON-safe output. Pair it with `codex apply --json` to capture stdout, stderr, and the exit code for the apply step (`{"type":"apply.result","exit_code":0,"stdout":"...","stderr":""}`).
 - Approvals and cancellations surface as events in MCP/app-server flows; see the server examples for approval-required hooks around apply.
 - Example `crates/codex/examples/resume_apply.rs` covers the full flow with `--sample` payloads (resume stream, diff preview, apply result) and lets you skip the apply step with `--no-apply`.
 
@@ -75,6 +75,7 @@ Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, 
 - Sample streams, resume/apply payloads, and feature names reflect the current CLI surface but are not validated against a live binary here; gate risky flags behind capability checks and prefer `--sample` payloads while developing.
 - The crate still buffers stdout/stderr from streaming/apply flows instead of exposing a typed stream API; use the examples to consume JSONL incrementally until a typed interface lands.
 - Apply/diff flows depend on Codex emitting JSON-friendly stdout/stderr; handle non-JSON output defensively in host apps.
+- Capability detection caches are keyed to the binary path for a single process; invalidate them when the binary version or mtime changes, and treat `codex features list` output as best-effort hints that may drift across releases.
 
 ## Examples Index
 - The full wrapper vs. native CLI matrix lives in `crates/codex/EXAMPLES.md`.

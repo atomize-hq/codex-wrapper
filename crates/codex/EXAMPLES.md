@@ -30,7 +30,7 @@ Every example under `crates/codex/examples/` maps to a `codex` CLI invocation. W
 | Wrapper example | Native command | Notes |
 | --- | --- | --- |
 | `cargo run -p codex --example json_stream -- "Summarize repo status"` | `echo "Summarize repo status" \| codex exec --skip-git-repo-check --json` | Enable JSONL streaming; prompt is piped via stdin. |
-| `cargo run -p codex --example stream_events -- "Summarize repo status"` | `echo "Summarize repo status" \| codex exec --skip-git-repo-check --json --timeout 0` | Typed consumer for `thread/turn/item` events (agent_message, reasoning, command_execution, file_change, mcp_tool_call, web_search, todo_list) plus `turn.failed`; `--sample` replays bundled events. |
+| `cargo run -p codex --example stream_events -- "Summarize repo status"` | `echo "Summarize repo status" \| codex exec --skip-git-repo-check --json --timeout 0` | Typed consumer for `thread/turn/item` events (thread/turn IDs included, item created/updated for agent_message, reasoning, command_execution, file_change, mcp_tool_call, web_search, todo_list) plus `turn.failed`; `--sample` replays bundled events. |
 | `cargo run -p codex --example stream_last_message -- "Summarize repo status"` | `codex exec --skip-git-repo-check --json --output-last-message <path> --output-schema <path> <<<"Summarize repo status"` | Reads `--output-last-message` + `--output-schema` files (thread/turn metadata included); ships sample payloads if no binary. |
 | `CODEX_LOG_PATH=/tmp/codex.log cargo run -p codex --example stream_with_log -- "Stream with logging"` | `echo "Stream with logging" \| codex exec --skip-git-repo-check --json` | Mirrors stdout and tees JSONL events to `CODEX_LOG_PATH` (or uses sample events with IDs/status). |
 
@@ -38,7 +38,7 @@ Every example under `crates/codex/examples/` maps to a `codex` CLI invocation. W
 
 | Wrapper example | Native command | Notes |
 | --- | --- | --- |
-| `CODEX_CONVERSATION_ID=abc cargo run -p codex --example resume_apply` | `codex resume --json --skip-git-repo-check --last` then `codex diff/apply --json --skip-git-repo-check` | Streams resume events for the last turn (or `--resume-id <id>`), previews the staged diff, and applies it; `--sample` and `--no-apply` supported. |
+| `CODEX_CONVERSATION_ID=abc cargo run -p codex --example resume_apply` | `codex resume --json --skip-git-repo-check --last` then `codex diff/apply --json --skip-git-repo-check` | Streams resume events (`thread.resumed` + turn/item) for the last turn (or `--resume-id <id>`), previews the staged diff, and prints the `apply.result` payload (exit/stdout/stderr); `--sample` and `--no-apply` supported. |
 
 ## MCP + App Server
 

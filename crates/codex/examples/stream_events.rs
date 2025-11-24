@@ -1,6 +1,7 @@
 //! Consume the JSONL event stream (`codex exec --json`) and print turn/item events.
-//! Events include thread + turn lifecycle plus item variants such as `agent_message`,
-//! `reasoning`, `command_execution`, `file_change`, and `mcp_tool_call`.
+//! Events include thread + turn lifecycle plus item created/updated variants such as
+//! `agent_message`, `reasoning`, `command_execution`, `file_change`, and `mcp_tool_call`
+//! (with thread/turn IDs and status).
 //!
 //! Flags:
 //! - `--sample` to replay bundled demo events without invoking Codex (useful when the binary is absent).
@@ -24,13 +25,14 @@ use tokio::{
 const SAMPLE_EVENTS: &[&str] = &[
     r#"{"type":"thread.started","thread_id":"demo-thread"}"#,
     r#"{"type":"turn.started","turn_id":"turn-1","thread_id":"demo-thread"}"#,
-    r#"{"type":"item.created","item":{"type":"command_execution","id":"cmd-1","status":"in_progress","content":"npm test"}}"#,
-    r#"{"type":"item.created","item":{"type":"file_change","id":"chg-1","status":"completed","content":"Updated README.md"}}"#,
-    r#"{"type":"item.created","item":{"type":"mcp_tool_call","id":"tool-1","status":"queued","content":"tools/codex --sandbox"}}"#,
-    r#"{"type":"item.created","item":{"type":"web_search","id":"search-1","status":"in_progress","content":"Searching docs for install steps"}}"#,
-    r#"{"type":"item.created","item":{"type":"todo_list","id":"todo-1","content":"Ship README + EXAMPLES refresh"}}"#,
-    r#"{"type":"item.created","item":{"type":"reasoning","id":"r1","content":"Running checks and updating docs."}}"#,
-    r#"{"type":"item.created","item":{"type":"agent_message","id":"msg-1","status":"completed","content":"All checks passed. Docs updated."}}"#,
+    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"command_execution","id":"cmd-1","status":"in_progress","content":"npm test"}}"#,
+    r#"{"type":"item.updated","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"command_execution","id":"cmd-1","status":"completed","content":"npm test"}}"#,
+    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"file_change","id":"chg-1","status":"completed","content":"Updated README.md"}}"#,
+    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"mcp_tool_call","id":"tool-1","status":"queued","content":"tools/codex --sandbox"}}"#,
+    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"web_search","id":"search-1","status":"in_progress","content":"Searching docs for install steps"}}"#,
+    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"todo_list","id":"todo-1","content":"Ship README + EXAMPLES refresh"}}"#,
+    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"reasoning","id":"r1","content":"Running checks and updating docs."}}"#,
+    r#"{"type":"item.created","thread_id":"demo-thread","turn_id":"turn-1","item":{"type":"agent_message","id":"msg-1","status":"completed","content":"All checks passed. Docs updated."}}"#,
     r#"{"type":"turn.completed","turn_id":"turn-1","thread_id":"demo-thread"}"#,
     r#"{"type":"turn.started","turn_id":"turn-2","thread_id":"demo-thread"}"#,
     r#"{"type":"turn.failed","turn_id":"turn-2","thread_id":"demo-thread","message":"Idle timeout reached"}"#,

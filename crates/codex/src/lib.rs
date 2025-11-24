@@ -25,12 +25,12 @@
 //! ```
 //!
 //! ## Streaming, events, and artifacts
-//! - Use `.json(true)` to request JSONL streaming. Events include `thread.started`,
-//!   `turn.started`/`turn.completed`/`turn.failed`, and `item.created`/`item.updated` with
-//!   `item.type` such as `agent_message`, `reasoning`, `command_execution`, `file_change`,
-//!   `mcp_tool_call`, `web_search`, or `todo_list` plus optional `status`/`content`/`input`.
-//!   Errors surface as `{"type":"error","message":...}`. Sample payloads ship with the
-//!   streaming examples for offline inspection.
+//! - Use `.json(true)` to request JSONL streaming. Events include `thread.started`
+//!   (or `thread.resumed` on continuation), `turn.started`/`turn.completed`/`turn.failed`, and
+//!   `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`,
+//!   `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus
+//!   optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`.
+//!   Sample payloads ship with the streaming examples for offline inspection.
 //! - `.mirror_stdout(true)` (default) lets you watch the stream live while the wrapper buffers it;
 //!   set `.mirror_stdout(false)` when you need to parse the JSON yourself.
 //! - Persist artifacts via CLI flags (`--output-last-message`, `--output-schema`) and tee events to
@@ -42,11 +42,12 @@
 //!
 //! ## Resume + apply/diff
 //! - `codex resume --json --skip-git-repo-check --last` (or `--id <conversationId>`) streams the
-//!   same `thread/turn/item` events as `exec` so you can continue a prior turn; reuse the streaming
-//!   consumers above to handle the feed.
+//!   same `thread/turn/item` events as `exec` with an initial `thread.resumed` to mark the
+//!   continuation; reuse the streaming consumers above to handle the feed.
 //! - `codex diff --json --skip-git-repo-check` previews staged changes, and `codex apply --json`
-//!   returns stdout/stderr plus the exit status for the apply step. Keep handling non-JSON stdout
-//!   defensively in host apps.
+//!   returns stdout/stderr plus the exit status for the apply step (e.g.
+//!   `{"type":"apply.result","exit_code":0,"stdout":"...","stderr":""}`). Keep handling non-JSON
+//!   stdout defensively in host apps.
 //! - `crates/codex/examples/resume_apply.rs` strings these together with sample payloads and lets
 //!   you skip the apply call when you just want the resume stream.
 //!
@@ -160,10 +161,11 @@ impl CodexClient {
 
     /// Sends `prompt` to `codex exec` and returns its captured stdout on success.
     ///
-    /// When `.json(true)` is enabled the CLI emits JSONL events (`thread.started`, `turn.started`,
-    /// `item.created`, `turn.completed`, or `error`). The stream is mirrored to stdout unless
-    /// `.mirror_stdout(false)`; the returned string contains the buffered lines for offline parsing.
-    /// For per-event handling, see `crates/codex/examples/stream_events.rs`.
+    /// When `.json(true)` is enabled the CLI emits JSONL events (`thread.started` or
+    /// `thread.resumed`, `turn.started`/`turn.completed`/`turn.failed`,
+    /// `item.created`/`item.updated`, or `error`). The stream is mirrored to stdout unless
+    /// `.mirror_stdout(false)`; the returned string contains the buffered lines for offline
+    /// parsing. For per-event handling, see `crates/codex/examples/stream_events.rs`.
     ///
     /// ```rust,no_run
     /// use codex::CodexClient;
@@ -538,10 +540,10 @@ impl CodexClientBuilder {
 
     /// Enables Codex's JSONL output mode (`--json`).
     ///
-    /// Prompts are piped via stdin when enabled. Events include `thread.started`,
-    /// `turn.started`/`turn.completed`, and `item.created` with `item.type` such as
-    /// `agent_message` or `reasoning`. Pair with `.mirror_stdout(false)` if you plan to parse the
-    /// stream instead of just mirroring it.
+    /// Prompts are piped via stdin when enabled. Events include `thread.started`
+    /// (or `thread.resumed` when continuing), `turn.started`/`turn.completed`/`turn.failed`,
+    /// and `item.created`/`item.updated` with `item.type` such as `agent_message` or `reasoning`.
+    /// Pair with `.mirror_stdout(false)` if you plan to parse the stream instead of just mirroring it.
     pub fn json(mut self, enable: bool) -> Self {
         self.json_output = enable;
         self
