@@ -14,3 +14,18 @@
 ## Verification
 - `cargo test -p codex --doc` (pass)
 - `cargo test -p codex --examples` (pass)
+
+## H7 backlog sweep
+- Added `resume_apply` example plus README/lib/EXAMPLES coverage for resume/diff/apply flows, apply stdout/stderr/exit capture, and log-tee advisories.
+- Synced feature detection docs/examples with per-binary caching and gating for resume/apply/artifact flags alongside streaming/log-tee and server endpoints.
+- Remaining risks: streaming/apply payloads are still sample-only (no live binary validation), feature names from `codex features list` may drift, and a typed streaming API inside the crate remains unimplemented.
+
+## H8 post-review
+- Streaming samples now include thread/turn IDs and `item.updated` coverage, and docs call out `thread.resumed` events plus `apply.result` shapes so resume/apply flows mirror the current CLI surface.
+- Residual risks: streaming/apply payloads remain mocked (no live binary verification), feature names may change between releases, and the wrapper still buffers JSONL rather than exposing a typed stream API.
+- Upgrade guidance: gate streaming/log-tee/resume/apply/artifact flags behind feature detection, refresh per-binary capability caches when the Codex binary path/version changes, and keep `--sample` fallbacks handy when the binary is unavailable.
+
+## H9 integration fixture
+- Added shared streaming/resume/apply fixtures under `crates/codex/examples/fixtures/*` to drive `--sample` flows and docs, plus a fixture sanity test to catch invalid JSON drift.
+- Docs now point at the fixtures and call out per-binary cache refresh guidance; examples reuse the fixtures for streaming/log tee/resume+apply samples.
+- Remaining gaps: fixtures are still mocked (not captured from a live binary), and the crate still buffers JSONL instead of exposing a typed streaming API.

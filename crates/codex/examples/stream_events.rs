@@ -1,9 +1,11 @@
 //! Consume the JSONL event stream (`codex exec --json`) and print turn/item events.
-//! Events include thread + turn lifecycle plus item variants such as `agent_message`,
-//! `reasoning`, `command_execution`, `file_change`, and `mcp_tool_call`.
+//! Events include thread + turn lifecycle plus item created/updated variants such as
+//! `agent_message`, `reasoning`, `command_execution`, `file_change`, and `mcp_tool_call`
+//! (with thread/turn IDs and status).
 //!
 //! Flags:
-//! - `--sample` to replay bundled demo events without invoking Codex (useful when the binary is absent).
+//! - `--sample` to replay demo events from `crates/codex/examples/fixtures/streaming.jsonl` without
+//!   invoking Codex (useful when the binary is absent).
 //! - Otherwise, ensure `CODEX_BINARY` or a `codex` binary is on PATH.
 //!
 //! Example:
@@ -14,27 +16,15 @@
 
 use std::{env, error::Error, path::Path, path::PathBuf, time::Duration};
 
+#[path = "support/fixtures.rs"]
+mod fixtures;
+
 use serde::Deserialize;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::Command,
     time,
 };
-
-const SAMPLE_EVENTS: &[&str] = &[
-    r#"{"type":"thread.started","thread_id":"demo-thread"}"#,
-    r#"{"type":"turn.started","turn_id":"turn-1","thread_id":"demo-thread"}"#,
-    r#"{"type":"item.created","item":{"type":"command_execution","id":"cmd-1","status":"in_progress","content":"npm test"}}"#,
-    r#"{"type":"item.created","item":{"type":"file_change","id":"chg-1","status":"completed","content":"Updated README.md"}}"#,
-    r#"{"type":"item.created","item":{"type":"mcp_tool_call","id":"tool-1","status":"queued","content":"tools/codex --sandbox"}}"#,
-    r#"{"type":"item.created","item":{"type":"web_search","id":"search-1","status":"in_progress","content":"Searching docs for install steps"}}"#,
-    r#"{"type":"item.created","item":{"type":"todo_list","id":"todo-1","content":"Ship README + EXAMPLES refresh"}}"#,
-    r#"{"type":"item.created","item":{"type":"reasoning","id":"r1","content":"Running checks and updating docs."}}"#,
-    r#"{"type":"item.created","item":{"type":"agent_message","id":"msg-1","status":"completed","content":"All checks passed. Docs updated."}}"#,
-    r#"{"type":"turn.completed","turn_id":"turn-1","thread_id":"demo-thread"}"#,
-    r#"{"type":"turn.started","turn_id":"turn-2","thread_id":"demo-thread"}"#,
-    r#"{"type":"turn.failed","turn_id":"turn-2","thread_id":"demo-thread","message":"Idle timeout reached"}"#,
-];
 
 #[derive(Debug, Deserialize)]
 struct StreamEvent {
@@ -75,8 +65,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     if use_sample {
-        println!("Replaying bundled demo events (pass a prompt to hit a real binary)...");
-        for line in SAMPLE_EVENTS {
+        println!(
+            "Replaying streaming fixture from {} (pass a prompt to hit a real binary)...",
+            fixtures::STREAMING_FIXTURE_PATH
+        );
+        for line in fixtures::streaming_events() {
             handle_line(line);
         }
         return Ok(());
@@ -88,7 +81,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             "codex binary not found at {}. Set CODEX_BINARY or use --sample.",
             binary.display()
         );
-        for line in SAMPLE_EVENTS {
+        for line in fixtures::streaming_events() {
             handle_line(line);
         }
         return Ok(());
@@ -100,13 +93,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 async fn stream_from_codex(binary: &Path, prompt: &str) -> Result<(), Box<dyn Error>> {
     let mut command = Command::new(binary);
     command
-        .args([
-            "exec",
-            "--json",
-            "--skip-git-repo-check",
-            "--timeout",
-            "0",
-        ])
+        .args(["exec", "--json", "--skip-git-repo-check", "--timeout", "0"])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -186,10 +173,7 @@ fn print_event(event: StreamEvent) {
         }
         "turn.failed" => {
             let turn_id = event.turn_id.as_deref().unwrap_or("-");
-            let message = event
-                .message
-                .as_deref()
-                .unwrap_or("Unknown failure");
+            let message = event.message.as_deref().unwrap_or("Unknown failure");
             println!("Turn failed: {turn_id} — {message}");
         }
         kind if kind.starts_with("item.") => {
@@ -237,7 +221,17 @@ fn resolve_binary() -> PathBuf {
 }
 
 fn binary_exists(path: &Path) -> bool {
-    std::fs::metadata(path).is_ok()
+    if path.is_absolute() || path.components().count() > 1 {
+        std::fs::metadata(path).is_ok()
+    } else {
+        env::var_os("PATH")
+            .and_then(|paths| {
+                env::split_paths(&paths)
+                    .map(|dir| dir.join(path))
+                    .find(|candidate| std::fs::metadata(candidate).is_ok())
+            })
+            .is_some()
+    }
 }
 
 fn take_flag(args: &mut Vec<String>, flag: &str) -> bool {

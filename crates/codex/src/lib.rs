@@ -1,27 +1,48 @@
-//! Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, and server flows.
+//! Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, apply/diff helpers, and server flows.
 //!
-//! Shells out to `codex exec`, enforces sensible defaults (non-interactive color handling, timeouts, optional model selection), and supports single-response, streaming, and server flows.
+//! Shells out to `codex exec`, applies sane defaults (non-interactive color handling, timeouts, model hints), and surfaces single-response, streaming, apply/diff, and MCP/app-server helpers.
+//!
+//! ## Setup: binary + `CODEX_HOME`
+//! - Defaults pull `CODEX_BINARY` or `codex` on `PATH`; call [`CodexClientBuilder::binary`] to pin a bundled binary (examples fall back to `CODEX_BUNDLED_PATH` or `bin/codex` hints).
+//! - Isolate state with [`CodexClientBuilder::codex_home`] (config/auth/history/logs live under that directory) and optionally create the layout with [`CodexClientBuilder::create_home_dirs`]. [`CodexHomeLayout`] inspects `config.toml`, `auth.json`, `.credentials.json`, `history.jsonl`, `conversations/`, and `logs/`.
+//! - Wrapper defaults: temp working dir per call unless `working_dir` is set, `--skip-git-repo-check`, 120s timeout (use `Duration::ZERO` to disable), ANSI colors off, `RUST_LOG=error` if unset.
+//! - Model defaults: `gpt-5*`/`gpt-5.1*` (including codex variants) get `model_reasoning_effort="medium"`/`model_reasoning_summary="auto"`/`model_verbosity="low"` to avoid unsupported “minimal” combos.
+//!
+//! ```rust,no_run
+//! use codex::CodexClient;
+//! # use std::time::Duration;
+//! # #[tokio::main]
+//! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! std::env::set_var("CODEX_HOME", "/tmp/my-app-codex");
+//! let client = CodexClient::builder()
+//!     .binary("/opt/myapp/bin/codex")
+//!     .model("gpt-5-codex")
+//!     .timeout(Duration::from_secs(45))
+//!     .build();
+//! let reply = client.send_prompt("Health check").await?;
+//! println!("{reply}");
+//! # Ok(()) }
+//! ```
 //!
 //! Surfaces:
 //! - [`CodexClient::send_prompt`] for a single prompt/response with optional `--json` output.
 //! - [`CodexClient::stream_exec`] for typed, real-time JSONL events from `codex exec --json`, returning an [`ExecStream`] with an event stream plus a completion future.
 //! - [`CodexClient::apply`] / [`CodexClient::diff`] to run `codex apply/diff`, echo stdout/stderr according to the builder (`mirror_stdout` / `quiet`), and return captured output + exit status.
 //!
-//! Binary and `CODEX_HOME` isolation:
-//! - Point at a bundled Codex binary with [`CodexClientBuilder::binary`] or honor `CODEX_BINARY`/`PATH` fallbacks; examples also support a `CODEX_BUNDLED_PATH` hint and a local `bin/codex`.
-//! - Scope Codex data via [`CodexClientBuilder::codex_home`] and optionally create the layout with [`CodexClientBuilder::create_home_dirs`]; overrides are applied per spawn without mutating the parent environment.
-//! - Use [`CodexHomeLayout`] to inspect `config.toml`, `auth.json`, `.credentials.json`, `history.jsonl`, `conversations/`, and `logs/` paths under an isolated home.
+//! ## Streaming, events, and artifacts
+//! - `.json(true)` requests JSONL streaming. Expect `thread.started`/`thread.resumed`, `turn.started`/`turn.completed`/`turn.failed`, and `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`.
+//! - Sample payloads ship with the streaming examples (`crates/codex/examples/fixtures/*`); most examples support `--sample` for offline inspection.
+//! - Disable `mirror_stdout` when parsing JSON so stdout stays under caller control; `quiet` controls stderr mirroring. `json_event_log` tees raw JSONL lines to disk before parsing; `idle_timeout`, `output_last_message`, and `output_schema` cover artifact handling.
+//! - `crates/codex/examples/stream_events.rs`, `stream_last_message.rs`, `stream_with_log.rs`, and `json_stream.rs` cover typed consumption, artifact handling, log teeing, and minimal streaming.
 //!
-//! Streaming, logging, and defaults:
-//! - Wrapper defaults: temp working dir per call (unless `working_dir` is set), `--skip-git-repo-check`, 120s timeout (use `Duration::ZERO` to disable), ANSI colors off, `RUST_LOG=error` if unset.
-//! - Set `json_event_log` on the builder or [`ExecStreamRequest`] to tee raw JSONL lines to disk before parsing. Logs append to existing files, flush per line, and create parent directories.
-//! - Disable `mirror_stdout` when parsing JSON so stdout stays under caller control; `quiet` controls stderr mirroring.
-//! - Streaming apply/diff output (stdout/stderr/exit) flows into `file_change` events and any configured `json_event_log` tee before parsing. `ExecStreamRequest` supports `idle_timeout`, `output_last_message`, and `output_schema` for artifact handling.
-//! - Events include `thread.started`, `turn.started`/`turn.completed`/`turn.failed`, and `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus optional `status`/`content`/`input`.
+//! ## Resume + apply/diff
+//! - `codex resume --json --skip-git-repo-check --last` (or `--id <conversationId>`) streams the same `thread/turn/item` events as `exec` with an initial `thread.resumed`; reuse the streaming consumers above.
+//! - `codex diff --json --skip-git-repo-check` previews staged changes, and `codex apply --json` returns stdout/stderr plus the exit status for the apply step. Streams echo into `file_change` events and any configured JSON log tee.
+//! - `crates/codex/examples/resume_apply.rs` strings these together with sample payloads and lets you skip the apply call when you just want the resume stream.
 //!
-//! Servers and capability detection:
-//! - Use `codex::mcp` to launch `codex mcp-server --stdio` / `codex app-server --stdio`, stream JSON-RPC events, and manage runtime config (`crates/codex/examples/mcp_codex_flow.rs`, `crates/codex/examples/mcp_codex_tool.rs`, `crates/codex/examples/mcp_codex_reply.rs`, `crates/codex/examples/app_server_turns.rs`, `crates/codex/examples/app_server_thread_turn.rs`).
-//! - Gate optional flags with `crates/codex/examples/feature_detection.rs`, which parses `codex --version` + `codex features list` to decide whether to enable streaming, log tee, or app-server endpoints and to emit upgrade advisories (hooks into `CodexCapabilities` and `CapabilityGuard`).
+//! ## Servers and capability detection
+//! - Integrate the stdio servers via `codex mcp-server` / `codex app-server` (`crates/codex/examples/mcp_codex_flow.rs`, `mcp_codex_tool.rs`, `mcp_codex_reply.rs`, `app_server_turns.rs`, `app_server_thread_turn.rs`) to drive JSON-RPC flows, approvals, and shutdown.
+//! - Gate optional flags with `crates/codex/examples/feature_detection.rs`, which parses `codex --version` + `codex features list` to decide whether to enable streaming, log tee, resume/apply/diff helpers, or app-server endpoints. Cache feature probes per binary path and refresh them when the Codex binary path, mtime, or reported version changes; emit upgrade advisories when required capabilities are missing.
 //!
 //! More end-to-end flows and CLI mappings live in `README.md` and `crates/codex/EXAMPLES.md`.
 //!
@@ -67,13 +88,19 @@ use tracing::{debug, warn};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(120);
 const DEFAULT_REASONING_CONFIG_GPT5: &[(&str, &str)] = &[
-    ("model_reasoning_effort", "minimal"),
+    ("model_reasoning_effort", "medium"),
     ("model_reasoning_summary", "auto"),
     ("model_verbosity", "low"),
 ];
 
 const DEFAULT_REASONING_CONFIG_GPT5_CODEX: &[(&str, &str)] = &[
-    ("model_reasoning_effort", "low"),
+    ("model_reasoning_effort", "medium"),
+    ("model_reasoning_summary", "auto"),
+    ("model_verbosity", "low"),
+];
+
+const DEFAULT_REASONING_CONFIG_GPT5_1: &[(&str, &str)] = &[
+    ("model_reasoning_effort", "medium"),
     ("model_reasoning_summary", "auto"),
     ("model_verbosity", "low"),
 ];
@@ -1082,10 +1109,11 @@ impl CodexClient {
 
     /// Sends `prompt` to `codex exec` and returns its stdout (the final agent message) on success.
     ///
-    /// When `.json(true)` is enabled the CLI emits JSONL events (`thread.started`, `turn.started`,
-    /// `item.created`, `turn.completed`, or `error`). The stream is mirrored to stdout unless
-    /// `.mirror_stdout(false)`; the returned string contains the buffered lines for offline parsing.
-    /// For per-event handling, see `crates/codex/examples/stream_events.rs`.
+    /// When `.json(true)` is enabled the CLI emits JSONL events (`thread.started` or
+    /// `thread.resumed`, `turn.started`/`turn.completed`/`turn.failed`,
+    /// `item.created`/`item.updated`, or `error`). The stream is mirrored to stdout unless
+    /// `.mirror_stdout(false)`; the returned string contains the buffered lines for offline
+    /// parsing. For per-event handling, see `crates/codex/examples/stream_events.rs`.
     ///
     /// ```rust,no_run
     /// use codex::CodexClient;
@@ -1998,10 +2026,10 @@ impl CodexClientBuilder {
 
     /// Enables Codex's JSONL output mode (`--json`).
     ///
-    /// Prompts are piped via stdin when enabled. Events include `thread.started`,
-    /// `turn.started`/`turn.completed`, and `item.created` with `item.type` such as
-    /// `agent_message` or `reasoning`. Pair with `.mirror_stdout(false)` if you plan to parse the
-    /// stream instead of just mirroring it.
+    /// Prompts are piped via stdin when enabled. Events include `thread.started`
+    /// (or `thread.resumed` when continuing), `turn.started`/`turn.completed`/`turn.failed`,
+    /// and `item.created`/`item.updated` with `item.type` such as `agent_message` or `reasoning`.
+    /// Pair with `.mirror_stdout(false)` if you plan to parse the stream instead of just mirroring it.
     pub fn json(mut self, enable: bool) -> Self {
         self.json_output = enable;
         self
@@ -2156,10 +2184,12 @@ impl ColorMode {
 }
 
 fn reasoning_config_for(model: Option<&str>) -> Option<&'static [(&'static str, &'static str)]> {
-    match model {
-        Some(name) if name.eq_ignore_ascii_case("gpt-5-codex") => {
-            Some(DEFAULT_REASONING_CONFIG_GPT5_CODEX)
-        }
+    let name = model.map(|value| value.to_ascii_lowercase());
+    match name.as_deref() {
+        Some(name) if name.starts_with("gpt-5.1-codex") => Some(DEFAULT_REASONING_CONFIG_GPT5_1),
+        Some(name) if name.starts_with("gpt-5.1") => Some(DEFAULT_REASONING_CONFIG_GPT5_1),
+        Some(name) if name == "gpt-5-codex" => Some(DEFAULT_REASONING_CONFIG_GPT5_CODEX),
+        Some(name) if name.starts_with("gpt-5") => Some(DEFAULT_REASONING_CONFIG_GPT5),
         _ => Some(DEFAULT_REASONING_CONFIG_GPT5),
     }
 }
@@ -5003,6 +5033,10 @@ fi
         assert_eq!(
             reasoning_config_for(Some("gpt-5")).unwrap(),
             DEFAULT_REASONING_CONFIG_GPT5
+        );
+        assert_eq!(
+            reasoning_config_for(Some("gpt-5.1-codex-max")).unwrap(),
+            DEFAULT_REASONING_CONFIG_GPT5_1
         );
         assert_eq!(
             reasoning_config_for(Some("gpt-5-codex")).unwrap(),

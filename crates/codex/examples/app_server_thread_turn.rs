@@ -57,11 +57,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn demo_app_server(binary: &Path, prompt: &str) -> Result<(), Box<dyn Error>> {
-    println!("Starting `codex app-server --stdio` using {}", binary.display());
+    println!("Starting `codex app-server` using {}", binary.display());
 
     let mut command = Command::new(binary);
     command
-        .args(["app-server", "--stdio"])
+        .arg("app-server")
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::inherit())
@@ -109,9 +109,7 @@ async fn demo_app_server(binary: &Path, prompt: &str) -> Result<(), Box<dyn Erro
             "sandbox": true
         }
     });
-    stdin
-        .write_all(turn_request.to_string().as_bytes())
-        .await?;
+    stdin.write_all(turn_request.to_string().as_bytes()).await?;
     stdin.write_all(b"\n").await?;
     stdin.flush().await?;
 
@@ -156,7 +154,17 @@ fn resolve_binary() -> PathBuf {
 }
 
 fn binary_exists(path: &Path) -> bool {
-    std::fs::metadata(path).is_ok()
+    if path.is_absolute() || path.components().count() > 1 {
+        std::fs::metadata(path).is_ok()
+    } else {
+        env::var_os("PATH")
+            .and_then(|paths| {
+                env::split_paths(&paths)
+                    .map(|dir| dir.join(path))
+                    .find(|candidate| std::fs::metadata(candidate).is_ok())
+            })
+            .is_some()
+    }
 }
 
 fn take_flag(args: &mut Vec<String>, flag: &str) -> bool {

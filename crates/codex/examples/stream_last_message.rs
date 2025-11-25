@@ -72,7 +72,17 @@ fn resolve_binary() -> PathBuf {
 }
 
 fn binary_exists(path: &PathBuf) -> bool {
-    fs::metadata(path).is_ok()
+    if path.is_absolute() || path.components().count() > 1 {
+        fs::metadata(path).is_ok()
+    } else {
+        env::var_os("PATH")
+            .and_then(|paths| {
+                env::split_paths(&paths)
+                    .map(|dir| dir.join(path))
+                    .find(|candidate| fs::metadata(candidate).is_ok())
+            })
+            .is_some()
+    }
 }
 
 async fn run_codex(
@@ -92,9 +102,7 @@ async fn run_codex(
                 .to_str()
                 .ok_or("Non-UTF8 last message path")?,
             "--output-schema",
-            schema_path
-                .to_str()
-                .ok_or("Non-UTF8 schema path")?,
+            schema_path.to_str().ok_or("Non-UTF8 schema path")?,
         ])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
@@ -138,7 +146,10 @@ fn write_sample_outputs(
             "exit_code": {"type": "integer"}
         }
     });
-    fs::write(last_message_path, serde_json::to_string_pretty(&last_message)?)?;
+    fs::write(
+        last_message_path,
+        serde_json::to_string_pretty(&last_message)?,
+    )?;
     fs::write(schema_path, serde_json::to_string_pretty(&schema)?)?;
     Ok(())
 }

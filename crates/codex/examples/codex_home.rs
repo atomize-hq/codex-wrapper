@@ -64,11 +64,11 @@ fn print_known_paths(home: &Path) {
     println!("Codex will use:");
     println!("  - config: {}", home.join("config.toml").display());
     println!("  - auth: {}", home.join("auth.json").display());
-    println!("  - credentials: {}", home.join(".credentials.json").display());
     println!(
-        "  - history: {}",
-        home.join("history.jsonl").display()
+        "  - credentials: {}",
+        home.join(".credentials.json").display()
     );
+    println!("  - history: {}", home.join("history.jsonl").display());
     println!(
         "  - conversations: {}",
         home.join("conversations").display()

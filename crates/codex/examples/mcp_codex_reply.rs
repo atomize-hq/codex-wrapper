@@ -35,8 +35,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     } else {
         None
     };
-    let conversation_id = conversation_id_arg
-        .or_else(|| env::var("CODEX_CONVERSATION_ID").ok());
+    let conversation_id = conversation_id_arg.or_else(|| env::var("CODEX_CONVERSATION_ID").ok());
     let prompt = if args.is_empty() {
         "Resume the last Codex turn".to_string()
     } else {
@@ -74,12 +73,12 @@ async fn demo_codex_reply(
     prompt: &str,
 ) -> Result<(), Box<dyn Error>> {
     println!(
-        "Starting `codex mcp-server --stdio` then calling codex-reply for conversation {conversation_id}"
+        "Starting `codex mcp-server` then calling codex-reply for conversation {conversation_id}"
     );
 
     let mut command = Command::new(binary);
     command
-        .args(["mcp-server", "--stdio"])
+        .arg("mcp-server")
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::inherit())
@@ -101,9 +100,7 @@ async fn demo_codex_reply(
         }
     });
 
-    stdin
-        .write_all(request.to_string().as_bytes())
-        .await?;
+    stdin.write_all(request.to_string().as_bytes()).await?;
     stdin.write_all(b"\n").await?;
     stdin.flush().await?;
 
@@ -148,7 +145,17 @@ fn resolve_binary() -> PathBuf {
 }
 
 fn binary_exists(path: &Path) -> bool {
-    std::fs::metadata(path).is_ok()
+    if path.is_absolute() || path.components().count() > 1 {
+        std::fs::metadata(path).is_ok()
+    } else {
+        env::var_os("PATH")
+            .and_then(|paths| {
+                env::split_paths(&paths)
+                    .map(|dir| dir.join(path))
+                    .find(|candidate| std::fs::metadata(candidate).is_ok())
+            })
+            .is_some()
+    }
 }
 
 fn take_flag(args: &mut Vec<String>, flag: &str) -> bool {

@@ -11,11 +11,18 @@
 //! CODEX_BINARY=/opt/codex-nightly cargo run -p codex --example feature_detection
 //! ```
 
-use std::{env, error::Error, path::Path, path::PathBuf};
+use std::{
+    collections::HashMap,
+    env,
+    error::Error,
+    path::Path,
+    path::PathBuf,
+    sync::{Mutex, OnceLock},
+};
 
 use tokio::process::Command;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Capability {
     version: Option<Version>,
     features: Vec<String>,
@@ -28,14 +35,18 @@ struct Version {
     patch: u64,
 }
 
+static CAPABILITY_CACHE: OnceLock<Mutex<HashMap<PathBuf, Capability>>> = OnceLock::new();
+
 impl Version {
     fn parse(raw: &str) -> Option<Self> {
-        let tokens: Vec<&str> = raw
-            .split(|c: char| c.is_whitespace() || c == '-')
-            .collect();
-        let version_str = tokens
-            .iter()
-            .find(|token| token.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false))?;
+        let tokens: Vec<&str> = raw.split(|c: char| c.is_whitespace() || c == '-').collect();
+        let version_str = tokens.iter().find(|token| {
+            token
+                .chars()
+                .next()
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false)
+        })?;
         let parts: Vec<&str> = version_str.split('.').collect();
         if parts.len() < 2 {
             return None;
@@ -58,26 +69,14 @@ impl Version {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let binary = resolve_binary();
-    let capability = if binary_exists(&binary) {
-        probe_capabilities(&binary).await
+    let (capability, cached) = if binary_exists(&binary) {
+        cached_probe(&binary).await
     } else {
-        eprintln!("Binary not found at {}. Using sample capability set.", binary.display());
-        Capability {
-            version: Some(Version {
-                major: 1,
-                minor: 4,
-                patch: 0,
-            }),
-            features: vec![
-                "json-stream".into(),
-                "output-last-message".into(),
-                "output-schema".into(),
-                "log-tee".into(),
-                "app-server".into(),
-                "mcp-server".into(),
-                "notify".into(),
-            ],
-        }
+        eprintln!(
+            "Binary not found at {}. Using sample capability set.",
+            binary.display()
+        );
+        (sample_capability(), false)
     };
 
     if let Some(version) = capability.version.as_ref() {
@@ -85,7 +84,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     } else {
         println!("Version unknown (could not parse output)");
     }
+    if cached {
+        println!("Capabilities served from cache for {}", binary.display());
+    }
     println!("Features: {}", capability.features.join(", "));
+    println!(
+        "Cache scope: per binary path for this process; refresh probes after upgrading the binary."
+    );
 
     if capability.supports("json-stream") {
         println!("-> Enable streaming examples (stream_events, stream_with_log).");
@@ -97,6 +102,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("-> Log tee supported; safe to write to log files.");
     } else {
         println!("-> Log tee unavailable; fall back to console-only streaming.");
+    }
+
+    if capability.supports("resume") {
+        println!(
+            "-> Resume supported; enable resume_apply example and prompt for conversation IDs."
+        );
+    } else {
+        println!("-> Resume unsupported; hide resume_apply in your UI.");
+    }
+
+    if capability.supports("diff") && capability.supports("apply") {
+        println!("-> Diff/apply supported; capture stdout/stderr/exit when applying patches.");
+    } else {
+        println!("-> Skip codex diff/apply helpers when the binary does not advertise them.");
     }
 
     if capability.supports("output-last-message") && capability.supports("output-schema") {
@@ -122,16 +141,54 @@ impl Capability {
     fn supports(&self, name: &str) -> bool {
         self.features
             .iter()
-            .any(|feature| feature.eq_ignore_ascii_case(name))
+            .any(|feature| normalize(feature) == name.to_ascii_lowercase())
     }
 }
 
+async fn cached_probe(binary: &Path) -> (Capability, bool) {
+    let cache = CAPABILITY_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Some(existing) = cache.lock().unwrap().get(binary) {
+        return (existing.clone(), true);
+    }
+
+    let capability = probe_capabilities(binary).await;
+    cache
+        .lock()
+        .unwrap()
+        .insert(binary.to_path_buf(), capability.clone());
+    (capability, false)
+}
+
 async fn probe_capabilities(binary: &Path) -> Capability {
-    let version = run_version(binary).await.and_then(|raw| Version::parse(&raw));
-    let features = run_features(binary).await.unwrap_or_else(|| {
-        vec!["json-stream".into(), "output-last-message".into()]
-    });
+    let version = run_version(binary)
+        .await
+        .and_then(|raw| Version::parse(&raw));
+    let features = run_features(binary)
+        .await
+        .unwrap_or_else(|| vec!["json-stream".into(), "output-last-message".into()]);
     Capability { version, features }
+}
+
+fn sample_capability() -> Capability {
+    Capability {
+        version: Some(Version {
+            major: 1,
+            minor: 4,
+            patch: 0,
+        }),
+        features: vec![
+            "json-stream".into(),
+            "output-last-message".into(),
+            "output-schema".into(),
+            "log-tee".into(),
+            "diff".into(),
+            "apply".into(),
+            "resume".into(),
+            "app-server".into(),
+            "mcp-server".into(),
+            "notify".into(),
+        ],
+    }
 }
 
 async fn run_version(binary: &Path) -> Option<String> {
@@ -165,7 +222,12 @@ async fn run_features(binary: &Path) -> Option<Vec<String>> {
 }
 
 fn update_advisory_hook(capability: &Capability) -> Option<String> {
-    if capability.supports("json-stream") && capability.supports("log-tee") {
+    let missing: Vec<&str> = ["json-stream", "log-tee", "diff", "apply"]
+        .iter()
+        .copied()
+        .filter(|name| !capability.supports(name))
+        .collect();
+    if missing.is_empty() {
         return None;
     }
     let binary_desc = capability
@@ -174,8 +236,17 @@ fn update_advisory_hook(capability: &Capability) -> Option<String> {
         .map(|v| v.as_string())
         .unwrap_or_else(|| "<unknown>".into());
     Some(format!(
-        "Update advisory: binary {binary_desc} is missing streaming/log-tee; prompt the user to download the latest release."
+        "Update advisory: binary {binary_desc} is missing {missing}; prompt the user to download the latest release.",
+        missing = missing.join(", ")
     ))
+}
+
+fn normalize(feature: &str) -> String {
+    feature
+        .split(|c: char| c.is_whitespace() || c == ':' || c == '=')
+        .next()
+        .unwrap_or(feature)
+        .to_ascii_lowercase()
 }
 
 fn resolve_binary() -> PathBuf {
@@ -185,5 +256,15 @@ fn resolve_binary() -> PathBuf {
 }
 
 fn binary_exists(path: &Path) -> bool {
-    std::fs::metadata(path).is_ok()
+    if path.is_absolute() || path.components().count() > 1 {
+        std::fs::metadata(path).is_ok()
+    } else {
+        env::var_os("PATH")
+            .and_then(|paths| {
+                env::split_paths(&paths)
+                    .map(|dir| dir.join(path))
+                    .find(|candidate| std::fs::metadata(candidate).is_ok())
+            })
+            .is_some()
+    }
 }
