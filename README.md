@@ -119,6 +119,7 @@ println!("{reply}");
   println!("stdout:\n{}", run.stdout);
   # Ok(()) }
   ```
+  See `crates/codex/examples/run_sandbox.rs` for a runnable wrapper that selects the platform, forwards `--full-auto`/`--log-denials`, and prints captured stdout/stderr/exit.
 
 ## MCP + App-Server Flows
 - The CLI ships stdio servers for Model Context Protocol and the app-server APIs. Examples cover the JSON-RPC wiring, approvals, and shutdown:
