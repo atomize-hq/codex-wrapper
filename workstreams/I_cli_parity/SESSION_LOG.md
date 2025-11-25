@@ -15,3 +15,5 @@ Template: `[START yyyy-mm-ddTHH:MMZ] [END yyyy-mm-ddTHH:MMZ] Agent: <name> | Tas
 [START 2025-11-25T16:50Z] [END 2025-11-25T16:54Z] Agent: Codex | Task(s): I5-tbd | Branch: ws/I_cli_parity | Notes: Triaged follow-ups, none needed; added I5 closure to tasks.json and merged task branch; no tests (planning-only)
 
 [START 2025-11-25T19:04Z] [END 2025-11-25T19:13Z] Agent: Codex | Task(s): I6-profile-flag | Branch: ws/I_cli_parity | Notes: Added CLI profile plumbing + docs/tests in task worktree (`../wt-I6`), merged task/I6-profile-flag into ws/I_cli_parity, removed worktree; cargo test -p codex
+
+[START 2025-11-25T19:16Z] [END 2025-11-25T19:29Z] Agent: Codex | Task(s): I7-sandbox-command-design | Branch: ws/I_cli_parity | Notes: Drafted sandbox command wrapper design note (platform flags/platform-specific behavior/post-run stance) in task worktree and merged task branch; tests not run (design-only)

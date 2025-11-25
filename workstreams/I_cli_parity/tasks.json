@@ -85,7 +85,7 @@
       "crates/codex/src/lib.rs",
       "README.md"
     ],
-    "status": "todo"
+    "status": "done"
   },
   {
     "id": "I8-sandbox-command-impl",
