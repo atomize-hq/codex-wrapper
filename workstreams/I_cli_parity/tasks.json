@@ -46,6 +46,6 @@
       "crates/codex/src/lib.rs"
     ],
     "tests": ["cargo test -p codex"],
-    "status": "optional"
+    "status": "done"
   }
 ]

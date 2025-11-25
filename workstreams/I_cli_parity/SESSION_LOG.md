@@ -9,3 +9,5 @@ Template: `[START yyyy-mm-ddTHH:MMZ] [END yyyy-mm-ddTHH:MMZ] Agent: <name> | Tas
 [START 2025-11-25T15:19Z] [END 2025-11-25T15:31Z] Agent: Codex | Task(s): I1-design-parity-apis | Branch: ws/I_cli_parity | Notes: Created task branch/worktree, wrote CLI parity API design note and doc pointer, merged task back to workstream; tests not run (design-only)
 
 [START 2025-11-25T16:13Z] [END 2025-11-25T16:26Z] Agent: Codex | Task(s): I3-tests-docs-examples | Branch: ws/I_cli_parity | Notes: Added CLI override tests, docs, and cli_overrides example; merged task branch; cargo test -p codex
+
+[START 2025-11-25T16:29Z] [END 2025-11-25T16:41Z] Agent: Codex | Task(s): I4-auth-session-helper | Branch: ws/I_cli_parity | Notes: Added auth session helper + API-key login path, docs, and tests; merged task branch back; cargo test -p codex
