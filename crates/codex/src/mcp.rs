@@ -4513,8 +4513,7 @@ time.sleep(30)
         );
         assert_eq!(launcher_config.startup_timeout, Duration::from_secs(2));
 
-        let launcher_env: HashMap<OsString, OsString> =
-            launcher_config.env.into_iter().collect();
+        let launcher_env: HashMap<OsString, OsString> = launcher_config.env.into_iter().collect();
         assert_eq!(
             launcher_env.get(&OsString::from("CODEX_HOME")),
             Some(&code_home.as_os_str().to_os_string())
@@ -4532,12 +4531,8 @@ time.sleep(30)
             .stdio_config("pooled")
             .expect("pooled stdio config without starting");
         assert_eq!(stdio_config.binary, server_path);
-        assert_eq!(
-            stdio_config.code_home.as_deref(),
-            Some(code_home.as_path())
-        );
-        let stdio_env: HashMap<OsString, OsString> =
-            stdio_config.env.into_iter().collect();
+        assert_eq!(stdio_config.code_home.as_deref(), Some(code_home.as_path()));
+        let stdio_env: HashMap<OsString, OsString> = stdio_config.env.into_iter().collect();
         assert_eq!(
             stdio_env.get(&OsString::from("POOL_ONLY")),
             Some(&OsString::from("base"))
