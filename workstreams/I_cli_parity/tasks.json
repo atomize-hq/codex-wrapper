@@ -111,6 +111,6 @@
       "crates/codex/examples"
     ],
     "tests": ["cargo test -p codex"],
-    "status": "todo"
+    "status": "done"
   }
 ]
