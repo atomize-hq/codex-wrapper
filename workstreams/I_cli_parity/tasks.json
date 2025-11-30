@@ -181,7 +181,7 @@
       "crates/codex/examples"
     ],
     "tests": ["cargo test -p codex"],
-    "status": "todo"
+    "status": "done"
   },
   {
     "id": "I14-cli-parity-followups",
