@@ -115,8 +115,8 @@
   },
   {
     "id": "I10-app-server-codegen",
-    "title": "Wrap app-server codegen commands",
-    "description": "Wrap `codex app-server generate-ts` and `codex app-server generate-json-schema` in the Rust wrapper so hosts can refresh app-server protocol bindings programmatically.",
+    "title": "Wrap app-server codegen utilities",
+    "description": "Expose `codex app-server generate-ts` and `generate-json-schema` in the Rust wrapper (API surface + docs/examples) so hosts can refresh app-server protocol bindings programmatically.",
     "dependencies": ["I9-sandbox-followups"],
     "files": [
       "crates/codex/src/lib.rs",
@@ -128,7 +128,7 @@
     "status": "done"
   },
   {
-    "id": "I11-cli-parity-closeout",
+    "id": "I10b-cli-parity-closeout",
     "title": "CLI parity closeout",
     "description": "Audit CLI parity after the app-server codegen work: confirm docs/CLI_MATRIX/examples match the wrapper, note any remaining gaps/follow-ups, and prepare a brief handoff/next steps.",
     "dependencies": ["I10-app-server-codegen"],
@@ -144,10 +144,50 @@
     "status": "done"
   },
   {
-    "id": "I12-cli-parity-followups",
+    "id": "I11-execpolicy-wrapper",
+    "title": "Wrap execpolicy checker",
+    "description": "Add a wrapper for `codex execpolicy check` (policy paths, pretty output, command argv) to let hosts validate shell commands against Starlark policies.",
+    "dependencies": ["I10-app-server-codegen"],
+    "files": [
+      "crates/codex/src/lib.rs",
+      "README.md",
+      "CLI_MATRIX.md"
+    ],
+    "tests": ["cargo test -p codex"],
+    "status": "todo"
+  },
+  {
+    "id": "I12-features-subcommand",
+    "title": "Wrap features list",
+    "description": "Expose the `codex features list` subcommand as a first-class wrapper (JSON/text) alongside existing capability probes; document usage and add tests.",
+    "dependencies": ["I11-execpolicy-wrapper"],
+    "files": [
+      "crates/codex/src/lib.rs",
+      "README.md",
+      "CLI_MATRIX.md"
+    ],
+    "tests": ["cargo test -p codex"],
+    "status": "todo"
+  },
+  {
+    "id": "I13-proxy-uds-wrappers",
+    "title": "Wrap responses-api-proxy and stdio-to-uds",
+    "description": "Add wrappers for `codex responses-api-proxy` (API key–injecting proxy) and `codex stdio-to-uds` (stdio relay to UDS), with minimal API surface, docs, and smoke examples.",
+    "dependencies": ["I12-features-subcommand"],
+    "files": [
+      "crates/codex/src/lib.rs",
+      "README.md",
+      "CLI_MATRIX.md",
+      "crates/codex/examples"
+    ],
+    "tests": ["cargo test -p codex"],
+    "status": "todo"
+  },
+  {
+    "id": "I14-cli-parity-followups",
     "title": "CLI parity follow-ups",
     "description": "Decide how to address remaining parity gaps: surface CLI `--oss` and top-level `--enable/--disable` toggles beyond sandbox, and wrap or document `codex cloud exec`/shell completion.",
-    "dependencies": ["I11-cli-parity-closeout"],
+    "dependencies": ["I13-proxy-uds-wrappers"],
     "files": [
       "workstreams/I_cli_parity/BRIEF.md",
       "workstreams/I_cli_parity/tasks.json",
