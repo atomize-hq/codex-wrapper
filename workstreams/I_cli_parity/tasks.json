@@ -112,5 +112,35 @@
     ],
     "tests": ["cargo test -p codex"],
     "status": "done"
+  },
+  {
+    "id": "I10-app-server-codegen",
+    "title": "Wrap app-server codegen commands",
+    "description": "Wrap `codex app-server generate-ts` and `codex app-server generate-json-schema` in the Rust wrapper so hosts can refresh app-server protocol bindings programmatically.",
+    "dependencies": ["I9-sandbox-followups"],
+    "files": [
+      "crates/codex/src/lib.rs",
+      "README.md",
+      "CLI_MATRIX.md",
+      "crates/codex/examples"
+    ],
+    "tests": ["cargo test -p codex"],
+    "status": "done"
+  },
+  {
+    "id": "I11-cli-parity-closeout",
+    "title": "CLI parity closeout",
+    "description": "Audit CLI parity after the app-server codegen work: confirm docs/CLI_MATRIX/examples match the wrapper, note any remaining gaps/follow-ups, and prepare a brief handoff/next steps.",
+    "dependencies": ["I10-app-server-codegen"],
+    "files": [
+      "workstreams/I_cli_parity/BRIEF.md",
+      "workstreams/I_cli_parity/tasks.json",
+      "CLI_MATRIX.md",
+      "README.md",
+      "crates/codex/EXAMPLES.md",
+      "crates/codex/src/lib.rs"
+    ],
+    "tests": ["cargo test -p codex"],
+    "status": "todo"
   }
 ]
