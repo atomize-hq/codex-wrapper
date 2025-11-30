@@ -197,6 +197,21 @@
       "crates/codex/src/lib.rs"
     ],
     "tests": ["cargo test -p codex"],
+    "status": "done"
+  },
+  {
+    "id": "I15-cli-parity-e2e",
+    "title": "CLI parity e2e coverage",
+    "description": "Add end-to-end coverage against a real Codex CLI binary for critical wrappers (exec/resume/apply/diff, sandbox, codegen/proxy/uds/features/execpolicy) or document why it remains deferred. Build a light harness that can consume a supplied binary path and reuse existing fixtures where possible.",
+    "dependencies": ["I14-cli-parity-followups"],
+    "files": [
+      "workstreams/I_cli_parity/BRIEF.md",
+      "workstreams/I_cli_parity/tasks.json",
+      "crates/codex/src/lib.rs",
+      "crates/codex/tests",
+      "crates/codex/examples"
+    ],
+    "tests": ["cargo test -p codex"],
     "status": "todo"
   }
 ]
