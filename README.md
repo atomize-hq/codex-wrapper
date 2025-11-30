@@ -52,8 +52,8 @@ Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, 
 - Example `crates/codex/examples/send_prompt.rs` covers the baseline; `working_dir(_json).rs`, `timeout*.rs`, `image_json.rs`, `color_always.rs`, `quiet.rs`, and `no_stdout_mirror.rs` expand on inputs and output handling.
 
 ## CLI Parity Overrides
-- Builder methods mirror CLI flags and config overrides: `.config_override(_raw|s)`, `.reasoning_*`, `.approval_policy(...)`, `.sandbox_mode(...)`, `.full_auto(true)`, `.dangerously_bypass_approvals_and_sandbox(true)`, `.cd(...)`, `.local_provider(...)`, `.search(...)`, `.auto_reasoning_defaults(false)`. Config overrides carry across exec/resume/apply/diff; per-request patches win on conflict.
-- Per-call overlays use `ExecRequest`/`ResumeRequest`: add config overrides, toggle search, swap `cd`, or change safety policy for a single run. Resume supports `.last()`/`.all()` selectors matching `--last`/`--all`.
+- Builder methods mirror CLI flags and config overrides: `.config_override(_raw|s)`, `.reasoning_*`, `.approval_policy(...)`, `.sandbox_mode(...)`, `.full_auto(true)`, `.dangerously_bypass_approvals_and_sandbox(true)`, `.profile(...)`, `.cd(...)`, `.local_provider(...)`, `.search(...)`, `.auto_reasoning_defaults(false)`. Config overrides carry across exec/resume/apply/diff; per-request patches win on conflict.
+- Per-call overlays use `ExecRequest`/`ResumeRequest`: add config overrides, toggle search, swap `cd`/`profile`, or change safety policy for a single run. Resume supports `.last()`/`.all()` selectors matching `--last`/`--all`.
 - GPT-5* reasoning defaults stay enabled unless you set reasoning/config overrides or flip `auto_reasoning_defaults(false)` on the builder or request.
 
 ```rust,no_run
@@ -63,6 +63,7 @@ use codex::{ApprovalPolicy, CodexClient, ExecRequest, LocalProvider, SandboxMode
 let client = CodexClient::builder()
     .approval_policy(ApprovalPolicy::OnRequest)
     .sandbox_mode(SandboxMode::WorkspaceWrite)
+    .profile("staging")
     .local_provider(LocalProvider::Ollama)
     .config_override("model_verbosity", "high")
     .search(true)
@@ -93,6 +94,33 @@ println!("{reply}");
 - Preview a patch before applying it: `codex diff --json --skip-git-repo-check` emits the staged diff while preserving JSON-safe output. Pair it with `codex apply --json` to capture stdout, stderr, and the exit code for the apply step (`{"type":"apply.result","exit_code":0,"stdout":"...","stderr":""}`).
 - Approvals and cancellations surface as events in MCP/app-server flows; see the server examples for approval-required hooks around apply.
 - Example `crates/codex/examples/resume_apply.rs` covers the full flow with `--sample` payloads (resume stream, diff preview, apply result) and lets you skip the apply step with `--no-apply`.
+
+## Sandbox Command
+- `run_sandbox` wraps `codex sandbox <macos|linux|windows>` and returns stdout/stderr + the inner command status (non-zero statuses are not converted into errors). `mirror_stdout`/`quiet` from the builder control console mirroring.
+- Flags: `full_auto(true)` maps to `--full-auto`, `log_denials(true)` maps to the macOS-only `--log-denials`, and request `config_overrides`/`feature_toggles` become `--config/--enable/--disable`. Other CLI overrides (approval/search/profile/sandbox) are intentionally not forwarded on this subcommand.
+- Working dir precedence: request `.working_dir(...)` → builder `.working_dir(...)` → current process dir (no temp dirs).
+- Platform notes: macOS is the only platform that emits denial logs; Linux relies on the bundled `codex-linux-sandbox` helper; Windows sandboxing is experimental and requires the upstream helper (the wrapper does not gate support—non-zero exits surface in `SandboxRun::status`). There is no built-in post-run hook; run any follow-up script after awaiting `run_sandbox`.
+- Example:
+  ```rust,no_run
+  use codex::{CodexClient, SandboxCommandRequest, SandboxPlatform};
+
+  # async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+  let client = CodexClient::builder().mirror_stdout(false).quiet(true).build();
+  let run = client
+      .run_sandbox(
+          SandboxCommandRequest::new(
+              SandboxPlatform::Linux,
+              ["bash", "-lc", "ls -la /tmp"],
+          )
+          .full_auto(true)
+          .config_override("features.experimental_sandbox", "true"),
+      )
+      .await?;
+  println!("exit: {:?}", run.status.code());
+  println!("stdout:\n{}", run.stdout);
+  # Ok(()) }
+  ```
+  See `crates/codex/examples/run_sandbox.rs` for a runnable wrapper that selects the platform, forwards `--full-auto`/`--log-denials`, and prints captured stdout/stderr/exit.
 
 ## MCP + App-Server Flows
 - The CLI ships stdio servers for Model Context Protocol and the app-server APIs. Examples cover the JSON-RPC wiring, approvals, and shutdown:

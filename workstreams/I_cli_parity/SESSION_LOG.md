@@ -13,3 +13,11 @@ Template: `[START yyyy-mm-ddTHH:MMZ] [END yyyy-mm-ddTHH:MMZ] Agent: <name> | Tas
 [START 2025-11-25T16:29Z] [END 2025-11-25T16:41Z] Agent: Codex | Task(s): I4-auth-session-helper | Branch: ws/I_cli_parity | Notes: Added auth session helper + API-key login path, docs, and tests; merged task branch back; cargo test -p codex
 
 [START 2025-11-25T16:50Z] [END 2025-11-25T16:54Z] Agent: Codex | Task(s): I5-tbd | Branch: ws/I_cli_parity | Notes: Triaged follow-ups, none needed; added I5 closure to tasks.json and merged task branch; no tests (planning-only)
+
+[START 2025-11-25T19:04Z] [END 2025-11-25T19:13Z] Agent: Codex | Task(s): I6-profile-flag | Branch: ws/I_cli_parity | Notes: Added CLI profile plumbing + docs/tests in task worktree (`../wt-I6`), merged task/I6-profile-flag into ws/I_cli_parity, removed worktree; cargo test -p codex
+
+[START 2025-11-25T19:16Z] [END 2025-11-25T19:29Z] Agent: Codex | Task(s): I7-sandbox-command-design | Branch: ws/I_cli_parity | Notes: Drafted sandbox command wrapper design note (platform flags/platform-specific behavior/post-run stance) in task worktree and merged task branch; tests not run (design-only)
+
+[START 2025-11-25T19:42Z] [END 2025-11-25T19:54Z] Agent: Codex | Task(s): I8-sandbox-command-impl | Branch: ws/I_cli_parity | Notes: Implemented sandbox command wrapper in task worktree (`../wt-I8`): added SandboxPlatform/request/run_sandbox API, flag mapping/working-dir handling, tests, and README/CLI_MATRIX updates; cargo test -p codex
+
+[START 2025-11-30T03:26Z] [END 2025-11-30T03:31Z] Agent: Codex | Task(s): I9-sandbox-followups | Branch: ws/I_cli_parity | Notes: Documented sandbox platform caveats (macOS denials, Linux helper, Windows experimental/no gating) in README/CLI_MATRIX/lib docs; merged task branch; cargo test -p codex
