@@ -99,6 +99,7 @@ println!("{reply}");
 - `run_sandbox` wraps `codex sandbox <macos|linux|windows>` and returns stdout/stderr + the inner command status (non-zero statuses are not converted into errors). `mirror_stdout`/`quiet` from the builder control console mirroring.
 - Flags: `full_auto(true)` maps to `--full-auto`, `log_denials(true)` maps to the macOS-only `--log-denials`, and request `config_overrides`/`feature_toggles` become `--config/--enable/--disable`. Other CLI overrides (approval/search/profile/sandbox) are intentionally not forwarded on this subcommand.
 - Working dir precedence: request `.working_dir(...)` → builder `.working_dir(...)` → current process dir (no temp dirs).
+- Platform notes: macOS is the only platform that emits denial logs; Linux relies on the bundled `codex-linux-sandbox` helper; Windows sandboxing is experimental and requires the upstream helper (the wrapper does not gate support—non-zero exits surface in `SandboxRun::status`). There is no built-in post-run hook; run any follow-up script after awaiting `run_sandbox`.
 - Example:
   ```rust,no_run
   use codex::{CodexClient, SandboxCommandRequest, SandboxPlatform};
