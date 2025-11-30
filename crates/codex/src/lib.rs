@@ -29,7 +29,7 @@
 //! - [`CodexClient::send_prompt`] for a single prompt/response with optional `--json` output.
 //! - [`CodexClient::stream_exec`] for typed, real-time JSONL events from `codex exec --json`, returning an [`ExecStream`] with an event stream plus a completion future.
 //! - [`CodexClient::apply`] / [`CodexClient::diff`] to run `codex apply/diff`, echo stdout/stderr according to the builder (`mirror_stdout` / `quiet`), and return captured output + exit status.
-//! - [`CodexClient::run_sandbox`] to wrap `codex sandbox <platform>` (macOS/Linux/Windows), pass `--full-auto`/`--log-denials`/`--config`/`--enable`/`--disable`, and return the inner command status + output.
+//! - [`CodexClient::run_sandbox`] to wrap `codex sandbox <platform>` (macOS/Linux/Windows), pass `--full-auto`/`--log-denials`/`--config`/`--enable`/`--disable`, and return the inner command status + output. macOS is the only platform that emits denial logs; Linux depends on the bundled `codex-linux-sandbox`; Windows sandboxing is experimental and relies on the upstream helper (no capability gating—non-zero exits bubble through).
 //!
 //! ## Streaming, events, and artifacts
 //! - `.json(true)` requests JSONL streaming. Expect `thread.started`/`thread.resumed`, `turn.started`/`turn.completed`/`turn.failed`, and `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`.
@@ -1786,7 +1786,9 @@ impl CodexClient {
     /// Captures stdout/stderr and mirrors them according to the builder (`mirror_stdout` / `quiet`). Unlike
     /// `apply`/`diff`, non-zero exit codes are returned in [`SandboxRun::status`] without being wrapped in
     /// [`CodexError::NonZeroExit`]. macOS denial logging is enabled via [`SandboxCommandRequest::log_denials`]
-    /// and ignored on other platforms.
+    /// and ignored on other platforms. Linux uses the bundled `codex-linux-sandbox` helper; Windows sandboxing
+    /// is experimental and relies on the upstream helper. The wrapper does not gate availability—unsupported
+    /// installs will surface as non-zero statuses.
     pub async fn run_sandbox(
         &self,
         request: SandboxCommandRequest,
