@@ -21,3 +21,7 @@ Template: `[START yyyy-mm-ddTHH:MMZ] [END yyyy-mm-ddTHH:MMZ] Agent: <name> | Tas
 [START 2025-11-25T19:42Z] [END 2025-11-25T19:54Z] Agent: Codex | Task(s): I8-sandbox-command-impl | Branch: ws/I_cli_parity | Notes: Implemented sandbox command wrapper in task worktree (`../wt-I8`): added SandboxPlatform/request/run_sandbox API, flag mapping/working-dir handling, tests, and README/CLI_MATRIX updates; cargo test -p codex
 
 [START 2025-11-30T03:26Z] [END 2025-11-30T03:31Z] Agent: Codex | Task(s): I9-sandbox-followups | Branch: ws/I_cli_parity | Notes: Documented sandbox platform caveats (macOS denials, Linux helper, Windows experimental/no gating) in README/CLI_MATRIX/lib docs; merged task branch; cargo test -p codex
+
+[START 2025-11-30T18:44Z] [END 2025-11-30T19:05Z] Agent: Codex | Task(s): I10-app-server-codegen | Branch: ws/I_cli_parity | Notes: Added app-server codegen wrappers in task worktree (`../wt-I10`): new request/output types + generate_app_server_bindings, Prettier/path handling, example, and README/CLI_MATRIX/EXAMPLES updates; cargo test -p codex
+
+[START 2025-11-30T19:11Z] [END 2025-11-30T19:23Z] Agent: Codex | Task(s): I10b-cli-parity-closeout | Branch: ws/I_cli_parity | Notes: Merged task branch from worktree (`../wt-I10b`), clarified app-server codegen error handling and parity gaps in CLI_MATRIX/README/EXAMPLES/BRIEF (oss flag/feature toggles/cloud completion noted), cargo test -p codex
