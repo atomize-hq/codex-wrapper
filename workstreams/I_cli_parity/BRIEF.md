@@ -28,4 +28,5 @@ Deliverables
 
 ## CLI Parity Closeout Notes
 - Verified CLI parity docs/examples after the app-server codegen additions (I10b); clarified codegen error handling (non-zero exits raise `CodexError::NonZeroExit`).
-- Remaining gaps to consider: CLI `--oss` is not mapped; direct `--enable/--disable` toggles only exist on sandbox (use config overrides elsewhere); `codex cloud exec`/shell completion remain unwrapped; no end-to-end tests against a real CLI binary yet.
+- Added a real-binary E2E harness (`crates/codex/tests/cli_e2e.rs`) gated by `CODEX_E2E_BINARY`/`CODEX_E2E_HOME`. Covers `features list` (text-only), app-server codegen, `sandbox` (Linux), `responses-api-proxy`, and `stdio-to-uds`, and records CLI gaps for `diff`/`apply` (expects task/TTY) and absent `execpolicy check`.
+- Remaining gaps: `codex cloud exec`/shell completion stay unwrapped (experimental/setup-time), and exec/resume/streamed prompts still require live sessions/API access so automation remains opt-in via the new harness.

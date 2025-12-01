@@ -52,8 +52,8 @@ Async helper around the OpenAI Codex CLI for programmatic prompting, streaming, 
 - Example `crates/codex/examples/send_prompt.rs` covers the baseline; `working_dir(_json).rs`, `timeout*.rs`, `image_json.rs`, `color_always.rs`, `quiet.rs`, and `no_stdout_mirror.rs` expand on inputs and output handling.
 
 ## CLI Parity Overrides
-- Builder methods mirror CLI flags and config overrides: `.config_override(_raw|s)`, `.reasoning_*`, `.approval_policy(...)`, `.sandbox_mode(...)`, `.full_auto(true)`, `.dangerously_bypass_approvals_and_sandbox(true)`, `.profile(...)`, `.cd(...)`, `.local_provider(...)`, `.search(...)`, `.auto_reasoning_defaults(false)`. Config overrides carry across exec/resume/apply/diff; per-request patches win on conflict.
-- Per-call overlays use `ExecRequest`/`ResumeRequest`: add config overrides, toggle search, swap `cd`/`profile`, or change safety policy for a single run. Resume supports `.last()`/`.all()` selectors matching `--last`/`--all`.
+- Builder methods mirror CLI flags and config overrides: `.config_override(_raw|s)`, `.reasoning_*`, `.approval_policy(...)`, `.sandbox_mode(...)`, `.full_auto(true)`, `.dangerously_bypass_approvals_and_sandbox(true)`, `.profile(...)`, `.cd(...)`, `.local_provider(...)`, `.oss(true)`, `.enable_feature(...)`, `.disable_feature(...)`, `.search(...)`, `.auto_reasoning_defaults(false)`. Config overrides and feature toggles carry across exec/resume/apply/diff; per-request patches win on conflict (including `--oss`).
+- Per-call overlays use `ExecRequest`/`ResumeRequest`: add config overrides, toggle search/oss/feature flags, swap `cd`/`profile`, or change safety policy for a single run. Resume supports `.last()`/`.all()` selectors matching `--last`/`--all`.
 - GPT-5* reasoning defaults stay enabled unless you set reasoning/config overrides or flip `auto_reasoning_defaults(false)` on the builder or request.
 
 ```rust,no_run
@@ -122,6 +122,95 @@ println!("{reply}");
   ```
   See `crates/codex/examples/run_sandbox.rs` for a runnable wrapper that selects the platform, forwards `--full-auto`/`--log-denials`, and prints captured stdout/stderr/exit.
 
+## Execpolicy Checks
+- `check_execpolicy` wraps `codex execpolicy check --policy <PATH>... [--pretty] -- <COMMAND...>` and returns captured stdout/stderr/status plus parsed JSON (`match` with `decision`/`rules` or `noMatch`).
+- Decisions map to `allow`/`prompt`/`forbidden` (forbidden > prompt > allow); rule-level decisions default to `allow` when omitted.
+- Request helpers: `.policy(...)`/`.policies(...)` push repeatable `--policy` flags, `.pretty(true)` forwards `--pretty`, and `.config_override/_raw` + `.profile` + `.search` layer request overrides on top of builder config/profile/approval/sandbox/local-provider/cd settings.
+- Empty command argv returns `EmptyExecPolicyCommand`; non-zero CLI exits surface as `CodexError::NonZeroExit` with stderr attached.
+- Example:
+  ```rust,no_run
+  use codex::{CodexClient, ExecPolicyCheckRequest, ExecPolicyDecision};
+
+  # async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+  let client = CodexClient::builder().mirror_stdout(false).quiet(true).build();
+  let check = client
+      .check_execpolicy(
+          ExecPolicyCheckRequest::new(["bash", "-lc", "rm -rf /tmp/scratch"])
+              .policies(["./policies/default.codexpolicy"])
+              .pretty(true),
+      )
+      .await?;
+
+  match check.decision() {
+      Some(ExecPolicyDecision::Forbidden) => eprintln!("blocked by policy"),
+      Some(ExecPolicyDecision::Prompt) => eprintln!("requires approval"),
+      Some(ExecPolicyDecision::Allow) => println!("allowed"),
+      None => println!("no policy matched"),
+  }
+  # Ok(()) }
+  ```
+
+## Responses API Proxy
+- `start_responses_api_proxy` wraps `codex responses-api-proxy`, writes the API key to stdin, and forwards `--port`/`--server-info`/`--http-shutdown`/`--upstream-url` as requested.
+- The returned handle exposes the child process (kill-on-drop) plus any `--server-info` path, and `read_server_info` parses `{port,pid}` when the file is present. Stdout/stderr remain piped; drain them if you want to tail logs.
+- Example:
+  ```rust,no_run
+  use codex::{CodexClient, ResponsesApiProxyRequest};
+
+  # async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+  let api_key = std::env::var("OPENAI_API_KEY").unwrap_or_else(|_| "sk-placeholder".to_string());
+  let server_info = "/tmp/responses-proxy.json";
+  let mut proxy = CodexClient::builder()
+      .mirror_stdout(false)
+      .quiet(true)
+      .build()
+      .start_responses_api_proxy(
+          ResponsesApiProxyRequest::new(api_key)
+              .port(8081)
+              .http_shutdown(true)
+              .server_info(server_info),
+      )
+      .await?;
+
+  if let Some(info) = proxy.read_server_info().await? {
+      println!("proxy listening on http://127.0.0.1:{}", info.port);
+  }
+  let _ = proxy.child.start_kill();
+  let _ = proxy.child.wait().await?;
+  # Ok(()) }
+  ```
+  See `crates/codex/examples/responses_api_proxy.rs` for a runnable smoke check.
+
+## Stdio-to-UDS Bridge
+- `stdio_to_uds` wraps `codex stdio-to-uds <SOCKET_PATH>` with piped stdin/stdout/stderr so you can bridge JSON-RPC streams over a Unix domain socket. The working dir comes from the request override, then the builder, then the current process dir.
+- Keep stdout/stderr drained to avoid backpressure if the relay emits logs.
+- Example (assumes a listening UDS at `socket_path`):
+  ```rust,no_run
+  use codex::{CodexClient, StdioToUdsRequest};
+  use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+  # async fn demo(socket_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+  let mut bridge = CodexClient::builder()
+      .mirror_stdout(false)
+      .quiet(true)
+      .build()
+      .stdio_to_uds(StdioToUdsRequest::new(socket_path))?;
+
+  let mut stdin = bridge.stdin.take().unwrap();
+  let mut stdout = BufReader::new(bridge.stdout.take().unwrap());
+
+  stdin.write_all(b"ping\n").await?;
+  stdin.shutdown().await?;
+
+  let mut line = String::new();
+  stdout.read_line(&mut line).await?;
+  println!("echoed: {line}");
+
+  let _ = bridge.wait().await?;
+  # Ok(()) }
+  ```
+  See `crates/codex/examples/stdio_to_uds.rs` for a Unix smoke relay against a local echo server.
+
 ## App-Server Codegen
 - `generate_app_server_bindings` wraps `codex app-server generate-ts` (optional `--prettier`) and `generate-json-schema`, creates the output directory when missing, and returns captured stdout/stderr plus the exit status; non-zero exits surface as `CodexError::NonZeroExit` with stderr attached. Shared config/profile/search/approval flags flow through via builder/request overrides.
 - Example:
@@ -143,6 +232,33 @@ println!("{reply}");
       .await?;
   println!("app-server exit: {:?}", codegen.status.code());
   println!("bindings dir: {}", codegen.out_dir.display());
+  # Ok(()) }
+  ```
+
+## Features List
+- `list_features` wraps `codex features list` with optional `--json` (opt-in via the request), falling back to parsing the text table when JSON is unavailable. Returns parsed entries (name, stage, enabled) alongside captured stdout/stderr/status and indicates which format was parsed.
+- Shared config/profile/search/approval overrides flow through; the enabled column reflects the effective config/profile. Non-zero exits surface as `CodexError::NonZeroExit`, and unparsable output surfaces as `CodexError::FeatureListParse`.
+- Example:
+  ```rust,no_run
+  use codex::{CodexClient, FeaturesListRequest};
+
+  # async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+  let client = CodexClient::builder()
+      .mirror_stdout(false)
+      .quiet(true)
+      .build();
+  let features = client
+      .list_features(
+          FeaturesListRequest::new()
+              .json(true)
+              .profile("beta")
+              .config_override("features.experimental_sandbox", "true"),
+      )
+      .await?;
+  println!("features parsed from {:?}", features.format);
+  for feature in features.features {
+      println!("{} ({:?}) enabled={}", feature.name, feature.stage, feature.enabled);
+  }
   # Ok(()) }
   ```
 
@@ -168,8 +284,8 @@ println!("{reply}");
 - The crate still buffers stdout/stderr from streaming/apply flows instead of exposing a typed stream API; use the examples to consume JSONL incrementally until a typed interface lands.
 - Apply/diff flows depend on Codex emitting JSON-friendly stdout/stderr; handle non-JSON output defensively in host apps.
 - Capability detection caches are keyed to a binary path/version pairing; refresh them whenever the Codex binary path, mtime, or `--version` output changes instead of reusing stale results across upgrades. Treat `codex features list` output as best-effort hints that may drift across releases and fall back to the fixtures above when probing fails.
-- CLI `--oss` and top-level `--enable`/`--disable` feature toggles are not surfaced on exec/resume/apply/diff/codegen (sandbox supports feature toggles); use `local_provider`/model selection or config overrides for now.
-- The wrapper does not wrap `codex cloud exec` or the shell-completion helper; call the CLI directly when needed.
+- Top-level `--oss` and `--enable/--disable` toggles now flow through builder/request helpers; feature toggles are additive across builder/request, and request overrides can disable a builder-supplied `--oss`.
+- The wrapper still leaves `codex cloud exec` and the shell-completion helper to the CLI because they are experimental/setup-time utilities. Invoke them directly when needed (e.g., `codex cloud exec -- <cmd>` or `codex completion bash/zsh/fish` in your shell profile).
 
 ## Examples Index
 - The full wrapper vs. native CLI matrix lives in `crates/codex/EXAMPLES.md`.

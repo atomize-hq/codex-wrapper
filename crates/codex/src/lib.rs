@@ -31,6 +31,10 @@
 //! - [`CodexClient::apply`] / [`CodexClient::diff`] to run `codex apply/diff`, echo stdout/stderr according to the builder (`mirror_stdout` / `quiet`), and return captured output + exit status.
 //! - [`CodexClient::generate_app_server_bindings`] to refresh app-server protocol bindings via `codex app-server generate-ts` (optional `--prettier`) or `generate-json-schema`, returning captured stdout/stderr plus the exit status.
 //! - [`CodexClient::run_sandbox`] to wrap `codex sandbox <platform>` (macOS/Linux/Windows), pass `--full-auto`/`--log-denials`/`--config`/`--enable`/`--disable`, and return the inner command status + output. macOS is the only platform that emits denial logs; Linux depends on the bundled `codex-linux-sandbox`; Windows sandboxing is experimental and relies on the upstream helper (no capability gating—non-zero exits bubble through).
+//! - [`CodexClient::check_execpolicy`] to evaluate shell commands against Starlark execpolicy files with repeatable `--policy` flags, optional pretty JSON, and parsed decision output (allow/prompt/forbidden or noMatch).
+//! - [`CodexClient::list_features`] to wrap `codex features list` with optional `--json` parsing, shared config/profile overrides, and parsed feature entries (name/stage/enabled).
+//! - [`CodexClient::start_responses_api_proxy`] to launch the `codex responses-api-proxy` helper with an API key piped via stdin plus optional port/server-info/upstream/shutdown flags.
+//! - [`CodexClient::stdio_to_uds`] to spawn `codex stdio-to-uds <SOCKET_PATH>` with piped stdio so callers can bridge Unix domain sockets manually.
 //!
 //! ## Streaming, events, and artifacts
 //! - `.json(true)` requests JSONL streaming. Expect `thread.started`/`thread.resumed`, `turn.started`/`turn.completed`/`turn.failed`, and `item.created`/`item.updated` with `item.type` such as `agent_message`, `reasoning`, `command_execution`, `file_change`, `mcp_tool_call`, `web_search`, or `todo_list` plus optional `status`/`content`/`input`. Errors surface as `{"type":"error","message":...}`.
@@ -1886,6 +1890,220 @@ impl CodexClient {
         })
     }
 
+    /// Lists CLI features via `codex features list`.
+    ///
+    /// Requests JSON output when `json(true)` is set and falls back to parsing the text table when
+    /// JSON is unavailable. Shared config/profile/search/approval overrides flow through via the
+    /// request/builder, stdout/stderr are mirrored according to the builder, and non-zero exits
+    /// surface as [`CodexError::NonZeroExit`].
+    pub async fn list_features(
+        &self,
+        request: FeaturesListRequest,
+    ) -> Result<FeaturesListOutput, CodexError> {
+        let FeaturesListRequest { json, overrides } = request;
+
+        let dir_ctx = self.directory_context()?;
+        let resolved_overrides =
+            resolve_cli_overrides(&self.cli_overrides, &overrides, self.model.as_deref());
+
+        let mut command = Command::new(self.command_env.binary_path());
+        command
+            .arg("features")
+            .arg("list")
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true)
+            .current_dir(dir_ctx.path());
+
+        apply_cli_overrides(&mut command, &resolved_overrides, true);
+
+        if json {
+            command.arg("--json");
+        }
+
+        self.command_env.apply(&mut command)?;
+
+        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
+            binary: self.command_env.binary_path().to_path_buf(),
+            source,
+        })?;
+
+        let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
+        let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
+
+        let stdout_task = tokio::spawn(tee_stream(
+            stdout,
+            ConsoleTarget::Stdout,
+            self.mirror_stdout,
+        ));
+        let stderr_task = tokio::spawn(tee_stream(stderr, ConsoleTarget::Stderr, !self.quiet));
+
+        let wait_task = async move {
+            let status = child
+                .wait()
+                .await
+                .map_err(|source| CodexError::Wait { source })?;
+            let stdout_bytes = stdout_task
+                .await
+                .map_err(CodexError::Join)?
+                .map_err(CodexError::CaptureIo)?;
+            let stderr_bytes = stderr_task
+                .await
+                .map_err(CodexError::Join)?
+                .map_err(CodexError::CaptureIo)?;
+            Ok::<_, CodexError>((status, stdout_bytes, stderr_bytes))
+        };
+
+        let (status, stdout_bytes, stderr_bytes) = if self.timeout.is_zero() {
+            wait_task.await?
+        } else {
+            match time::timeout(self.timeout, wait_task).await {
+                Ok(result) => result?,
+                Err(_) => {
+                    return Err(CodexError::Timeout {
+                        timeout: self.timeout,
+                    });
+                }
+            }
+        };
+
+        if !status.success() {
+            return Err(CodexError::NonZeroExit {
+                status,
+                stderr: String::from_utf8(stderr_bytes)?,
+            });
+        }
+
+        let stdout_string = String::from_utf8(stdout_bytes)?;
+        let stderr_string = String::from_utf8(stderr_bytes)?;
+        let (features, format) =
+            parse_feature_list_output(&stdout_string, json).map_err(|reason| {
+                CodexError::FeatureListParse {
+                    reason,
+                    stdout: stdout_string.clone(),
+                }
+            })?;
+
+        Ok(FeaturesListOutput {
+            status,
+            stdout: stdout_string,
+            stderr: stderr_string,
+            features,
+            format,
+        })
+    }
+
+    /// Starts the `codex responses-api-proxy` helper with a supplied API key.
+    ///
+    /// Forwards optional `--port`, `--server-info`, `--http-shutdown`, and `--upstream-url` flags.
+    /// The API key is written to stdin immediately after spawn, stdout/stderr remain piped for callers
+    /// to drain, and the returned handle owns the child process plus any `--server-info` path used.
+    pub async fn start_responses_api_proxy(
+        &self,
+        request: ResponsesApiProxyRequest,
+    ) -> Result<ResponsesApiProxyHandle, CodexError> {
+        let ResponsesApiProxyRequest {
+            api_key,
+            port,
+            server_info_path,
+            http_shutdown,
+            upstream_url,
+        } = request;
+
+        let api_key = api_key.trim().to_string();
+        if api_key.is_empty() {
+            return Err(CodexError::EmptyApiKey);
+        }
+
+        let working_dir = self.sandbox_working_dir(None)?;
+
+        let mut command = Command::new(self.command_env.binary_path());
+        command
+            .arg("responses-api-proxy")
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true)
+            .current_dir(&working_dir);
+
+        if let Some(port) = port {
+            command.arg("--port").arg(port.to_string());
+        }
+
+        if let Some(path) = server_info_path.as_ref() {
+            command.arg("--server-info").arg(path);
+        }
+
+        if http_shutdown {
+            command.arg("--http-shutdown");
+        }
+
+        if let Some(url) = upstream_url.as_ref() {
+            if !url.trim().is_empty() {
+                command.arg("--upstream-url").arg(url);
+            }
+        }
+
+        self.command_env.apply(&mut command)?;
+
+        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
+            binary: self.command_env.binary_path().to_path_buf(),
+            source,
+        })?;
+
+        let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
+        stdin
+            .write_all(api_key.as_bytes())
+            .await
+            .map_err(CodexError::StdinWrite)?;
+        stdin
+            .write_all(b"\n")
+            .await
+            .map_err(CodexError::StdinWrite)?;
+        stdin.shutdown().await.map_err(CodexError::StdinWrite)?;
+
+        Ok(ResponsesApiProxyHandle {
+            child,
+            server_info_path,
+        })
+    }
+
+    /// Spawns `codex stdio-to-uds <SOCKET_PATH>` with piped stdio for manual relays.
+    ///
+    /// Returns the child process so callers can write to stdin/read from stdout (e.g., to bridge a
+    /// JSON-RPC transport over a Unix domain socket). Fails fast on empty socket paths and inherits
+    /// the builder working directory when none is provided on the request.
+    pub fn stdio_to_uds(
+        &self,
+        request: StdioToUdsRequest,
+    ) -> Result<tokio::process::Child, CodexError> {
+        let StdioToUdsRequest {
+            socket_path,
+            working_dir,
+        } = request;
+
+        if socket_path.as_os_str().is_empty() {
+            return Err(CodexError::EmptySocketPath);
+        }
+
+        let mut command = Command::new(self.command_env.binary_path());
+        command
+            .arg("stdio-to-uds")
+            .arg(&socket_path)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true)
+            .current_dir(self.sandbox_working_dir(working_dir)?);
+
+        self.command_env.apply(&mut command)?;
+
+        command.spawn().map_err(|source| CodexError::Spawn {
+            binary: self.command_env.binary_path().to_path_buf(),
+            source,
+        })
+    }
+
     /// Runs `codex sandbox <platform> [--full-auto|--log-denials] [--config/--enable/--disable] -- <COMMAND...>`.
     ///
     /// Captures stdout/stderr and mirrors them according to the builder (`mirror_stdout` / `quiet`). Unlike
@@ -1999,6 +2217,123 @@ impl CodexClient {
             status,
             stdout: String::from_utf8(stdout_bytes)?,
             stderr: String::from_utf8(stderr_bytes)?,
+        })
+    }
+
+    /// Evaluates a command against Starlark execpolicy files via `codex execpolicy check`.
+    ///
+    /// Forwards repeatable `--policy` paths, optional `--pretty`, and builder/request CLI overrides
+    /// (config/profile/approval/sandbox/local-provider/cd/search). Captures stdout/stderr according to the
+    /// builder, returns parsed JSON, and surfaces non-zero exits as [`CodexError::NonZeroExit`].
+    /// Empty command argv returns [`CodexError::EmptyExecPolicyCommand`].
+    pub async fn check_execpolicy(
+        &self,
+        request: ExecPolicyCheckRequest,
+    ) -> Result<ExecPolicyCheckResult, CodexError> {
+        if request.command.is_empty() {
+            return Err(CodexError::EmptyExecPolicyCommand);
+        }
+
+        let ExecPolicyCheckRequest {
+            policies,
+            pretty,
+            command,
+            overrides,
+        } = request;
+
+        let dir_ctx = self.directory_context()?;
+        let resolved_overrides =
+            resolve_cli_overrides(&self.cli_overrides, &overrides, self.model.as_deref());
+
+        let mut process = Command::new(self.command_env.binary_path());
+        process
+            .arg("execpolicy")
+            .arg("check")
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true)
+            .current_dir(dir_ctx.path());
+
+        for policy in policies {
+            process.arg("--policy").arg(policy);
+        }
+
+        if pretty {
+            process.arg("--pretty");
+        }
+
+        apply_cli_overrides(&mut process, &resolved_overrides, true);
+
+        process.arg("--");
+        process.args(&command);
+
+        self.command_env.apply(&mut process)?;
+
+        let mut child = process.spawn().map_err(|source| CodexError::Spawn {
+            binary: self.command_env.binary_path().to_path_buf(),
+            source,
+        })?;
+
+        let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
+        let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
+
+        let stdout_task = tokio::spawn(tee_stream(
+            stdout,
+            ConsoleTarget::Stdout,
+            self.mirror_stdout,
+        ));
+        let stderr_task = tokio::spawn(tee_stream(stderr, ConsoleTarget::Stderr, !self.quiet));
+
+        let wait_task = async move {
+            let status = child
+                .wait()
+                .await
+                .map_err(|source| CodexError::Wait { source })?;
+            let stdout_bytes = stdout_task
+                .await
+                .map_err(CodexError::Join)?
+                .map_err(CodexError::CaptureIo)?;
+            let stderr_bytes = stderr_task
+                .await
+                .map_err(CodexError::Join)?
+                .map_err(CodexError::CaptureIo)?;
+            Ok::<_, CodexError>((status, stdout_bytes, stderr_bytes))
+        };
+
+        let (status, stdout_bytes, stderr_bytes) = if self.timeout.is_zero() {
+            wait_task.await?
+        } else {
+            match time::timeout(self.timeout, wait_task).await {
+                Ok(result) => result?,
+                Err(_) => {
+                    return Err(CodexError::Timeout {
+                        timeout: self.timeout,
+                    });
+                }
+            }
+        };
+
+        let stdout_string = String::from_utf8(stdout_bytes)?;
+        let stderr_string = String::from_utf8(stderr_bytes)?;
+
+        if !status.success() {
+            return Err(CodexError::NonZeroExit {
+                status,
+                stderr: stderr_string,
+            });
+        }
+
+        let evaluation: ExecPolicyEvaluation =
+            serde_json::from_str(&stdout_string).map_err(|source| CodexError::ExecPolicyParse {
+                stdout: stdout_string.clone(),
+                source,
+            })?;
+
+        Ok(ExecPolicyCheckResult {
+            status,
+            stdout: stdout_string,
+            stderr: stderr_string,
+            evaluation,
         })
     }
 
@@ -2734,6 +3069,28 @@ impl CodexClientBuilder {
         self
     }
 
+    /// Requests the CLI `--oss` flag to favor OSS/local backends when available.
+    pub fn oss(mut self, enable: bool) -> Self {
+        self.cli_overrides.oss = if enable {
+            FlagState::Enable
+        } else {
+            FlagState::Disable
+        };
+        self
+    }
+
+    /// Adds a `--enable <feature>` toggle to Codex invocations.
+    pub fn enable_feature(mut self, name: impl Into<String>) -> Self {
+        self.cli_overrides.feature_toggles.enable.push(name.into());
+        self
+    }
+
+    /// Adds a `--disable <feature>` toggle to Codex invocations.
+    pub fn disable_feature(mut self, name: impl Into<String>) -> Self {
+        self.cli_overrides.feature_toggles.disable.push(name.into());
+        self
+    }
+
     /// Controls whether `--search` is passed through to Codex.
     pub fn search(mut self, enable: bool) -> Self {
         self.cli_overrides.search = if enable {
@@ -2948,6 +3305,13 @@ impl Default for FlagState {
     }
 }
 
+/// Feature toggles forwarded to `--enable/--disable`.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct FeatureToggles {
+    pub enable: Vec<String>,
+    pub disable: Vec<String>,
+}
+
 /// Config values for `model_reasoning_effort`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ReasoningEffort {
@@ -3105,6 +3469,7 @@ impl ReasoningOverrides {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CliOverrides {
     pub config_overrides: Vec<ConfigOverride>,
+    pub feature_toggles: FeatureToggles,
     pub reasoning: ReasoningOverrides,
     pub approval_policy: Option<ApprovalPolicy>,
     pub sandbox_mode: Option<SandboxMode>,
@@ -3112,6 +3477,7 @@ pub struct CliOverrides {
     pub profile: Option<String>,
     pub cd: Option<PathBuf>,
     pub local_provider: Option<LocalProvider>,
+    pub oss: FlagState,
     pub search: FlagState,
     pub auto_reasoning_defaults: bool,
 }
@@ -3120,6 +3486,7 @@ impl Default for CliOverrides {
     fn default() -> Self {
         Self {
             config_overrides: Vec::new(),
+            feature_toggles: FeatureToggles::default(),
             reasoning: ReasoningOverrides::default(),
             approval_policy: None,
             sandbox_mode: None,
@@ -3127,6 +3494,7 @@ impl Default for CliOverrides {
             profile: None,
             cd: None,
             local_provider: None,
+            oss: FlagState::Inherit,
             search: FlagState::Inherit,
             auto_reasoning_defaults: true,
         }
@@ -3137,6 +3505,7 @@ impl Default for CliOverrides {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct CliOverridesPatch {
     pub config_overrides: Vec<ConfigOverride>,
+    pub feature_toggles: FeatureToggles,
     pub reasoning: ReasoningOverrides,
     pub approval_policy: Option<ApprovalPolicy>,
     pub sandbox_mode: Option<SandboxMode>,
@@ -3144,6 +3513,7 @@ pub struct CliOverridesPatch {
     pub profile: Option<String>,
     pub cd: Option<PathBuf>,
     pub local_provider: Option<LocalProvider>,
+    pub oss: FlagState,
     pub search: FlagState,
     pub auto_reasoning_defaults: Option<bool>,
 }
@@ -3151,12 +3521,14 @@ pub struct CliOverridesPatch {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ResolvedCliOverrides {
     config_overrides: Vec<ConfigOverride>,
+    feature_toggles: FeatureToggles,
     approval_policy: Option<ApprovalPolicy>,
     sandbox_mode: Option<SandboxMode>,
     safety_override: SafetyOverride,
     profile: Option<String>,
     cd: Option<PathBuf>,
     local_provider: Option<LocalProvider>,
+    oss: bool,
     search: FlagState,
 }
 
@@ -3229,15 +3601,28 @@ fn resolve_cli_overrides(
         FlagState::Inherit => builder.search,
         other => other,
     };
+    let oss = match patch.oss {
+        FlagState::Inherit => builder.oss,
+        other => other,
+    };
+    let mut feature_toggles = builder.feature_toggles.clone();
+    feature_toggles
+        .enable
+        .extend(patch.feature_toggles.enable.iter().cloned());
+    feature_toggles
+        .disable
+        .extend(patch.feature_toggles.disable.iter().cloned());
 
     ResolvedCliOverrides {
         config_overrides,
+        feature_toggles,
         approval_policy,
         sandbox_mode,
         safety_override,
         profile,
         cd,
         local_provider,
+        oss: matches!(oss, FlagState::Enable),
         search,
     }
 }
@@ -3247,6 +3632,16 @@ fn cli_override_args(resolved: &ResolvedCliOverrides, include_search: bool) -> V
     for config in &resolved.config_overrides {
         args.push(OsString::from("--config"));
         args.push(OsString::from(format!("{}={}", config.key, config.value)));
+    }
+
+    for feature in &resolved.feature_toggles.enable {
+        args.push(OsString::from("--enable"));
+        args.push(OsString::from(feature));
+    }
+
+    for feature in &resolved.feature_toggles.disable {
+        args.push(OsString::from("--disable"));
+        args.push(OsString::from(feature));
     }
 
     if let Some(profile) = &resolved.profile {
@@ -3283,6 +3678,10 @@ fn cli_override_args(resolved: &ResolvedCliOverrides, include_search: bool) -> V
     if let Some(provider) = resolved.local_provider {
         args.push(OsString::from("--local-provider"));
         args.push(OsString::from(provider.as_str()));
+    }
+
+    if resolved.oss {
+        args.push(OsString::from("--oss"));
     }
 
     if include_search && resolved.search_enabled() {
@@ -3450,12 +3849,36 @@ pub enum CodexError {
     NonZeroExit { status: ExitStatus, stderr: String },
     #[error("codex output was not valid UTF-8: {0}")]
     InvalidUtf8(#[from] std::string::FromUtf8Error),
+    #[error("failed to parse execpolicy JSON output: {source}")]
+    ExecPolicyParse {
+        stdout: String,
+        #[source]
+        source: serde_json::Error,
+    },
+    #[error("failed to parse features list output: {reason}")]
+    FeatureListParse { reason: String, stdout: String },
+    #[error("failed to read responses-api-proxy server info from `{path}`: {source}")]
+    ResponsesApiProxyInfoRead {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("failed to parse responses-api-proxy server info from `{path}`: {source}")]
+    ResponsesApiProxyInfoParse {
+        path: PathBuf,
+        #[source]
+        source: serde_json::Error,
+    },
     #[error("prompt must not be empty")]
     EmptyPrompt,
     #[error("sandbox command must not be empty")]
     EmptySandboxCommand,
+    #[error("execpolicy command must not be empty")]
+    EmptyExecPolicyCommand,
     #[error("API key must not be empty")]
     EmptyApiKey,
+    #[error("socket path must not be empty")]
+    EmptySocketPath,
     #[error("failed to create temporary working directory: {0}")]
     TempDir(#[source] std::io::Error),
     #[error("failed to resolve working directory: {source}")]
@@ -3906,6 +4329,25 @@ impl ExecRequest {
         self
     }
 
+    pub fn oss(mut self, enable: bool) -> Self {
+        self.overrides.oss = if enable {
+            FlagState::Enable
+        } else {
+            FlagState::Disable
+        };
+        self
+    }
+
+    pub fn enable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.enable.push(name.into());
+        self
+    }
+
+    pub fn disable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.disable.push(name.into());
+        self
+    }
+
     pub fn search(mut self, enable: bool) -> Self {
         self.overrides.search = if enable {
             FlagState::Enable
@@ -4011,6 +4453,25 @@ impl ResumeRequest {
         self
     }
 
+    pub fn oss(mut self, enable: bool) -> Self {
+        self.overrides.oss = if enable {
+            FlagState::Enable
+        } else {
+            FlagState::Disable
+        };
+        self
+    }
+
+    pub fn enable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.enable.push(name.into());
+        self
+    }
+
+    pub fn disable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.disable.push(name.into());
+        self
+    }
+
     pub fn search(mut self, enable: bool) -> Self {
         self.overrides.search = if enable {
             FlagState::Enable
@@ -4037,13 +4498,6 @@ impl SandboxPlatform {
             SandboxPlatform::Windows => "windows",
         }
     }
-}
-
-/// Feature toggles forwarded to `--enable/--disable`.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct FeatureToggles {
-    pub enable: Vec<String>,
-    pub disable: Vec<String>,
 }
 
 /// Request to run an arbitrary command inside a Codex-provided sandbox.
@@ -4127,6 +4581,506 @@ pub struct SandboxRun {
     pub stdout: String,
     /// Captured stderr (mirrored unless `quiet` is set).
     pub stderr: String,
+}
+
+/// Request for `codex responses-api-proxy`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResponsesApiProxyRequest {
+    /// API key to write to stdin on startup.
+    pub api_key: String,
+    /// Optional port to bind; falls back to an OS-assigned ephemeral port when omitted.
+    pub port: Option<u16>,
+    /// Optional path passed to `--server-info` for `{port,pid}` JSON output.
+    pub server_info_path: Option<PathBuf>,
+    /// Enables the HTTP shutdown endpoint (`GET /shutdown`).
+    pub http_shutdown: bool,
+    /// Optional upstream URL passed to `--upstream-url` (defaults to `https://api.openai.com/v1/responses`).
+    pub upstream_url: Option<String>,
+}
+
+impl ResponsesApiProxyRequest {
+    /// Creates a request with the API key provided via stdin.
+    pub fn new(api_key: impl Into<String>) -> Self {
+        Self {
+            api_key: api_key.into(),
+            port: None,
+            server_info_path: None,
+            http_shutdown: false,
+            upstream_url: None,
+        }
+    }
+
+    /// Sets the listening port (`--port`).
+    pub fn port(mut self, port: u16) -> Self {
+        self.port = Some(port);
+        self
+    }
+
+    /// Writes `{port,pid}` JSON to the provided path via `--server-info`.
+    pub fn server_info(mut self, path: impl Into<PathBuf>) -> Self {
+        self.server_info_path = Some(path.into());
+        self
+    }
+
+    /// Enables the `--http-shutdown` flag (GET /shutdown).
+    pub fn http_shutdown(mut self, enable: bool) -> Self {
+        self.http_shutdown = enable;
+        self
+    }
+
+    /// Overrides the upstream responses endpoint URL.
+    pub fn upstream_url(mut self, url: impl Into<String>) -> Self {
+        let url = url.into();
+        self.upstream_url = (!url.trim().is_empty()).then_some(url);
+        self
+    }
+}
+
+/// Running responses proxy process and metadata.
+#[derive(Debug)]
+pub struct ResponsesApiProxyHandle {
+    /// Spawned `codex responses-api-proxy` child (inherits kill-on-drop).
+    pub child: tokio::process::Child,
+    /// Optional `--server-info` path that may contain `{port,pid}` JSON.
+    pub server_info_path: Option<PathBuf>,
+}
+
+impl ResponsesApiProxyHandle {
+    /// Reads and parses the `{port,pid}` JSON written by `--server-info`.
+    ///
+    /// Returns `Ok(None)` when no server info path was configured.
+    pub async fn read_server_info(&self) -> Result<Option<ResponsesApiProxyInfo>, CodexError> {
+        let Some(path) = &self.server_info_path else {
+            return Ok(None);
+        };
+
+        let contents = fs::read_to_string(path).await.map_err(|source| {
+            CodexError::ResponsesApiProxyInfoRead {
+                path: path.clone(),
+                source,
+            }
+        })?;
+        let info: ResponsesApiProxyInfo = serde_json::from_str(&contents).map_err(|source| {
+            CodexError::ResponsesApiProxyInfoParse {
+                path: path.clone(),
+                source,
+            }
+        })?;
+        Ok(Some(info))
+    }
+}
+
+/// Parsed `{port,pid}` emitted by `codex responses-api-proxy --server-info`.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ResponsesApiProxyInfo {
+    pub port: u16,
+    pub pid: u32,
+    #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Request for `codex stdio-to-uds <SOCKET_PATH>`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StdioToUdsRequest {
+    /// Path to the Unix domain socket to connect to.
+    pub socket_path: PathBuf,
+    /// Optional working directory override for the spawned process.
+    pub working_dir: Option<PathBuf>,
+}
+
+impl StdioToUdsRequest {
+    pub fn new(socket_path: impl Into<PathBuf>) -> Self {
+        Self {
+            socket_path: socket_path.into(),
+            working_dir: None,
+        }
+    }
+
+    /// Sets the working directory used to resolve the socket path.
+    pub fn working_dir(mut self, dir: impl Into<PathBuf>) -> Self {
+        self.working_dir = Some(dir.into());
+        self
+    }
+}
+
+/// Stage labels reported by `codex features list`.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(from = "String", into = "String")]
+pub enum CodexFeatureStage {
+    Experimental,
+    Beta,
+    Stable,
+    Deprecated,
+    Removed,
+    Unknown(String),
+}
+
+impl CodexFeatureStage {
+    fn parse(raw: &str) -> Self {
+        let normalized = raw.trim();
+        match normalized.to_ascii_lowercase().as_str() {
+            "experimental" => CodexFeatureStage::Experimental,
+            "beta" => CodexFeatureStage::Beta,
+            "stable" => CodexFeatureStage::Stable,
+            "deprecated" => CodexFeatureStage::Deprecated,
+            "removed" => CodexFeatureStage::Removed,
+            _ => CodexFeatureStage::Unknown(normalized.to_string()),
+        }
+    }
+
+    /// Returns the normalized label for this stage.
+    pub fn as_str(&self) -> &str {
+        match self {
+            CodexFeatureStage::Experimental => "experimental",
+            CodexFeatureStage::Beta => "beta",
+            CodexFeatureStage::Stable => "stable",
+            CodexFeatureStage::Deprecated => "deprecated",
+            CodexFeatureStage::Removed => "removed",
+            CodexFeatureStage::Unknown(label) => label.as_str(),
+        }
+    }
+}
+
+impl From<String> for CodexFeatureStage {
+    fn from(value: String) -> Self {
+        CodexFeatureStage::parse(&value)
+    }
+}
+
+impl From<CodexFeatureStage> for String {
+    fn from(stage: CodexFeatureStage) -> Self {
+        String::from(&stage)
+    }
+}
+
+impl From<&CodexFeatureStage> for String {
+    fn from(stage: &CodexFeatureStage) -> Self {
+        stage.as_str().to_string()
+    }
+}
+
+/// Single feature entry reported by `codex features list`.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct CodexFeature {
+    /// Feature name as reported by the CLI.
+    pub name: String,
+    /// Feature stage (experimental/beta/stable/deprecated/removed) when provided.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stage: Option<CodexFeatureStage>,
+    /// Whether the feature is enabled for the current config/profile.
+    pub enabled: bool,
+    /// Unrecognized fields from JSON output are preserved here.
+    #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub extra: BTreeMap<String, Value>,
+}
+
+impl CodexFeature {
+    /// Convenience helper mirroring the `enabled` flag.
+    pub const fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+}
+
+/// Format used to parse `codex features list` output.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FeaturesListFormat {
+    Json,
+    Text,
+}
+
+/// Parsed output from `codex features list`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FeaturesListOutput {
+    /// Exit status returned by the subcommand.
+    pub status: ExitStatus,
+    /// Captured stdout (mirrored to the console when `mirror_stdout` is true).
+    pub stdout: String,
+    /// Captured stderr (mirrored unless `quiet` is set).
+    pub stderr: String,
+    /// Parsed feature entries.
+    pub features: Vec<CodexFeature>,
+    /// Indicates whether JSON or text parsing was used.
+    pub format: FeaturesListFormat,
+}
+
+/// Request for `codex features list`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FeaturesListRequest {
+    /// Request JSON output via `--json` (falls back to text parsing when JSON is absent).
+    pub json: bool,
+    /// Per-call CLI overrides layered on top of the builder.
+    pub overrides: CliOverridesPatch,
+}
+
+impl FeaturesListRequest {
+    /// Creates a request with JSON disabled by default for compatibility with older binaries.
+    pub fn new() -> Self {
+        Self {
+            json: false,
+            overrides: CliOverridesPatch::default(),
+        }
+    }
+
+    /// Controls whether `--json` is passed to `codex features list`.
+    pub fn json(mut self, enable: bool) -> Self {
+        self.json = enable;
+        self
+    }
+
+    /// Replaces the default CLI overrides for this request.
+    pub fn with_overrides(mut self, overrides: CliOverridesPatch) -> Self {
+        self.overrides = overrides;
+        self
+    }
+
+    /// Adds a `--config key=value` override for this request.
+    pub fn config_override(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.overrides
+            .config_overrides
+            .push(ConfigOverride::new(key, value));
+        self
+    }
+
+    /// Adds a raw `--config key=value` override without validation.
+    pub fn config_override_raw(mut self, raw: impl Into<String>) -> Self {
+        self.overrides
+            .config_overrides
+            .push(ConfigOverride::from_raw(raw));
+        self
+    }
+
+    /// Sets the config profile (`--profile`) for this request.
+    pub fn profile(mut self, profile: impl Into<String>) -> Self {
+        let profile = profile.into();
+        self.overrides.profile = (!profile.trim().is_empty()).then_some(profile);
+        self
+    }
+
+    /// Requests the CLI `--oss` flag for this call.
+    pub fn oss(mut self, enable: bool) -> Self {
+        self.overrides.oss = if enable {
+            FlagState::Enable
+        } else {
+            FlagState::Disable
+        };
+        self
+    }
+
+    /// Adds a `--enable <feature>` toggle for this call.
+    pub fn enable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.enable.push(name.into());
+        self
+    }
+
+    /// Adds a `--disable <feature>` toggle for this call.
+    pub fn disable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.disable.push(name.into());
+        self
+    }
+
+    /// Controls whether `--search` is passed through to Codex.
+    pub fn search(mut self, enable: bool) -> Self {
+        self.overrides.search = if enable {
+            FlagState::Enable
+        } else {
+            FlagState::Disable
+        };
+        self
+    }
+}
+
+/// Decision returned by execpolicy evaluation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ExecPolicyDecision {
+    Allow,
+    Prompt,
+    Forbidden,
+}
+
+/// Matched rule entry returned by `codex execpolicy check`.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecPolicyRuleMatch {
+    /// Optional rule name/identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Human-readable description when provided by the policy.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Decision attached to the rule. Defaults to [`ExecPolicyDecision::Allow`] when omitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decision: Option<ExecPolicyDecision>,
+    #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Matched execpolicy summary with the merged decision and contributing rules.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecPolicyMatch {
+    pub decision: ExecPolicyDecision,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rules: Vec<ExecPolicyRuleMatch>,
+    #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Response returned when no rules matched.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecPolicyNoMatch {
+    #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Parsed output from `codex execpolicy check`.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecPolicyEvaluation {
+    #[serde(rename = "match", default, skip_serializing_if = "Option::is_none")]
+    pub match_result: Option<ExecPolicyMatch>,
+    #[serde(rename = "noMatch", default, skip_serializing_if = "Option::is_none")]
+    pub no_match: Option<ExecPolicyNoMatch>,
+}
+
+impl ExecPolicyEvaluation {
+    /// Returns the top-level decision when a policy matched.
+    pub fn decision(&self) -> Option<ExecPolicyDecision> {
+        self.match_result.as_ref().map(|result| result.decision)
+    }
+}
+
+/// Captured output from `codex execpolicy check`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExecPolicyCheckResult {
+    /// Exit status returned by the subcommand.
+    pub status: ExitStatus,
+    /// Captured stdout (mirrored to the console when `mirror_stdout` is true).
+    pub stdout: String,
+    /// Captured stderr (mirrored unless `quiet` is set).
+    pub stderr: String,
+    /// Parsed decision JSON.
+    pub evaluation: ExecPolicyEvaluation,
+}
+
+impl ExecPolicyCheckResult {
+    /// Convenience accessor for the matched decision (if any).
+    pub fn decision(&self) -> Option<ExecPolicyDecision> {
+        self.evaluation.decision()
+    }
+}
+
+/// Request to evaluate a command against Starlark execpolicy files.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExecPolicyCheckRequest {
+    /// One or more `.codexpolicy` files to merge with repeatable `--policy` flags.
+    pub policies: Vec<PathBuf>,
+    /// Pretty-print JSON output (`--pretty`).
+    pub pretty: bool,
+    /// Command argv forwarded after `--`. Must not be empty.
+    pub command: Vec<OsString>,
+    /// Per-call CLI overrides layered on top of the builder.
+    pub overrides: CliOverridesPatch,
+}
+
+impl ExecPolicyCheckRequest {
+    pub fn new<I, S>(command: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<OsString>,
+    {
+        Self {
+            policies: Vec::new(),
+            pretty: false,
+            command: command.into_iter().map(Into::into).collect(),
+            overrides: CliOverridesPatch::default(),
+        }
+    }
+
+    /// Adds a single `--policy` path.
+    pub fn policy(mut self, policy: impl Into<PathBuf>) -> Self {
+        self.policies.push(policy.into());
+        self
+    }
+
+    /// Adds multiple `--policy` paths.
+    pub fn policies<I, P>(mut self, policies: I) -> Self
+    where
+        I: IntoIterator<Item = P>,
+        P: Into<PathBuf>,
+    {
+        self.policies
+            .extend(policies.into_iter().map(|policy| policy.into()));
+        self
+    }
+
+    /// Controls whether `--pretty` is forwarded.
+    pub fn pretty(mut self, enable: bool) -> Self {
+        self.pretty = enable;
+        self
+    }
+
+    /// Replaces the default CLI overrides for this request.
+    pub fn with_overrides(mut self, overrides: CliOverridesPatch) -> Self {
+        self.overrides = overrides;
+        self
+    }
+
+    /// Adds a `--config key=value` override for this request.
+    pub fn config_override(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.overrides
+            .config_overrides
+            .push(ConfigOverride::new(key, value));
+        self
+    }
+
+    /// Adds a raw `--config key=value` override without validation.
+    pub fn config_override_raw(mut self, raw: impl Into<String>) -> Self {
+        self.overrides
+            .config_overrides
+            .push(ConfigOverride::from_raw(raw));
+        self
+    }
+
+    /// Sets the config profile (`--profile`) for this request.
+    pub fn profile(mut self, profile: impl Into<String>) -> Self {
+        let profile = profile.into();
+        self.overrides.profile = (!profile.trim().is_empty()).then_some(profile);
+        self
+    }
+
+    /// Requests the CLI `--oss` flag for this call.
+    pub fn oss(mut self, enable: bool) -> Self {
+        self.overrides.oss = if enable {
+            FlagState::Enable
+        } else {
+            FlagState::Disable
+        };
+        self
+    }
+
+    /// Adds a `--enable <feature>` toggle for this call.
+    pub fn enable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.enable.push(name.into());
+        self
+    }
+
+    /// Adds a `--disable <feature>` toggle for this call.
+    pub fn disable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.disable.push(name.into());
+        self
+    }
+
+    /// Controls whether `--search` is passed through to Codex.
+    pub fn search(mut self, enable: bool) -> Self {
+        self.overrides.search = if enable {
+            FlagState::Enable
+        } else {
+            FlagState::Disable
+        };
+        self
+    }
 }
 
 /// Target for app-server code generation.
@@ -4218,6 +5172,28 @@ impl AppServerCodegenRequest {
     pub fn profile(mut self, profile: impl Into<String>) -> Self {
         let profile = profile.into();
         self.overrides.profile = (!profile.trim().is_empty()).then_some(profile);
+        self
+    }
+
+    /// Requests the CLI `--oss` flag for this codegen call.
+    pub fn oss(mut self, enable: bool) -> Self {
+        self.overrides.oss = if enable {
+            FlagState::Enable
+        } else {
+            FlagState::Disable
+        };
+        self
+    }
+
+    /// Adds a `--enable <feature>` toggle for this codegen call.
+    pub fn enable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.enable.push(name.into());
+        self
+    }
+
+    /// Adds a `--disable <feature>` toggle for this codegen call.
+    pub fn disable_feature(mut self, name: impl Into<String>) -> Self {
+        self.overrides.feature_toggles.disable.push(name.into());
         self
     }
 
@@ -4774,6 +5750,213 @@ fn apply_feature_token(flags: &mut CodexFeatureFlags, token: &str) {
     }
 }
 
+fn parse_feature_list_output(
+    stdout: &str,
+    prefer_json: bool,
+) -> Result<(Vec<CodexFeature>, FeaturesListFormat), String> {
+    let trimmed = stdout.trim();
+    if trimmed.is_empty() {
+        return Err("features list output was empty".to_string());
+    }
+
+    if prefer_json {
+        if let Some(features) = parse_feature_list_json(trimmed) {
+            if !features.is_empty() {
+                return Ok((features, FeaturesListFormat::Json));
+            }
+        }
+        if let Some(features) = parse_feature_list_text(trimmed) {
+            if !features.is_empty() {
+                return Ok((features, FeaturesListFormat::Text));
+            }
+        }
+    } else {
+        if let Some(features) = parse_feature_list_text(trimmed) {
+            if !features.is_empty() {
+                return Ok((features, FeaturesListFormat::Text));
+            }
+        }
+        if let Some(features) = parse_feature_list_json(trimmed) {
+            if !features.is_empty() {
+                return Ok((features, FeaturesListFormat::Json));
+            }
+        }
+    }
+
+    Err("could not parse JSON or text feature rows".to_string())
+}
+
+fn parse_feature_list_json(output: &str) -> Option<Vec<CodexFeature>> {
+    let parsed: Value = serde_json::from_str(output).ok()?;
+    parse_feature_list_json_value(&parsed)
+}
+
+fn parse_feature_list_json_value(value: &Value) -> Option<Vec<CodexFeature>> {
+    match value {
+        Value::Array(items) => Some(
+            items
+                .iter()
+                .filter_map(|item| match item {
+                    Value::Object(map) => feature_from_json_fields(None, map),
+                    Value::String(name) => Some(CodexFeature {
+                        name: name.clone(),
+                        stage: None,
+                        enabled: true,
+                        extra: BTreeMap::new(),
+                    }),
+                    _ => None,
+                })
+                .collect(),
+        ),
+        Value::Object(map) => {
+            if let Some(features) = map.get("features") {
+                return parse_feature_list_json_value(features);
+            }
+            if map.contains_key("name") || map.contains_key("enabled") || map.contains_key("stage")
+            {
+                return feature_from_json_fields(None, &map).map(|feature| vec![feature]);
+            }
+            Some(
+                map.iter()
+                    .filter_map(|(name, value)| match value {
+                        Value::Object(inner) => {
+                            feature_from_json_fields(Some(name.as_str()), inner)
+                        }
+                        Value::Bool(flag) => Some(CodexFeature {
+                            name: name.clone(),
+                            stage: None,
+                            enabled: *flag,
+                            extra: BTreeMap::new(),
+                        }),
+                        Value::String(flag) => parse_feature_enabled_str(flag)
+                            .map(|enabled| CodexFeature {
+                                name: name.clone(),
+                                stage: None,
+                                enabled,
+                                extra: BTreeMap::new(),
+                            })
+                            .or_else(|| {
+                                Some(CodexFeature {
+                                    name: name.clone(),
+                                    stage: Some(CodexFeatureStage::parse(flag)),
+                                    enabled: true,
+                                    extra: BTreeMap::new(),
+                                })
+                            }),
+                        _ => None,
+                    })
+                    .collect(),
+            )
+        }
+        _ => None,
+    }
+}
+
+fn parse_feature_list_text(output: &str) -> Option<Vec<CodexFeature>> {
+    let mut features = Vec::new();
+    for line in output.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed
+            .chars()
+            .all(|c| matches!(c, '-' | '=' | '+' | '*' | '|'))
+        {
+            continue;
+        }
+
+        let tokens: Vec<&str> = trimmed.split_whitespace().collect();
+        if tokens.len() < 3 {
+            continue;
+        }
+        if tokens[0].eq_ignore_ascii_case("feature")
+            && tokens[1].eq_ignore_ascii_case("stage")
+            && tokens[2].eq_ignore_ascii_case("enabled")
+        {
+            continue;
+        }
+
+        let enabled_token = tokens.last().copied().unwrap_or_default();
+        let enabled = match parse_feature_enabled_str(enabled_token) {
+            Some(value) => value,
+            None => continue,
+        };
+        let stage_token = tokens.get(tokens.len() - 2).copied().unwrap_or_default();
+        let name = tokens[..tokens.len() - 2].join(" ");
+        if name.is_empty() {
+            continue;
+        }
+        let stage = (!stage_token.is_empty()).then(|| CodexFeatureStage::parse(stage_token));
+        features.push(CodexFeature {
+            name,
+            stage,
+            enabled,
+            extra: BTreeMap::new(),
+        });
+    }
+
+    if features.is_empty() {
+        None
+    } else {
+        Some(features)
+    }
+}
+
+fn parse_feature_enabled_value(value: &Value) -> Option<bool> {
+    match value {
+        Value::Bool(flag) => Some(*flag),
+        Value::String(raw) => parse_feature_enabled_str(raw),
+        _ => None,
+    }
+}
+
+fn parse_feature_enabled_str(raw: &str) -> Option<bool> {
+    match raw.trim().to_ascii_lowercase().as_str() {
+        "true" | "yes" | "y" | "on" | "1" | "enabled" => Some(true),
+        "false" | "no" | "n" | "off" | "0" | "disabled" => Some(false),
+        _ => None,
+    }
+}
+
+fn feature_from_json_fields(
+    name_hint: Option<&str>,
+    map: &serde_json::Map<String, Value>,
+) -> Option<CodexFeature> {
+    let name = map
+        .get("name")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| name_hint.map(str::to_string))?;
+    let enabled = map
+        .get("enabled")
+        .and_then(parse_feature_enabled_value)
+        .or_else(|| map.get("value").and_then(parse_feature_enabled_value))?;
+    let stage = map
+        .get("stage")
+        .or_else(|| map.get("status"))
+        .and_then(Value::as_str)
+        .map(CodexFeatureStage::parse);
+
+    let mut extra = BTreeMap::new();
+    for (key, value) in map {
+        if matches!(
+            key.as_str(),
+            "name" | "stage" | "status" | "enabled" | "value"
+        ) {
+            continue;
+        }
+        extra.insert(key.clone(), value.clone());
+    }
+
+    Some(CodexFeature {
+        name,
+        stage,
+        enabled,
+        extra,
+    })
+}
+
 /// Computes an update advisory for a previously probed binary.
 ///
 /// Callers that already have a [`CodexCapabilities`] snapshot can use this
@@ -5326,6 +6509,202 @@ exit 7
 
     #[cfg(unix)]
     #[tokio::test]
+    async fn execpolicy_maps_policies_and_overrides() {
+        let dir = tempfile::tempdir().unwrap();
+        let script_path = dir.path().join("codex-execpolicy");
+        std_fs::write(
+            &script_path,
+            r#"#!/usr/bin/env bash
+printf "%s\n" "$PWD" "$@" 1>&2
+cat <<'JSON'
+{"match":{"decision":"prompt","rules":[{"name":"rule1","decision":"forbidden"}]}}
+JSON
+"#,
+        )
+        .unwrap();
+        let mut perms = std_fs::metadata(&script_path).unwrap().permissions();
+        perms.set_mode(0o755);
+        std_fs::set_permissions(&script_path, perms).unwrap();
+
+        let workdir = dir.path().join("workdir");
+        std_fs::create_dir_all(&workdir).unwrap();
+        let policy_one = dir.path().join("policy_a.codexpolicy");
+        let policy_two = dir.path().join("policy_b.codexpolicy");
+        std_fs::write(&policy_one, "").unwrap();
+        std_fs::write(&policy_two, "").unwrap();
+
+        let client = CodexClient::builder()
+            .binary(&script_path)
+            .mirror_stdout(false)
+            .quiet(true)
+            .working_dir(&workdir)
+            .approval_policy(ApprovalPolicy::OnRequest)
+            .build();
+
+        let result = client
+            .check_execpolicy(
+                ExecPolicyCheckRequest::new([
+                    OsString::from("bash"),
+                    OsString::from("-lc"),
+                    OsString::from("echo ok"),
+                ])
+                .policies([&policy_one, &policy_two])
+                .pretty(true)
+                .profile("dev")
+                .config_override("features.execpolicy", "true"),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(result.decision(), Some(ExecPolicyDecision::Prompt));
+        let match_result = result.evaluation.match_result.unwrap();
+        assert_eq!(match_result.rules.len(), 1);
+        assert_eq!(match_result.rules[0].name.as_deref(), Some("rule1"));
+        assert_eq!(
+            match_result.rules[0].decision,
+            Some(ExecPolicyDecision::Forbidden)
+        );
+
+        let mut lines = result.stderr.lines();
+        let pwd = lines.next().unwrap();
+        assert_eq!(Path::new(pwd), workdir.as_path());
+
+        let args: Vec<_> = lines.map(str::to_string).collect();
+        assert_eq!(
+            args,
+            vec![
+                "execpolicy",
+                "check",
+                "--policy",
+                policy_one.to_string_lossy().as_ref(),
+                "--policy",
+                policy_two.to_string_lossy().as_ref(),
+                "--pretty",
+                "--config",
+                "features.execpolicy=true",
+                "--profile",
+                "dev",
+                "--ask-for-approval",
+                "on-request",
+                "--",
+                "bash",
+                "-lc",
+                "echo ok"
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn execpolicy_rejects_empty_command() {
+        let client = CodexClient::builder().build();
+        let request = ExecPolicyCheckRequest::new(Vec::<OsString>::new());
+        let err = client.check_execpolicy(request).await.unwrap_err();
+        assert!(matches!(err, CodexError::EmptyExecPolicyCommand));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn execpolicy_surfaces_parse_errors() {
+        let dir = tempfile::tempdir().unwrap();
+        let script_path = dir.path().join("codex-execpolicy-bad");
+        std_fs::write(
+            &script_path,
+            r#"#!/usr/bin/env bash
+echo "not-json"
+"#,
+        )
+        .unwrap();
+        let mut perms = std_fs::metadata(&script_path).unwrap().permissions();
+        perms.set_mode(0o755);
+        std_fs::set_permissions(&script_path, perms).unwrap();
+
+        let client = CodexClient::builder()
+            .binary(&script_path)
+            .mirror_stdout(false)
+            .quiet(true)
+            .build();
+
+        let err = client
+            .check_execpolicy(
+                ExecPolicyCheckRequest::new([OsString::from("echo"), OsString::from("noop")])
+                    .policy(dir.path().join("policy.codexpolicy")),
+            )
+            .await
+            .unwrap_err();
+
+        match err {
+            CodexError::ExecPolicyParse { stdout, .. } => assert!(stdout.contains("not-json")),
+            other => panic!("expected ExecPolicyParse, got {other:?}"),
+        }
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn features_list_maps_overrides_and_json_flag() {
+        let dir = tempfile::tempdir().unwrap();
+        let script_path = write_fake_codex(
+            dir.path(),
+            r#"#!/usr/bin/env bash
+echo "$PWD" 1>&2
+printf "%s\n" "$@" 1>&2
+cat <<'JSON'
+[{"name":"json-stream","stage":"stable","enabled":true},{"name":"cloud-exec","stage":"experimental","enabled":false}]
+JSON
+"#,
+        );
+
+        let workdir = dir.path().join("features-workdir");
+        std_fs::create_dir_all(&workdir).unwrap();
+
+        let client = CodexClient::builder()
+            .binary(&script_path)
+            .mirror_stdout(false)
+            .quiet(true)
+            .working_dir(&workdir)
+            .approval_policy(ApprovalPolicy::OnRequest)
+            .search(true)
+            .build();
+
+        let output = client
+            .list_features(
+                FeaturesListRequest::new()
+                    .json(true)
+                    .profile("dev")
+                    .config_override("features.extras", "true"),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(output.format, FeaturesListFormat::Json);
+        assert_eq!(output.features.len(), 2);
+        assert_eq!(output.features[0].stage, Some(CodexFeatureStage::Stable));
+        assert!(output.features[0].enabled);
+        assert!(!output.features[1].enabled);
+
+        let mut lines = output.stderr.lines();
+        let pwd = lines.next().unwrap();
+        assert_eq!(Path::new(pwd), workdir.as_path());
+
+        let args: Vec<_> = lines.map(str::to_string).collect();
+        assert_eq!(
+            args,
+            vec![
+                "features",
+                "list",
+                "--config",
+                "features.extras=true",
+                "--profile",
+                "dev",
+                "--ask-for-approval",
+                "on-request",
+                "--search",
+                "--json"
+            ]
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
     async fn app_server_codegen_maps_overrides_and_prettier() {
         let dir = tempfile::tempdir().unwrap();
         let script_path = write_fake_codex(
@@ -5421,6 +6800,173 @@ exit 5
             other => panic!("expected NonZeroExit, got {other:?}"),
         }
         assert!(out_dir.is_dir());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn responses_api_proxy_maps_flags_and_parses_server_info() {
+        let dir = tempfile::tempdir().unwrap();
+        let server_info = dir.path().join("server-info.json");
+        let script_path = write_fake_codex(
+            dir.path(),
+            r#"#!/usr/bin/env bash
+echo "$PWD"
+printf "%s\n" "$@"
+info_path=""
+while [[ $# -gt 0 ]]; do
+  if [[ $1 == "--server-info" ]]; then
+    info_path=$2
+  fi
+  shift
+done
+read -r key || exit 1
+echo "key:${key}"
+if [[ -n "$info_path" ]]; then
+  printf '{"port":4567,"pid":1234}\n' > "$info_path"
+fi
+"#,
+        );
+
+        let workdir = dir.path().join("responses-workdir");
+        std_fs::create_dir_all(&workdir).unwrap();
+
+        let client = CodexClient::builder()
+            .binary(&script_path)
+            .mirror_stdout(false)
+            .quiet(true)
+            .working_dir(&workdir)
+            .build();
+
+        let mut proxy = client
+            .start_responses_api_proxy(
+                ResponsesApiProxyRequest::new("sk-test-123")
+                    .port(8080)
+                    .server_info(&server_info)
+                    .http_shutdown(true)
+                    .upstream_url("https://example.com/v1/responses"),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            proxy.server_info_path.as_deref(),
+            Some(server_info.as_path())
+        );
+
+        let stdout = proxy.child.stdout.take().unwrap();
+        let mut lines = BufReader::new(stdout).lines();
+
+        let pwd = lines.next_line().await.unwrap().unwrap();
+        assert_eq!(Path::new(&pwd), workdir.as_path());
+
+        let mut args = Vec::new();
+        for _ in 0..8 {
+            args.push(lines.next_line().await.unwrap().unwrap());
+        }
+        assert_eq!(
+            args,
+            vec![
+                "responses-api-proxy",
+                "--port",
+                "8080",
+                "--server-info",
+                server_info.to_string_lossy().as_ref(),
+                "--http-shutdown",
+                "--upstream-url",
+                "https://example.com/v1/responses",
+            ]
+        );
+
+        let api_key_line = lines.next_line().await.unwrap().unwrap();
+        assert_eq!(api_key_line, "key:sk-test-123");
+
+        let info = proxy.read_server_info().await.unwrap().unwrap();
+        assert_eq!(info.port, 4567);
+        assert_eq!(info.pid, 1234);
+
+        let status = proxy.child.wait().await.unwrap();
+        assert!(status.success());
+    }
+
+    #[tokio::test]
+    async fn responses_api_proxy_rejects_empty_api_key() {
+        let client = CodexClient::builder().build();
+        let err = client
+            .start_responses_api_proxy(ResponsesApiProxyRequest::new("  "))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, CodexError::EmptyApiKey));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn stdio_to_uds_maps_args_and_pipes_stdio() {
+        let dir = tempfile::tempdir().unwrap();
+        let socket_path = dir.path().join("bridge.sock");
+        let script_path = write_fake_codex(
+            dir.path(),
+            r#"#!/usr/bin/env bash
+echo "$PWD"
+printf "%s\n" "$@"
+while read -r line; do
+  echo "relay:${line}"
+done
+"#,
+        );
+
+        let workdir = dir.path().join("uds-workdir");
+        std_fs::create_dir_all(&workdir).unwrap();
+
+        let client = CodexClient::builder()
+            .binary(&script_path)
+            .mirror_stdout(false)
+            .quiet(true)
+            .working_dir(&workdir)
+            .build();
+
+        let request = StdioToUdsRequest::new(&socket_path).working_dir(&workdir);
+        let mut child = match client.stdio_to_uds(request.clone()) {
+            Ok(child) => child,
+            Err(CodexError::Spawn { source, .. }) if source.raw_os_error() == Some(26) => {
+                time::sleep(Duration::from_millis(25)).await;
+                client.stdio_to_uds(request).unwrap()
+            }
+            Err(other) => panic!("unexpected spawn error: {other:?}"),
+        };
+
+        let stdout = child.stdout.take().unwrap();
+        let mut lines = BufReader::new(stdout).lines();
+
+        let pwd = lines.next_line().await.unwrap().unwrap();
+        assert_eq!(Path::new(&pwd), workdir.as_path());
+
+        let arg_one = lines.next_line().await.unwrap().unwrap();
+        let arg_two = lines.next_line().await.unwrap().unwrap();
+        assert_eq!(arg_one, "stdio-to-uds");
+        assert_eq!(arg_two, socket_path.to_string_lossy().as_ref());
+
+        let mut stdin = child.stdin.take().unwrap();
+        stdin.write_all(b"ping\n").await.unwrap();
+        stdin.shutdown().await.unwrap();
+        drop(stdin);
+
+        let echoed = lines.next_line().await.unwrap().unwrap();
+        assert_eq!(echoed, "relay:ping");
+
+        let status = time::timeout(Duration::from_secs(5), child.wait())
+            .await
+            .expect("stdio-to-uds wait timed out")
+            .unwrap();
+        assert!(status.success());
+    }
+
+    #[tokio::test]
+    async fn stdio_to_uds_rejects_empty_socket_path() {
+        let client = CodexClient::builder().build();
+        let err = client
+            .stdio_to_uds(StdioToUdsRequest::new(PathBuf::new()))
+            .unwrap_err();
+        assert!(matches!(err, CodexError::EmptySocketPath));
     }
 
     #[tokio::test]
@@ -6115,6 +7661,7 @@ exit 0
 
     #[test]
     fn capability_cache_entries_exposes_cache_state() {
+        let _guard = env_guard();
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -6337,6 +7884,41 @@ fi
         assert!(parsed_text.supports_output_schema);
         assert!(parsed_text.supports_add_dir);
         assert!(parsed_text.supports_mcp_login);
+    }
+
+    #[test]
+    fn parses_feature_list_json_and_text_tables() {
+        let json = r#"{"features":[{"name":"json-stream","stage":"stable","enabled":true,"notes":"keep"},{"name":"cloud-exec","stage":"experimental","enabled":false}]}"#;
+        let (json_features, json_format) = parse_feature_list_output(json, true).unwrap();
+        assert_eq!(json_format, FeaturesListFormat::Json);
+        assert_eq!(json_features.len(), 2);
+        assert_eq!(json_features[0].name, "json-stream");
+        assert_eq!(json_features[0].stage, Some(CodexFeatureStage::Stable));
+        assert!(json_features[0].enabled);
+        assert!(json_features[0].extra.contains_key("notes"));
+        assert_eq!(
+            json_features[1].stage,
+            Some(CodexFeatureStage::Experimental)
+        );
+        assert!(!json_features[1].enabled);
+
+        let text = r#"
+Feature   Stage         Enabled
+json-stream stable      true
+cloud-exec experimental false
+"#;
+        let (text_features, text_format) = parse_feature_list_output(text, false).unwrap();
+        assert_eq!(text_format, FeaturesListFormat::Text);
+        assert_eq!(text_features.len(), 2);
+        assert_eq!(
+            text_features[1].stage,
+            Some(CodexFeatureStage::Experimental)
+        );
+        assert!(!text_features[1].enabled);
+
+        let (fallback_features, fallback_format) = parse_feature_list_output(text, true).unwrap();
+        assert_eq!(fallback_format, FeaturesListFormat::Text);
+        assert_eq!(fallback_features.len(), 2);
     }
 
     #[test]
@@ -6925,15 +8507,86 @@ fi
     }
 
     #[test]
+    fn request_oss_override_can_disable_builder_flag() {
+        let mut builder_overrides = CliOverrides::default();
+        builder_overrides.oss = FlagState::Enable;
+
+        let resolved =
+            resolve_cli_overrides(&builder_overrides, &CliOverridesPatch::default(), None);
+        let args: Vec<_> = cli_override_args(&resolved, true)
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        assert!(args.contains(&"--oss".to_string()));
+
+        let mut patch = CliOverridesPatch::default();
+        patch.oss = FlagState::Disable;
+        let resolved = resolve_cli_overrides(&builder_overrides, &patch, None);
+        let args: Vec<_> = cli_override_args(&resolved, true)
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        assert!(!args.contains(&"--oss".to_string()));
+    }
+
+    #[test]
+    fn feature_toggles_merge_builder_and_request() {
+        let mut builder_overrides = CliOverrides::default();
+        builder_overrides
+            .feature_toggles
+            .enable
+            .push("builder-enable".to_string());
+        builder_overrides
+            .feature_toggles
+            .disable
+            .push("builder-disable".to_string());
+
+        let mut patch = CliOverridesPatch::default();
+        patch
+            .feature_toggles
+            .enable
+            .push("request-enable".to_string());
+        patch
+            .feature_toggles
+            .disable
+            .push("request-disable".to_string());
+
+        let resolved = resolve_cli_overrides(&builder_overrides, &patch, None);
+        let args: Vec<_> = cli_override_args(&resolved, true)
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+
+        assert!(args.windows(2).any(|window| {
+            window.get(0).map(String::as_str) == Some("--enable")
+                && window.get(1).map(String::as_str) == Some("builder-enable")
+        }));
+        assert!(args.windows(2).any(|window| {
+            window.get(0).map(String::as_str) == Some("--enable")
+                && window.get(1).map(String::as_str) == Some("request-enable")
+        }));
+        assert!(args.windows(2).any(|window| {
+            window.get(0).map(String::as_str) == Some("--disable")
+                && window.get(1).map(String::as_str) == Some("builder-disable")
+        }));
+        assert!(args.windows(2).any(|window| {
+            window.get(0).map(String::as_str) == Some("--disable")
+                && window.get(1).map(String::as_str) == Some("request-disable")
+        }));
+    }
+
+    #[test]
     fn cli_override_args_apply_safety_precedence() {
         let mut resolved = ResolvedCliOverrides {
             config_overrides: Vec::new(),
+            feature_toggles: FeatureToggles::default(),
             approval_policy: None,
             sandbox_mode: None,
             safety_override: SafetyOverride::FullAuto,
             profile: None,
             cd: None,
             local_provider: None,
+            oss: false,
             search: FlagState::Enable,
         };
         let args = cli_override_args(&resolved, true);
@@ -6956,12 +8609,14 @@ fi
 
         let resolved = ResolvedCliOverrides {
             config_overrides: vec![ConfigOverride::new("foo", "bar")],
+            feature_toggles: FeatureToggles::default(),
             approval_policy: Some(ApprovalPolicy::OnRequest),
             sandbox_mode: Some(SandboxMode::WorkspaceWrite),
             safety_override: SafetyOverride::DangerouslyBypass,
             profile: Some("team".to_string()),
             cd: Some(PathBuf::from("/tmp/worktree")),
             local_provider: Some(LocalProvider::Ollama),
+            oss: false,
             search: FlagState::Enable,
         };
         let args = cli_override_args(&resolved, true);
@@ -7021,11 +8676,17 @@ fi
             .sandbox_mode(SandboxMode::WorkspaceWrite)
             .cd(&builder_cd)
             .local_provider(LocalProvider::Custom)
+            .oss(true)
+            .enable_feature("builder-on")
+            .disable_feature("builder-off")
             .search(true)
             .build();
 
         let mut request = ExecRequest::new("list flags")
             .config_override("extra", "value")
+            .oss(false)
+            .enable_feature("request-on")
+            .disable_feature("request-off")
             .search(false);
         request.overrides.cd = Some(request_cd.clone());
         request.overrides.safety_override = Some(SafetyOverride::DangerouslyBypass);
@@ -7043,6 +8704,13 @@ fi
         assert!(!logged.contains(&builder_cd.display().to_string()));
         assert!(logged.contains("--local-provider"));
         assert!(logged.contains("custom"));
+        assert!(logged.contains("--enable"));
+        assert!(logged.contains("builder-on"));
+        assert!(logged.contains("request-on"));
+        assert!(logged.contains("--disable"));
+        assert!(logged.contains("builder-off"));
+        assert!(logged.contains("request-off"));
+        assert!(!logged.contains("--oss"));
         assert!(!logged.contains("--ask-for-approval"));
         assert!(!logged.contains("--sandbox"));
         assert!(!logged.contains("--search"));

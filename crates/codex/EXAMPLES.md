@@ -17,7 +17,7 @@ Every example under `crates/codex/examples/` maps to a `codex` CLI invocation. W
 | `cargo run -p codex --example image_json -- "C:\\path\\to\\mockup.png" "Describe the screenshot"` | `echo "Describe the screenshot" \| codex exec --skip-git-repo-check --json --image "C:\\path\\to\\mockup.png"` | Attach an image while streaming JSON quietly. |
 | `cargo run -p codex --example quiet -- "Run without tool noise"` | `codex exec "Run without tool noise" --skip-git-repo-check --quiet` | Suppress stderr mirroring. |
 | `cargo run -p codex --example no_stdout_mirror -- "Stream quietly"` | `codex exec "Stream quietly" --skip-git-repo-check > out.txt` | Disable stdout mirroring to capture output yourself. |
-| `cargo run -p codex --example cli_overrides -- "Draft release notes"` | `codex exec "Draft release notes" --skip-git-repo-check --ask-for-approval on-request --sandbox workspace-write --local-provider ollama --config model_verbosity=high --config features.search=true --config model_reasoning_effort=low --search [--cd /tmp/repo]` | CLI parity example showing builder safety/config overrides plus per-request search/CD tweaks. |
+| `cargo run -p codex --example cli_overrides -- "Draft release notes"` | `codex exec "Draft release notes" --skip-git-repo-check --ask-for-approval on-request --sandbox workspace-write --local-provider ollama --oss --enable builder-toggle --disable legacy-flow --config model_verbosity=high --config features.search=true --config model_reasoning_effort=low --enable request-toggle --search [--cd /tmp/repo]` | CLI parity example showing builder safety/config overrides, feature toggles, and per-request search/CD tweaks. |
 | `cargo run -p codex --example run_sandbox -- linux --full-auto -- echo "hello from sandbox"` | `codex sandbox linux --full-auto -- echo "hello from sandbox"` | Wraps the sandbox helper with platform selection (defaults to host OS), macOS `--log-denials`, and captured stdout/stderr + exit. |
 
 ## Binary & CODEX_HOME
@@ -54,6 +54,13 @@ Every example under `crates/codex/examples/` maps to a `codex` CLI invocation. W
 | `cargo run -p codex --example app_server_turns -- "Draft a release note" [thread-id]` | `codex app-server` then `thread/start` or `thread/resume` plus `turn/start` (optional `turn/interrupt`) | Uses the `codex::mcp` app-server client to stream items and task_complete notices, optionally resuming a thread and sending `turn/interrupt` after a delay; pair with `feature_detection` if the binary omits app-server support. |
 | `cargo run -p codex --example app_server_thread_turn -- "Draft a release note"` | `codex app-server` then send `thread/start` and `turn/start` | App-server thread/turn notifications; supports `--sample` and optional `CODEX_HOME` for state isolation. |
 | `cargo run -p codex --example app_server_codegen -- ts ./gen/app --prettier ./node_modules/.bin/prettier` | `codex app-server generate-ts --out ./gen/app --prettier ./node_modules/.bin/prettier` | Refresh TypeScript bindings (or `json ./gen/app` for schemas) with shared config/profile flags; ensures the output directory exists first and surfaces non-zero exits as `CodexError::NonZeroExit`. |
+
+## Proxies & Bridges
+
+| Wrapper example | Native command | Notes |
+| --- | --- | --- |
+| `cargo run -p codex --example responses_api_proxy` | `echo "$OPENAI_API_KEY" \| codex responses-api-proxy [--port <PORT>] [--server-info <FILE>] [--http-shutdown] [--upstream-url <URL>]` | Starts the API-key-injecting responses proxy with piped stdin, optional port/upstream/shutdown flags, and a helper to parse `{port,pid}` from the server-info JSON. |
+| `cargo run -p codex --example stdio_to_uds` | `codex stdio-to-uds /tmp/echo.sock` | Bridges stdin/stdout to a Unix domain socket (example spins up a local echo server); keep stdout/stderr drained for long-lived relays. |
 
 ## Capabilities
 

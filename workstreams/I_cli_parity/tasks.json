@@ -154,7 +154,7 @@
       "CLI_MATRIX.md"
     ],
     "tests": ["cargo test -p codex"],
-    "status": "todo"
+    "status": "done"
   },
   {
     "id": "I12-features-subcommand",
@@ -167,7 +167,7 @@
       "CLI_MATRIX.md"
     ],
     "tests": ["cargo test -p codex"],
-    "status": "todo"
+    "status": "done"
   },
   {
     "id": "I13-proxy-uds-wrappers",
@@ -181,7 +181,7 @@
       "crates/codex/examples"
     ],
     "tests": ["cargo test -p codex"],
-    "status": "todo"
+    "status": "done"
   },
   {
     "id": "I14-cli-parity-followups",
@@ -195,6 +195,35 @@
       "README.md",
       "crates/codex/EXAMPLES.md",
       "crates/codex/src/lib.rs"
+    ],
+    "tests": ["cargo test -p codex"],
+    "status": "done"
+  },
+  {
+    "id": "I15-cli-parity-e2e",
+    "title": "CLI parity e2e coverage",
+    "description": "Add end-to-end coverage against a real Codex CLI binary for critical wrappers (exec/resume/apply/diff, sandbox, codegen/proxy/uds/features/execpolicy) or document why it remains deferred. Build a light harness that can consume a supplied binary path and reuse existing fixtures where possible.",
+    "dependencies": ["I14-cli-parity-followups"],
+    "files": [
+      "workstreams/I_cli_parity/BRIEF.md",
+      "workstreams/I_cli_parity/tasks.json",
+      "crates/codex/src/lib.rs",
+      "crates/codex/tests",
+      "crates/codex/examples"
+    ],
+    "tests": ["cargo test -p codex"],
+    "status": "done"
+  },
+  {
+    "id": "I16-cli-parity-e2e-followups",
+    "title": "CLI parity e2e follow-ups",
+    "description": "Harden the real CLI e2e harness by exercising exec/resume/apply/diff with live credentials or sanctioned fixtures, retire skips as the CLI gains execpolicy/feature-list support, and document gating assumptions.",
+    "dependencies": ["I15-cli-parity-e2e"],
+    "files": [
+      "workstreams/I_cli_parity/BRIEF.md",
+      "crates/codex/tests/cli_e2e.rs",
+      "crates/codex/src/lib.rs",
+      "CLI_MATRIX.md"
     ],
     "tests": ["cargo test -p codex"],
     "status": "todo"
