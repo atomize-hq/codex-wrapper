@@ -11,7 +11,7 @@
   {
     "id": "J2-bundled-binary-helper",
     "title": "Implement bundled binary resolver helper",
-    "status": "todo",
+    "status": "done",
     "description": "Add an opt-in helper to resolve a pinned app-scoped Codex binary (bundle root + version), fail fast when missing, and keep behavior isolated from the user's global install. Keep default behavior unchanged unless the helper is used.",
     "dependencies": ["J1-bundled-binary-design"],
     "files": ["crates/codex/src/lib.rs", "workstreams/J_app_bundle/BRIEF.md"],
