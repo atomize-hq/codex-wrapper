@@ -25,5 +25,14 @@
     "dependencies": ["J2-bundled-binary-helper"],
     "files": ["README.md", "crates/codex/EXAMPLES.md", "crates/codex/examples", "workstreams/J_app_bundle/BRIEF.md"],
     "tests": ["cargo test -p codex"]
+  },
+  {
+    "id": "J4-auth-seeding-helper",
+    "title": "Auth seeding helper for bundled/isolated homes",
+    "status": "done",
+    "description": "Add an opt-in helper to seed Codex auth into an app-scoped CODEX_HOME for bundled/isolated flows. Support copying auth.json and .credentials.json from a trusted seed home into a target home (no history/logs), surface clear errors when sources are missing or unsafe, and keep existing defaults untouched. Update docs/examples to show the helper alongside resolve_bundled_binary and per-project homes.",
+    "dependencies": ["J3-bundled-binary-docs-examples"],
+    "files": ["README.md", "crates/codex/src/lib.rs", "crates/codex/EXAMPLES.md", "crates/codex/examples", "workstreams/J_app_bundle/BRIEF.md"],
+    "tests": ["cargo test -p codex"]
   }
 ]
