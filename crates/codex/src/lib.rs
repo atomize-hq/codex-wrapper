@@ -5647,6 +5647,8 @@ pub enum ExecStreamError {
         #[source]
         source: serde_json::Error,
     },
+    #[error("codex JSONL event missing required context: {message}: `{line}`")]
+    Normalize { line: String, message: String },
     #[error("codex JSON stream idle for {idle_for:?}")]
     IdleTimeout { idle_for: Duration },
     #[error("codex JSON stream closed unexpectedly")]
@@ -5771,6 +5773,7 @@ where
     R: AsyncRead + Unpin,
 {
     let mut lines = BufReader::new(reader).lines();
+    let mut context = StreamContext::default();
     loop {
         let line = match lines.next_line().await {
             Ok(Some(line)) => line,
@@ -5801,12 +5804,7 @@ where
             }
         }
 
-        let parsed =
-            serde_json::from_str::<ThreadEvent>(&line).map_err(|source| ExecStreamError::Parse {
-                line: line.clone(),
-                source,
-            });
-        let send_result = match parsed {
+        let send_result = match normalize_thread_event(&line, &mut context) {
             Ok(event) => sender.send(Ok(event)).await,
             Err(err) => {
                 let _ = sender.send(Err(err)).await;
@@ -5819,6 +5817,168 @@ where
     }
 
     Ok(())
+}
+
+#[derive(Default)]
+struct StreamContext {
+    current_thread_id: Option<String>,
+    current_turn_id: Option<String>,
+    next_synthetic_turn: u32,
+}
+
+fn normalize_thread_event(
+    line: &str,
+    context: &mut StreamContext,
+) -> Result<ThreadEvent, ExecStreamError> {
+    let mut value: serde_json::Value =
+        serde_json::from_str(line).map_err(|source| ExecStreamError::Parse {
+            line: line.to_string(),
+            source,
+        })?;
+
+    let event_type = value
+        .get("type")
+        .and_then(|t| t.as_str())
+        .map(|s| s.to_string())
+        .ok_or_else(|| ExecStreamError::Normalize {
+            line: line.to_string(),
+            message: "event missing `type`".to_string(),
+        })?;
+
+    match event_type.as_str() {
+        "thread.started" => {
+            let thread_id = extract_str(&value, "thread_id")
+                .ok_or_else(|| missing("thread.started", "thread_id", line))?;
+            context.current_thread_id = Some(thread_id.to_string());
+            context.current_turn_id = None;
+        }
+        "turn.started" => {
+            let turn_id = extract_str(&value, "turn_id")
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| {
+                    let id = format!("synthetic-turn-{}", context.next_synthetic_turn.max(1));
+                    context.next_synthetic_turn = context.next_synthetic_turn.saturating_add(1);
+                    id
+                });
+            let thread_id = extract_str(&value, "thread_id")
+                .map(|s| s.to_string())
+                .or_else(|| context.current_thread_id.clone())
+                .ok_or_else(|| missing("turn.started", "thread_id", line))?;
+            set_str(&mut value, "turn_id", turn_id.clone());
+            set_str(&mut value, "thread_id", thread_id.clone());
+            context.current_thread_id = Some(thread_id);
+            context.current_turn_id = Some(turn_id);
+        }
+        "turn.completed" | "turn.failed" => {
+            let turn_id = extract_str(&value, "turn_id")
+                .map(|s| s.to_string())
+                .or_else(|| context.current_turn_id.clone())
+                .ok_or_else(|| missing(&event_type, "turn_id", line))?;
+            let thread_id = extract_str(&value, "thread_id")
+                .map(|s| s.to_string())
+                .or_else(|| context.current_thread_id.clone())
+                .ok_or_else(|| missing(&event_type, "thread_id", line))?;
+            set_str(&mut value, "turn_id", turn_id.clone());
+            set_str(&mut value, "thread_id", thread_id.clone());
+            context.current_turn_id = None;
+            context.current_thread_id = Some(thread_id);
+        }
+        t if t.starts_with("item.") => {
+            normalize_item_payload(&mut value);
+            let turn_id = extract_str(&value, "turn_id")
+                .map(|s| s.to_string())
+                .or_else(|| context.current_turn_id.clone())
+                .ok_or_else(|| missing(&event_type, "turn_id", line))?;
+            let thread_id = extract_str(&value, "thread_id")
+                .map(|s| s.to_string())
+                .or_else(|| context.current_thread_id.clone())
+                .ok_or_else(|| missing(&event_type, "thread_id", line))?;
+            set_str(&mut value, "turn_id", turn_id);
+            set_str(&mut value, "thread_id", thread_id);
+        }
+        _ => {}
+    }
+
+    serde_json::from_value::<ThreadEvent>(value).map_err(|source| ExecStreamError::Parse {
+        line: line.to_string(),
+        source,
+    })
+}
+
+fn extract_str<'a>(value: &'a serde_json::Value, key: &str) -> Option<&'a str> {
+    value
+        .get(key)
+        .and_then(|v| v.as_str())
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+}
+
+fn set_str(value: &mut serde_json::Value, key: &str, new_value: String) {
+    if let Some(map) = value.as_object_mut() {
+        map.insert(key.to_string(), serde_json::Value::String(new_value));
+    }
+}
+
+fn normalize_item_payload(value: &mut serde_json::Value) {
+    let mut item_object = match value
+        .get_mut("item")
+        .and_then(|item| item.as_object_mut())
+        .map(|map| map.clone())
+    {
+        Some(map) => map,
+        None => return,
+    };
+
+    if !item_object.contains_key("item_type") {
+        if let Some(item_type) = item_object.remove("type") {
+            item_object.insert("item_type".to_string(), item_type);
+        }
+    }
+
+    if !item_object.contains_key("content") {
+        let mut content: Option<serde_json::Value> = None;
+        if let Some(text) = item_object.remove("text") {
+            if let Some(text_str) = text.as_str() {
+                content = Some(serde_json::json!({ "text": text_str }));
+            } else {
+                content = Some(text);
+            }
+        } else if let Some(command) = item_object.get("command").cloned() {
+            let mut map = serde_json::Map::new();
+            map.insert("command".to_string(), command);
+            if let Some(stdout) = item_object.remove("aggregated_output") {
+                map.insert("stdout".to_string(), stdout);
+            }
+            if let Some(exit_code) = item_object.remove("exit_code") {
+                map.insert("exit_code".to_string(), exit_code);
+            }
+            if let Some(stderr) = item_object.remove("stderr") {
+                map.insert("stderr".to_string(), stderr);
+            }
+            content = Some(serde_json::Value::Object(map));
+        }
+
+        if let Some(content_value) = content {
+            item_object.insert("content".to_string(), content_value);
+        }
+    }
+
+    if let Some(root) = value.as_object_mut() {
+        for (mut key, mut v) in item_object {
+            if key == "type" {
+                key = "item_type".to_string();
+            }
+            root.insert(key, v.take());
+        }
+        root.remove("item");
+    }
+}
+
+fn missing(event: &str, field: &str, line: &str) -> ExecStreamError {
+    ExecStreamError::Normalize {
+        line: line.to_string(),
+        message: format!("{event} missing `{field}` and no prior context to infer it"),
+    }
 }
 
 async fn read_last_message(path: &Path) -> Option<String> {
@@ -8063,6 +8223,50 @@ exit 0
                 .map(|release| release.version.clone()),
             latest.stable
         );
+    }
+
+    #[test]
+    fn normalize_stream_infers_missing_thread_and_turn() {
+        let mut context = StreamContext::default();
+        // thread.started establishes thread context
+        let thread_line = r#"{"type":"thread.started","thread_id":"thread-1"}"#;
+        let thread_event = normalize_thread_event(thread_line, &mut context).unwrap();
+        match thread_event {
+            ThreadEvent::ThreadStarted(t) => assert_eq!(t.thread_id, "thread-1"),
+            other => panic!("unexpected event: {other:?}"),
+        }
+        // turn.started without thread_id should inherit
+        let turn_line = r#"{"type":"turn.started","turn_id":"turn-1"}"#;
+        let turn_event = normalize_thread_event(turn_line, &mut context).unwrap();
+        match turn_event {
+            ThreadEvent::TurnStarted(t) => {
+                assert_eq!(t.thread_id, "thread-1");
+                assert_eq!(t.turn_id, "turn-1");
+            }
+            other => panic!("unexpected event: {other:?}"),
+        }
+        // item.completed without ids should inherit both
+        let item_line = r#"{"type":"item.completed","item":{"id":"msg-1","type":"agent_message","text":"hi"}}"#;
+        let item_event = normalize_thread_event(item_line, &mut context).unwrap();
+        match item_event {
+            ThreadEvent::ItemCompleted(item) => {
+                assert_eq!(item.turn_id, "turn-1");
+                assert_eq!(item.thread_id, "thread-1");
+                assert_eq!(item.item.item_id, "msg-1");
+            }
+            other => panic!("unexpected event: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn normalize_stream_errors_without_context() {
+        let mut context = StreamContext::default();
+        let line = r#"{"type":"turn.started"}"#;
+        let err = normalize_thread_event(line, &mut context).unwrap_err();
+        match err {
+            ExecStreamError::Normalize { .. } => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 
     #[test]
