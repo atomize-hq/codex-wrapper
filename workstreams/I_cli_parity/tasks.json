@@ -212,6 +212,20 @@
       "crates/codex/examples"
     ],
     "tests": ["cargo test -p codex"],
+    "status": "done"
+  },
+  {
+    "id": "I16-cli-parity-e2e-followups",
+    "title": "CLI parity e2e follow-ups",
+    "description": "Harden the real CLI e2e harness by exercising exec/resume/apply/diff with live credentials or sanctioned fixtures, retire skips as the CLI gains execpolicy/feature-list support, and document gating assumptions.",
+    "dependencies": ["I15-cli-parity-e2e"],
+    "files": [
+      "workstreams/I_cli_parity/BRIEF.md",
+      "crates/codex/tests/cli_e2e.rs",
+      "crates/codex/src/lib.rs",
+      "CLI_MATRIX.md"
+    ],
+    "tests": ["cargo test -p codex"],
     "status": "todo"
   }
 ]
