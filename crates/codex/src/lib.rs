@@ -1092,7 +1092,13 @@ pub enum CodexAuthStatus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CodexAuthMethod {
     ChatGpt,
-    ApiKey { masked_key: Option<String> },
+    ApiKey {
+        masked_key: Option<String>,
+    },
+    /// CLI reported a logged-in state but the auth method could not be parsed (e.g., new wording).
+    Unknown {
+        raw: String,
+    },
 }
 
 /// Result of invoking `codex logout`.
@@ -1644,10 +1650,11 @@ impl CodexClient {
         let combined = preferred_output_channel(&output);
 
         if output.status.success() {
-            parse_login_success(&combined).ok_or_else(|| CodexError::NonZeroExit {
-                status: output.status,
-                stderr: combined,
-            })
+            Ok(parse_login_success(&combined).unwrap_or_else(|| {
+                CodexAuthStatus::LoggedIn(CodexAuthMethod::Unknown {
+                    raw: combined.clone(),
+                })
+            }))
         } else {
             Err(CodexError::NonZeroExit {
                 status: output.status,
@@ -1662,10 +1669,11 @@ impl CodexClient {
         let combined = preferred_output_channel(&output);
 
         if output.status.success() {
-            parse_login_success(&combined).ok_or_else(|| CodexError::NonZeroExit {
-                status: output.status,
-                stderr: combined,
-            })
+            Ok(parse_login_success(&combined).unwrap_or_else(|| {
+                CodexAuthStatus::LoggedIn(CodexAuthMethod::Unknown {
+                    raw: combined.clone(),
+                })
+            }))
         } else if combined.to_lowercase().contains("not logged in") {
             Ok(CodexAuthStatus::LoggedOut)
         } else {
@@ -9018,6 +9026,19 @@ exit 2
             }
             other => panic!("unexpected status: {other:?}"),
         }
+    }
+
+    #[test]
+    fn parse_login_accepts_unknown_on_success() {
+        let message = "Authenticated";
+        assert!(parse_login_success(message).is_none());
+        let status = CodexAuthStatus::LoggedIn(CodexAuthMethod::Unknown {
+            raw: message.to_string(),
+        });
+        assert!(matches!(
+            status,
+            CodexAuthStatus::LoggedIn(CodexAuthMethod::Unknown { .. })
+        ));
     }
 }
 
