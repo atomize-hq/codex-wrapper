@@ -226,6 +226,6 @@
       "CLI_MATRIX.md"
     ],
     "tests": ["cargo test -p codex"],
-    "status": "todo"
+    "status": "done"
   }
 ]
