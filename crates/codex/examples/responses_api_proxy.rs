@@ -6,12 +6,24 @@ use codex::{CodexClient, ResponsesApiProxyRequest};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Maps to: echo "<API_KEY>" | codex responses-api-proxy [--port <PORT>] [--server-info <FILE>] [--http-shutdown] [--upstream-url <URL>]
     // Reads an API key from stdin, starts the proxy, and optionally parses the server-info JSON.
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    let use_sample = take_flag(&mut args, "--sample");
+
     let api_key = std::env::var("OPENAI_API_KEY")
         .or_else(|_| std::env::var("CODEX_API_KEY"))
         .unwrap_or_else(|_| "sk-placeholder".to_string());
 
     let server_info_dir = tempfile::tempdir()?;
     let server_info_path = server_info_dir.path().join("responses-api-proxy.json");
+
+    if use_sample {
+        write_sample_server_info(&server_info_path)?;
+        println!(
+            "responses-api-proxy (sample) listening on 127.0.0.1:38483 (pid 1234); info at {}",
+            server_info_path.display()
+        );
+        return Ok(());
+    }
 
     let client = CodexClient::builder()
         .mirror_stdout(false)
@@ -43,4 +55,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = proxy.child.start_kill();
     let _ = proxy.child.wait().await;
     Ok(())
+}
+
+fn write_sample_server_info(path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(path, r#"{ "port": 38483, "pid": 1234 }"#)?;
+    Ok(())
+}
+
+fn take_flag(args: &mut Vec<String>, flag: &str) -> bool {
+    let before = args.len();
+    args.retain(|value| value != flag);
+    before != args.len()
 }

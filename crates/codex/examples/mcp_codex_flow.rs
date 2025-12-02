@@ -18,11 +18,18 @@ use tokio::time;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut args = env::args().skip(1);
+    let mut args = env::args().skip(1).collect::<Vec<_>>();
+    let use_sample = take_flag(&mut args, "--sample");
+    let mut args = args.into_iter();
     let prompt = args
         .next()
-        .expect("usage: mcp_codex_flow <prompt> [follow-up prompt]");
+        .unwrap_or_else(|| "Sample MCP codex prompt".to_string());
     let follow_up = args.next();
+
+    if use_sample {
+        replay_sample(&prompt, follow_up.as_deref());
+        return Ok(());
+    }
 
     let config = config_from_env();
     let client = ClientInfo {
@@ -150,4 +157,18 @@ async fn stream_codex_events(label: &str, events: &mut EventStream<CodexEvent>) 
     }
 
     conversation_id
+}
+
+fn replay_sample(prompt: &str, follow_up: Option<&str>) {
+    println!("[sample] codex prompt: {prompt}");
+    println!("[sample] task_complete conv=sample-conv: streamed sample events");
+    if let Some(follow) = follow_up {
+        println!("[sample] codex-reply {follow} => sample follow-up response");
+    }
+}
+
+fn take_flag(args: &mut Vec<String>, flag: &str) -> bool {
+    let before = args.len();
+    args.retain(|arg| arg != flag);
+    before != args.len()
 }

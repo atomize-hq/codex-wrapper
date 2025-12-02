@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf, time::Duration};
 
-use codex::{ApprovalPolicy, CodexClient, ExecRequest, FlagState, LocalProvider, SandboxMode};
+use codex::{CodexClient, ExecRequest, SandboxMode};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -16,12 +16,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut builder = CodexClient::builder()
         .timeout(Duration::from_secs(45))
         .mirror_stdout(false)
-        .approval_policy(ApprovalPolicy::OnRequest)
+        // codex exec 0.6.1 does not expose --ask-for-approval; set via config override instead.
         .sandbox_mode(SandboxMode::WorkspaceWrite)
-        .local_provider(LocalProvider::Ollama)
-        .oss(true)
-        .enable_feature("builder-toggle")
-        .disable_feature("legacy-flow")
+        .enable_feature("shell_tool")
+        .disable_feature("web_search_request")
         .config_override("model_verbosity", "high")
         .config_override("features.search", "true");
 
@@ -32,9 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = builder.build();
 
     let mut request = ExecRequest::new(prompt)
-        .config_override("model_reasoning_effort", "low")
-        .enable_feature("request-toggle");
-    request.overrides.search = FlagState::Enable;
+        .config_override("model_reasoning_effort", "low");
     if cd.is_none() {
         request.overrides.cd = Some(env::current_dir()?);
     }
