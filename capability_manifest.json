@@ -73,7 +73,10 @@
         "config_override": true,
         "feature_enable_disable": true
       },
-      "outputs": ["apply.result: stdout/stderr/exit (plain text)"]
+      "outputs": ["apply.result: stdout/stderr/exit (plain text)"],
+      "notes": [
+        "Consumes a Codex Cloud task id (produced by cloud exec or TUI apply)."
+      ]
     },
     {
       "name": "diff",
@@ -83,7 +86,10 @@
         "config_override": true,
         "feature_enable_disable": true
       },
-      "outputs": ["patch text (plain stdout)"]
+      "outputs": ["patch text (plain stdout)"],
+      "notes": [
+        "No direct --json flag on CLI; use codex exec with streaming if you need JSONL wrapping."
+      ]
     },
     {
       "name": "features list",
@@ -91,7 +97,8 @@
       "supports": {
         "json": false,
         "config_override": true,
-        "feature_enable_disable": false
+        "feature_enable_disable": false,
+        "profile": true
       },
       "outputs": ["text table of features"]
     },
