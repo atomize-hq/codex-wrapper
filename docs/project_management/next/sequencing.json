@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "principle": "sequenced_only",
+  "notes": [
+    "This file defines the preferred execution order for upcoming feature sprints/tracks in this repo.",
+    "Items are intentionally sequenced (no parallel work) to minimize merge/conflict risk and schema churn.",
+    "Each item should correspond to a triad-based feature directory under docs/project_management/next/<feature>/ with plan.md, tasks.json, session_log.md, specs, and kickoff prompts."
+  ],
+  "tracks": [
+    {
+      "id": "codex_cli_release_trailing",
+      "name": "Codex CLI Release Trailing (Parity Maintenance)",
+      "source": "docs/adr/0001-codex-cli-parity-maintenance.md",
+      "phases": [
+        {
+          "id": "C0",
+          "name": "Snapshot schema + generator",
+          "goals": [
+            "Deterministic CLI snapshot for a given codex binary",
+            "Human-reviewable diffs for commands/flags/features"
+          ],
+          "deliverables": [
+            "Snapshot schema documented under cli_manifests/codex/",
+            "Local snapshot generator tool wired into triad workflow"
+          ]
+        },
+        {
+          "id": "C1",
+          "name": "Validation matrix + pinned binaries",
+          "goals": [
+            "Repeatable Linux gating against min supported and latest validated binaries",
+            "Clear definition of validated vs supported"
+          ],
+          "deliverables": [
+            "Pinned version pointers under cli_manifests/codex/",
+            "CI/automation coverage (as defined by ADR 0001)"
+          ]
+        },
+        {
+          "id": "C2",
+          "name": "JSONL + notification compatibility",
+          "goals": [
+            "Robust parsing across CLI version drift",
+            "Fixture-backed regression coverage for known drift cases"
+          ],
+          "deliverables": [
+            "Normalization rules documented",
+            "Fixtures + tests for drift cases"
+          ]
+        },
+        {
+          "id": "C3",
+          "name": "Ops playbook",
+          "goals": [
+            "Make release trailing procedural and low-risk",
+            "Define ownership and cadence"
+          ],
+          "deliverables": [
+            "Maintainer checklist for snapshot/diff/validate/release",
+            "Trial-run checklist to move 0.61.0 → 0.77.0 on Linux"
+          ]
+        }
+      ]
+    }
+  ],
+  "sequence": [
+    {
+      "order": 10,
+      "id": "codex_cli_release_trailing:C0",
+      "title": "Codex CLI snapshot tooling",
+      "depends_on": [],
+      "blocks": ["codex_cli_release_trailing:C1", "codex_cli_release_trailing:C2", "codex_cli_release_trailing:C3"]
+    },
+    {
+      "order": 20,
+      "id": "codex_cli_release_trailing:C1",
+      "title": "Validation matrix + pinned binaries",
+      "depends_on": ["codex_cli_release_trailing:C0"],
+      "blocks": ["codex_cli_release_trailing:C2", "codex_cli_release_trailing:C3"]
+    },
+    {
+      "order": 30,
+      "id": "codex_cli_release_trailing:C2",
+      "title": "JSONL + notification compatibility",
+      "depends_on": ["codex_cli_release_trailing:C1"],
+      "blocks": ["codex_cli_release_trailing:C3"]
+    },
+    {
+      "order": 40,
+      "id": "codex_cli_release_trailing:C3",
+      "title": "Ops playbook and trial run",
+      "depends_on": ["codex_cli_release_trailing:C2"],
+      "blocks": []
+    }
+  ]
+}
+

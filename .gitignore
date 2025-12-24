@@ -1,4 +1,5 @@
 target
 /.idea
 /.vscode
+/wt
 /codex-x86_64-unknown-linux-musl
