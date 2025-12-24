@@ -25,6 +25,7 @@ Current version reality (as of this ADR):
 
 - Minimum supported Codex CLI: `0.61.0`
 - Latest upstream Codex CLI release: `0.77.0`
+- Platform priority: Linux first, then macOS, then Windows (primarily via WSL; native Windows support is best-effort)
 
 This gap gives us room to validate the new “release watch → snapshot diff → update” process on real, recent versions.
 
@@ -78,8 +79,10 @@ Versioned schema (`snapshot_schema_version`) exists so we can evolve snapshot st
   - `path` (array of strings): command/subcommand path tokens (e.g., `["exec","resume"]`)
   - `about` (string, optional): one-line description extracted from help output
   - `usage` (string, optional)
+  - `stability` (string, optional): `stable|experimental|beta|deprecated|unknown` when derivable from help text
+  - `platforms` (array of strings, optional): if the command is platform-specific (e.g., `["linux","macos"]`)
   - `args` (array of objects, optional): positional args as discoverable from help
-  - `flags` (array of objects, optional): discovered options (short/long/value arity, repeatable)
+  - `flags` (array of objects, optional): discovered options (short/long/value arity, repeatable; may include optional `stability`/`platforms` when derivable)
 - `features` (object, optional):
   - `supports_json` (bool, optional): whether `codex features list --json` is accepted
   - `raw_text` (string, optional): raw text output of `codex features list`
@@ -101,6 +104,14 @@ The snapshot generator must:
   - the raw help output (for debugging parser drift).
 - Support a small, explicit “supplement” mechanism for known omissions in help text (e.g., `sandbox` platform variants not shown in `--help`) so the resulting snapshot is actually exhaustive.
 - Produce deterministic output (stable ordering, canonicalized whitespace where appropriate) so diffs are meaningful.
+
+#### Snapshot diff review requirements
+
+When reviewing a snapshot update PR, treat diffs as a checklist, not just “what’s new”:
+
+- **Additions**: new commands/flags/config toggles → decide wrap vs intentionally unwrapped; add/update E2E coverage where possible.
+- **Removals/renames**: anything that disappears from help output is a high-signal potential breaking change → confirm via real-binary smoke tests and update wrapper surface/tests/docs as needed.
+- **Deprecations/experimental markers**: if help text adds “deprecated/experimental/beta” labels, capture them in the snapshot (`stability`) and reassess promotion criteria and default exposure.
 
 ### 2) Automate “release watch” and “update” workflows (no auto-provision in the crate)
 
@@ -130,7 +141,7 @@ The nightly workflow should:
 The maintainer-triggered workflow should accept inputs such as:
 
 - `version` (exact version to validate)
-- `platforms` (prioritize Linux, then macOS, then Windows)
+- `platforms` (prioritize Linux, then macOS; Windows is primarily via WSL and does not need native Windows CI)
 - optional “update min supported” toggle
 
 And it should:
@@ -153,6 +164,10 @@ Help output is necessary but not always sufficient. We will augment change detec
 
 These signals should drive investigation and planning, but the structured snapshot + real-binary tests remain the primary source of truth.
 
+### 3.1) Explicitly scoped to Codex CLI (non-goal: multi-CLI manifests)
+
+The audit discusses extending a manifest/diff approach to other agent CLIs (e.g., Claude/Gemini). This ADR is intentionally scoped to **Codex CLI parity maintenance** for this repo. If we later add additional CLIs, we should create a separate ADR rather than broadening this one.
+
 ### 4) Define and enforce a version support policy
 
 We will explicitly track:
@@ -171,7 +186,8 @@ A Codex CLI version is “validated” when the following pass on Linux:
 Optional (non-gating, opt-in):
 
 - Live/credentialed probes for `exec`/`resume`/`diff`/`apply` (gated behind explicit env vars)
-- macOS/Windows smoke coverage (added incrementally after Linux baseline is reliable)
+- macOS smoke coverage (added incrementally after Linux baseline is reliable)
+- Windows coverage is primarily via WSL (treat as Linux); native Windows CI is optional and can be deferred
 
 #### CI enforcement model
 
