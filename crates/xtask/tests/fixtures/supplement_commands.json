@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "commands": [
+    {
+      "path": ["sandbox"],
+      "platforms": ["linux", "macos"],
+      "note": "Example supplement: sandbox variants can be absent from --help on some platforms."
+    }
+  ]
+}
