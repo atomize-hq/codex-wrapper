@@ -40,11 +40,11 @@
     "concurrent_with": ["C0-test"]
   },
   {
-    "id": "C0-test",
-    "name": "Snapshot schema + generator (test)",
+	    "id": "C0-test",
+	    "name": "Snapshot schema + generator (test)",
 	    "type": "test",
 	    "phase": "C0",
-	    "status": "in_progress",
+	    "status": "completed",
 	    "description": "Add tests/fixtures validating the C0 spec (tests only; xtask-focused).",
     "references": [
       "docs/adr/0001-codex-cli-parity-maintenance.md",

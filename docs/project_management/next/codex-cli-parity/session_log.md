@@ -45,3 +45,9 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`ccp-c0-snapshot-test` / `wt/ccp-c0-snapshot-test` to be added after docs commit)
 - Plan: add snapshot determinism + stable ordering + supplement tests, run `cargo fmt` + `cargo test -p xtask`, commit via worktree, then update docs/log at end
 - Blockers: none
+
+## [2026-01-26 15:12 UTC] Test Agent – C0-test – END
+- Worktree `wt/ccp-c0-snapshot-test` on branch `ccp-c0-snapshot-test` (commit 251c87b) added contract tests + fixtures for C0 ordering/supplements/determinism under `crates/xtask/tests/`
+- Commands: `cargo fmt` (pass); `cargo test -p xtask` (fail: `error: package ID specification \`xtask\` did not match any packages`)
+- Results: tests validate command/flag stable sorting, supplement insertion + `known_omissions` recording, and determinism after normalizing `collected_at`
+- Blockers: `xtask` package is not yet present on `feat/codex-cli-parity`; rerun `cargo test -p xtask` after C0-code lands (or during C0-integ)
