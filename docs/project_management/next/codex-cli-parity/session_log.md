@@ -178,3 +178,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Commands: `cargo fmt` (pass; no output); `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 8.47s`)
 - Result: explicit policy docs for intentionally-unwrapped surfaces + promotion criteria; documented Release Watch triage, Update Snapshot workflow usage, snapshot diff review checklist, and Linux trial run `0.61.0 → 0.77.0`
 - Blockers: none
+
+## [2026-01-26 17:45 UTC] Integration Agent – C3-integ – START
+- Checked out `feat/codex-cli-parity`, `git pull --ff-only` (up to date)
+- Read ADR/plan/tasks/session log/C3-spec/kickoff prompt; updated `tasks.json` (C3-integ → `in_progress`)
+- Worktree pending (`ccp-c3-ops-integ` / `wt/ccp-c3-ops-integ` to be added after docs commit)
+- Plan: create integration worktree, merge `ccp-c3-ops-code` + `ccp-c3-ops-test`, reconcile to C3-spec.md, run fmt/clippy/`cargo test -p codex`/`make preflight`, commit integration, fast-forward into `feat/codex-cli-parity`, then update docs/log at end
+- Blockers: none
