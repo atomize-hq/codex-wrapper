@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "commands": [
+    {
+      "path": ["exec"],
+      "note": "Example v1 supplement entry (intentionally a no-op for most versions): supplements exist to make known `--help` omissions explicit and reviewable. Add real omissions (and optional `platforms`) as they are discovered."
+    }
+  ]
+}
