@@ -152,3 +152,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Commands: `cargo test -p codex` (pass; `test result: ok. 125 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out`)
 - Commands: `make preflight` (pass; ran `cargo fmt && cargo clippy --workspace --all-targets -- -D warnings && cargo clean && cargo check --workspace --all-targets && cargo test --workspace --all-targets`)
 - Blockers: none
+
+## [2026-01-26 17:09 UTC] Code Agent – C3-code – START
+- Checked out `feat/codex-cli-parity`, `git pull --ff-only` (already up to date)
+- Read plan/tasks/session log/C3-spec/kickoff prompt; updated `tasks.json` (C3-code → `in_progress`)
+- Worktree pending (`ccp-c3-ops-code` / `wt/ccp-c3-ops-code` to be added after docs commit)
+- Plan: add `cli_manifests/codex/OPS_PLAYBOOK.md` + link from `cli_manifests/codex/README.md`, run fmt+clippy, commit via worktree, then update docs/log at end
+- Blockers: none
