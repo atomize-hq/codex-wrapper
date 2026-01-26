@@ -57,3 +57,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Commands: `cargo fmt` (pass); `cargo test -p xtask` (fail: `error: package ID specification \`xtask\` did not match any packages`)
 - Results: tests validate command/flag stable sorting, supplement insertion + `known_omissions` recording, and determinism after normalizing `collected_at`
 - Blockers: `xtask` package is not yet present on `feat/codex-cli-parity`; rerun `cargo test -p xtask` after C0-code lands (or during C0-integ)
+
+## [2026-01-26 15:25 UTC] Integration Agent – C0-integ – START
+- Checked out `feat/codex-cli-parity`, `git pull --ff-only` (up to date)
+- Read plan/tasks/session log/C0-spec/kickoff prompt; updated `tasks.json` (C0-integ → `in_progress`)
+- Worktree pending (`ccp-c0-snapshot-integ` / `wt/ccp-c0-snapshot-integ` to be added after docs commit)
+- Plan: create integration worktree, merge `ccp-c0-snapshot-code` + `ccp-c0-snapshot-test`, reconcile to C0 spec, run fmt/clippy/`cargo test -p xtask`/`make preflight`, commit integration, fast-forward into `feat/codex-cli-parity`, then update docs/log at end
+- Blockers: none
