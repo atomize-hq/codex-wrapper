@@ -131,3 +131,8 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Commands: `cargo test -p codex` (fail; new tests currently fail awaiting C2-code drift-tolerant parsing: `thread.resumed` + `item.created/item.updated` normalization and non-fatal malformed-line handling)
 - Test results: `retains_unknown_fields_in_extra_maps` passes; failing tests are `parses_versioned_exec_fixtures`, `parses_versioned_resume_fixtures`, `known_good_fixtures_include_text_payloads`, `malformed_lines_are_non_fatal`
 - Blockers: none (expected until `C2-code`/`C2-integ`)
+
+## [2026-01-26 16:41 UTC] Code Agent – C2-code – END
+- Worktree `wt/ccp-c2-jsonl-code` on branch `ccp-c2-jsonl-code` (commit ee58a0f) implemented drift-tolerant JSONL parsing/normalization and added `crates/codex/JSONL_COMPAT.md`
+- Commands: `cargo fmt` (pass; no output); `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 8.24s`)
+- Blockers: none
