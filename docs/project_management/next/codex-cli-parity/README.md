@@ -16,3 +16,8 @@ Execution order (dependency DAG):
 Key non-obvious conventions (kept in-spec, repeated here for quick start):
 - Upstream releases use tags like `rust-v0.77.0` (workflows accept bare semver inputs like `0.77.0`).
 - Linux validation binaries are downloaded in CI/workflows from `openai/codex` release assets (e.g., `codex-x86_64-unknown-linux-musl.tar.gz`) and extracted to `./codex-x86_64-unknown-linux-musl` as a gitignored workspace artifact.
+
+Local binary storage convention (recommended):
+- Store multiple versions under `./.codex-bins/<version>/codex-x86_64-unknown-linux-musl` (directory is gitignored).
+- Keep `./codex-x86_64-unknown-linux-musl` as a symlink to the “active” version when running local validated checks.
+- Switch active version with: `ln -sfn .codex-bins/<version>/codex-x86_64-unknown-linux-musl codex-x86_64-unknown-linux-musl`

@@ -11,11 +11,16 @@ Source: `docs/adr/0001-codex-cli-parity-maintenance.md`
 - Upstream release source: GitHub releases for `openai/codex`.
   - Upstream tag naming convention: `rust-v<semver>` (example: `rust-v0.77.0`).
   - The workflow input `version` is the bare semver (example: `0.77.0`); workflows must map it to `rust-v<version>` when fetching the release.
+  - Stability policy (release selection): we only “land” (promote `latest_validated.txt` / snapshots) for **non-prerelease, non-draft** upstream releases.
+    - Release Watch must ignore prereleases/drafts.
+    - Update Snapshot must fail fast if the requested `version` resolves to a prerelease or draft release in `openai/codex`.
 - Supported platform for automated downloads in C1: Linux `x86_64` musl only.
   - The downloaded asset is an archive. Use this exact asset name:
     - `codex-x86_64-unknown-linux-musl.tar.gz`
   - The extracted executable is named `codex`. Place it at this conventional path in the repo workspace (gitignored) before running tests:
     - `./codex-x86_64-unknown-linux-musl`
+  - Local multi-version convention (recommended):
+    - Store binaries under `./.codex-bins/<version>/codex-x86_64-unknown-linux-musl` (gitignored), and symlink the active one into `./codex-x86_64-unknown-linux-musl`.
   - macOS support is explicitly deferred; Windows is treated as WSL/Linux per ADR.
 - Checksum/traceability lockfile (exact path + schema for downloaded artifacts):
   - `cli_manifests/codex/artifacts.lock.json`
@@ -40,6 +45,47 @@ Source: `docs/adr/0001-codex-cli-parity-maintenance.md`
   - Expected no-op unless C1 introduces new testable Rust logic.
 - `C1-integ`:
   - Merge `C1-code` + `C1-test`, reconcile to this spec, and run the ADR “validated” commands (with isolated home) plus `make preflight`.
+
+## Workflow Permissions & Implementation Checklist
+This section is intentionally copy/paste-friendly to reduce CI ambiguity.
+
+### Minimal `permissions:` blocks (exact)
+- `.github/workflows/ci.yml`
+  - ```yml
+    permissions:
+      contents: read
+    ```
+- `.github/workflows/codex-cli-release-watch.yml`
+  - ```yml
+    permissions:
+      contents: read
+      issues: write
+    ```
+- `.github/workflows/codex-cli-update-snapshot.yml`
+  - ```yml
+    permissions:
+      contents: write
+      pull-requests: write
+    ```
+
+### Implementation checklist (recommended)
+- Release Watch (`codex-cli-release-watch.yml`)
+  - Fetch releases from `openai/codex`, filter `prerelease==false` and `draft==false`, parse semver from `tag_name` by stripping `rust-v`.
+  - Determine `latest_stable` and `candidate` (= stable-minus-one, or stable if only one exists).
+  - Read `cli_manifests/codex/latest_validated.txt`; if `candidate != latest_validated`, create-or-update an issue titled `Codex CLI release watch: candidate <candidate-version>`.
+  - Make updates idempotent (search existing open issues by exact title; update body if present, else create).
+- Update Snapshot (`codex-cli-update-snapshot.yml`)
+  - Trigger: `workflow_dispatch` with inputs `version` and `update_min_supported`.
+  - Use `tag = rust-v${{ inputs.version }}` and asset `codex-x86_64-unknown-linux-musl.tar.gz`.
+  - Guard: fetch the upstream release and assert `prerelease==false` and `draft==false` before downloading or updating any pointers.
+  - Download the archive, compute `sha256` and `size_bytes`, and upsert the entry in `cli_manifests/codex/artifacts.lock.json` for `(version, linux, x86_64, musl)`.
+  - Extract `codex` and install it to `./codex-x86_64-unknown-linux-musl` (gitignored), then run the snapshot generator (C0) with `--capture-raw-help`.
+  - Update `cli_manifests/codex/latest_validated.txt` to `version` (and `min_supported.txt` only when `update_min_supported==true`).
+  - Open a PR (preferred: `peter-evans/create-pull-request`) that commits only `cli_manifests/codex/**` changes (never commit the binary).
+  - Add `concurrency:` to prevent overlapping snapshot-update runs on the same repo.
+- CI (`ci.yml`)
+  - Determine the validated version from `cli_manifests/codex/latest_validated.txt` and require a matching entry in `cli_manifests/codex/artifacts.lock.json` (fail with a clear message if missing).
+  - Download/verify/extract to `./codex-x86_64-unknown-linux-musl`, then run the ADR “validated” tests with `CODEX_E2E_HOME` + `CODEX_HOME` isolated.
 
 ## Scope
 - Enforce the ADR’s version support policy pointers:
@@ -71,10 +117,7 @@ Source: `docs/adr/0001-codex-cli-parity-maintenance.md`
       - `cli_manifests/codex/raw_help/<version>/**` (enabled in workflow)
     - Updates `cli_manifests/codex/latest_validated.txt` to `version` in the same PR.
     - Opens a PR with snapshot diffs and runs real-binary validations as PR checks (see “Definition of validated”).
-    - Implementation note (to keep this spec execution-ready):
-      - Prefer creating the PR via `peter-evans/create-pull-request` (commit the updated `cli_manifests/codex/*` artifacts only).
-      - Do not add/commit the downloaded binary to git; it is a gitignored workspace artifact.
-      - Set workflow permissions to allow committing and opening PRs (at minimum: `contents: write`, `pull-requests: write`).
+    - Implementation note: see “Workflow Permissions & Implementation Checklist” above.
 - Document the end-to-end “release watch → snapshot diff → update” process from an operator perspective (high-level; detailed runbook belongs in C3).
 
 ### Release Watch workflow details (no ambiguity)
@@ -93,8 +136,7 @@ Source: `docs/adr/0001-codex-cli-parity-maintenance.md`
   - `candidate` (stable-minus-one)
   - release URLs for `latest_stable` and `candidate`
   - a short checklist linking to the Update Snapshot workflow
-  - Implementation note (to keep this spec execution-ready):
-    - Set workflow permissions to allow issue creation/updates (at minimum: `issues: write`).
+  - Implementation note: see “Workflow Permissions & Implementation Checklist” above.
 
 ### CI validation workflow details (no ambiguity)
 - `ci.yml` must include a Linux job that runs the ADR “validated” checks against a local binary at `./codex-x86_64-unknown-linux-musl` by setting:

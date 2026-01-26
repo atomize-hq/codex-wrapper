@@ -22,6 +22,7 @@ Source: `docs/adr/0001-codex-cli-parity-maintenance.md`
   - how to run the Update Snapshot workflow and review snapshot diffs,
   - how to decide wrap vs intentionally-unwrapped for new surfaces,
   - how to update `latest_validated.txt` (and optionally `min_supported.txt`) safely.
+  - that we only promote snapshots/pointers for non-prerelease, non-draft upstream releases (unless an explicit human decision is recorded in the ops log/runbook).
 - Keep “intentionally unwrapped” surfaces explicit and tracked (per ADR):
   - Interactive TUI mode (`codex` with no args)
   - Shell completion generation (`codex completion …`)
@@ -50,7 +51,7 @@ Source: `docs/adr/0001-codex-cli-parity-maintenance.md`
   - the authoritative role of `min_supported.txt` and `latest_validated.txt`.
 - `cli_manifests/codex/OPS_PLAYBOOK.md` includes `## Trial Run: 0.61.0 → 0.77.0 (Linux)` that references:
   - a locally available `0.61.0` Linux musl binary placed at `./codex-x86_64-unknown-linux-musl` (a gitignored workspace artifact; CI obtains it by downloading/extracting the `codex-x86_64-unknown-linux-musl.tar.gz` release asset)
-  - a locally available `0.77.0` binary (either `codex` on PATH or obtained via the Update Snapshot workflow / manual download+extract)
+  - a locally available `0.77.0` binary (either `codex` on PATH, obtained via the Update Snapshot workflow, or stored under `./.codex-bins/0.77.0/codex-x86_64-unknown-linux-musl` and symlinked into `./codex-x86_64-unknown-linux-musl`)
 
 ## Out of Scope
 - Implementing new wrapper features discovered during snapshot diffs (those are follow-on triads).

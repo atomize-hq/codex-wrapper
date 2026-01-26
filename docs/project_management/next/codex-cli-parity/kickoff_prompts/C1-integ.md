@@ -24,6 +24,7 @@ Role boundaries:
 ## Requirements
 - Merge branches `ccp-c1-validation-code` + `ccp-c1-validation-test` and reconcile behavior to `docs/project_management/next/codex-cli-parity/C1-spec.md`.
 - Ensure `./codex-x86_64-unknown-linux-musl` exists before running `cli_e2e` (download/extract the upstream `codex-x86_64-unknown-linux-musl.tar.gz` release asset, or run the Update Snapshot workflow which performs the same download in CI).
+  - Recommended local convention: store binaries under `./.codex-bins/<version>/codex-x86_64-unknown-linux-musl` and symlink the active version into `./codex-x86_64-unknown-linux-musl`.
 - Run required commands (capture outputs in END log):
   - `cargo fmt`
   - `cargo clippy --workspace --all-targets -- -D warnings`

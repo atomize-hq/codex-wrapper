@@ -13,6 +13,9 @@ Merge `C0-code` + `C0-test`, reconcile to `docs/project_management/next/codex-cl
 
 ## Requirements
 - Merge branches `ccp-c0-snapshot-code` + `ccp-c0-snapshot-test` and reconcile behavior to `docs/project_management/next/codex-cli-parity/C0-spec.md`.
+- If you run the snapshot generator manually during integration, pick the intended `codex` binary explicitly:
+  - Preferred: pass `--codex-binary ./.codex-bins/<version>/codex-x86_64-unknown-linux-musl`
+  - Or switch the “active” symlink used by other commands: `ln -sfn .codex-bins/<version>/codex-x86_64-unknown-linux-musl codex-x86_64-unknown-linux-musl`
 - Run required commands (capture outputs in END log):
   - `cargo fmt`
   - `cargo clippy --workspace --all-targets -- -D warnings`

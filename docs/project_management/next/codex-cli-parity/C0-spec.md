@@ -6,6 +6,8 @@ Source: `docs/adr/0001-codex-cli-parity-maintenance.md`
 - Snapshot generator implementation location: create a new workspace crate at `crates/xtask/` with package name `xtask` and a binary named `xtask`.
 - Snapshot generator command (canonical):
   - `cargo run -p xtask -- codex-snapshot --codex-binary <PATH_TO_CODEX> --out-dir cli_manifests/codex --capture-raw-help --supplement cli_manifests/codex/supplement/commands.json`
+- Local binary storage convention (recommended; not required):
+  - Store binaries under `./.codex-bins/<version>/codex-x86_64-unknown-linux-musl` (gitignored) and pass that path as `--codex-binary`.
 - Snapshot generator must not download binaries and must not access the network.
 - Snapshot generator must not modify `cli_manifests/codex/min_supported.txt` or `cli_manifests/codex/latest_validated.txt`; those pointers are updated explicitly by humans or CI workflows (C1).
 

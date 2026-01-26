@@ -17,6 +17,8 @@ Expected deliverables (exact paths):
 
 ## Requirements
 - Merge branches `ccp-c3-ops-code` + `ccp-c3-ops-test` and reconcile behavior to `docs/project_management/next/codex-cli-parity/C3-spec.md`.
+- If you run any real-binary E2E checks locally, standardize on `CODEX_E2E_BINARY=./codex-x86_64-unknown-linux-musl` and select the intended version by switching the symlink:
+  - `ln -sfn .codex-bins/<version>/codex-x86_64-unknown-linux-musl codex-x86_64-unknown-linux-musl`
 - Run required commands (capture outputs in END log):
   - `cargo fmt`
   - `cargo clippy --workspace --all-targets -- -D warnings`
