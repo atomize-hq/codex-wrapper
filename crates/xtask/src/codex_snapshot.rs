@@ -158,6 +158,11 @@ fn collect_command_recursive(
         write_raw_help(out_dir, version_dir, &path, &help)?;
     }
 
+    let mut args = parsed.args;
+    if let Some(usage) = parsed.usage.as_deref() {
+        merge_inferred_args(&mut args, infer_args_from_usage(usage, &path));
+    }
+
     let mut flags = parsed.flags;
     if !flags.is_empty() {
         flags.sort_by(flag_sort_key);
@@ -169,11 +174,7 @@ fn collect_command_recursive(
         usage: parsed.usage,
         stability: None,
         platforms: None,
-        args: if parsed.args.is_empty() {
-            None
-        } else {
-            Some(parsed.args)
-        },
+        args: if args.is_empty() { None } else { Some(args) },
         flags: if flags.is_empty() { None } else { Some(flags) },
     };
 
@@ -605,6 +606,128 @@ fn parse_arg_line(line: &str) -> Option<ArgSnapshot> {
             Some(desc.to_string())
         },
     })
+}
+
+fn merge_inferred_args(args: &mut Vec<ArgSnapshot>, inferred: Vec<ArgSnapshot>) {
+    for inf in inferred {
+        if let Some(existing) = args.iter_mut().find(|a| a.name == inf.name) {
+            existing.required |= inf.required;
+            existing.variadic |= inf.variadic;
+            if existing.note.is_none() {
+                existing.note = inf.note;
+            }
+            continue;
+        }
+        args.push(inf);
+    }
+}
+
+fn infer_args_from_usage(usage: &str, cmd_path: &[String]) -> Vec<ArgSnapshot> {
+    let mut out = Vec::new();
+
+    for line in usage.lines() {
+        let tokens: Vec<&str> = line.split_whitespace().collect();
+        if tokens.is_empty() {
+            continue;
+        }
+
+        // A clap "usage" line typically looks like: `codex <subcommands...> [OPTIONS] [ARGS...]`.
+        // Only infer args when this usage line matches the command path we’re snapshotting.
+        let mut idx = 0usize;
+        if tokens.get(0).is_some_and(|t| *t == "codex") {
+            idx += 1;
+        }
+
+        let mut matches = true;
+        for p in cmd_path {
+            if tokens.get(idx).is_some_and(|t| *t == p) {
+                idx += 1;
+            } else {
+                matches = false;
+                break;
+            }
+        }
+        if !matches {
+            continue;
+        }
+
+        let mut prev_was_flag = false;
+        for tok in tokens.into_iter().skip(idx) {
+            if tok.starts_with('-') {
+                prev_was_flag = true;
+                continue;
+            }
+            if prev_was_flag {
+                // Likely a value name for the previous flag (e.g., `--out <DIR>`). Don’t treat it
+                // as a positional argument.
+                prev_was_flag = false;
+                continue;
+            }
+
+            if tok.eq_ignore_ascii_case("[options]") || tok.eq_ignore_ascii_case("options") {
+                continue;
+            }
+
+            let (name, required, variadic) = match parse_usage_arg_token(tok) {
+                Some(v) => v,
+                None => continue,
+            };
+
+            // Avoid duplicates across multiple usage variants.
+            if out.iter().any(|a: &ArgSnapshot| a.name == name) {
+                continue;
+            }
+
+            out.push(ArgSnapshot {
+                name,
+                required,
+                variadic,
+                note: Some("inferred from usage".to_string()),
+            });
+        }
+    }
+
+    out
+}
+
+fn parse_usage_arg_token(token: &str) -> Option<(String, bool, bool)> {
+    let token = token.trim().trim_matches(',');
+    if token.is_empty() {
+        return None;
+    }
+
+    let (token, token_is_variadic) = token
+        .strip_suffix("...")
+        .map(|t| (t, true))
+        .unwrap_or((token, false));
+
+    if token == "[OPTIONS]" || token.eq_ignore_ascii_case("options") {
+        return None;
+    }
+
+    if token.starts_with('<') && token.ends_with('>') {
+        let name = token
+            .trim_start_matches('<')
+            .trim_end_matches('>')
+            .to_string();
+        if name.is_empty() {
+            return None;
+        }
+        return Some((name, true, token_is_variadic));
+    }
+
+    if token.starts_with('[') && token.ends_with(']') {
+        let name = token
+            .trim_start_matches('[')
+            .trim_end_matches(']')
+            .to_string();
+        if name.is_empty() {
+            return None;
+        }
+        return Some((name, false, token_is_variadic));
+    }
+
+    None
 }
 
 fn flag_sort_key(a: &FlagSnapshot, b: &FlagSnapshot) -> std::cmp::Ordering {

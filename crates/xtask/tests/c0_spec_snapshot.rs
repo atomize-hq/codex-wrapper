@@ -185,6 +185,24 @@ mod unix {
         }
     }
 
+    fn get_command<'a>(snapshot: &'a Value, command_path: &[&str]) -> &'a Value {
+        let commands = snapshot
+            .get("commands")
+            .and_then(Value::as_array)
+            .expect("snapshot.commands is array");
+
+        commands
+            .iter()
+            .find(|c| {
+                c.get("path").and_then(Value::as_array).is_some_and(|p| {
+                    p.iter()
+                        .filter_map(Value::as_str)
+                        .eq(command_path.iter().copied())
+                })
+            })
+            .unwrap_or_else(|| panic!("missing command path {:?}", command_path))
+    }
+
     #[test]
     fn c0_snapshot_applies_supplement_and_sorts_commands_and_flags() {
         let temp = make_temp_dir("ccp-c0-test");
@@ -283,6 +301,56 @@ mod unix {
         assert_eq!(
             a, b,
             "snapshot output differs beyond collected_at when inputs are identical"
+        );
+    }
+
+    #[test]
+    fn c0_snapshot_infers_usage_args_and_parses_flags_across_blank_lines() {
+        let temp = make_temp_dir("ccp-c0-test-usage-args");
+
+        let codex_bin = copy_executable_fixture("fake_codex.sh", &temp);
+        let supplement = copy_fixture("supplement_commands.json", &temp);
+
+        let out_dir = temp.join("out");
+        fs::create_dir_all(&out_dir).expect("create out dir");
+
+        let snapshot = run_xtask_snapshot(&codex_bin, &out_dir, &supplement);
+
+        let exec = get_command(&snapshot, &["exec"]);
+        let exec_args = exec
+            .get("args")
+            .and_then(Value::as_array)
+            .expect("exec.args is array");
+
+        let arg_names = exec_args
+            .iter()
+            .filter_map(|a| a.get("name").and_then(Value::as_str))
+            .collect::<Vec<_>>();
+        assert!(
+            arg_names.contains(&"PROMPT"),
+            "exec args include PROMPT inferred from usage"
+        );
+        assert!(
+            arg_names.contains(&"COMMAND"),
+            "exec args include COMMAND inferred from usage"
+        );
+
+        let exec_flags = exec
+            .get("flags")
+            .and_then(Value::as_array)
+            .expect("exec.flags is array");
+
+        assert!(
+            exec_flags
+                .iter()
+                .any(|f| f.get("long").and_then(Value::as_str) == Some("--beta")),
+            "exec.flags includes --beta (after blank line)"
+        );
+        assert!(
+            exec_flags
+                .iter()
+                .any(|f| f.get("long").and_then(Value::as_str) == Some("--alpha")),
+            "exec.flags includes --alpha"
         );
     }
 }

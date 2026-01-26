@@ -37,7 +37,7 @@ EOF
       ;;
     "exec")
       cat <<'EOF'
-Usage: codex exec <COMMAND>
+Usage: codex exec [OPTIONS] [PROMPT] [COMMAND]
 
 Commands:
   start    Start execution
@@ -45,6 +45,7 @@ Commands:
 
 Options:
   --beta            Beta option (long only)
+
   -a, --alpha       Alpha option
   -c               Short-only option
 EOF
