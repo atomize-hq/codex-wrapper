@@ -4,6 +4,12 @@ This directory is the home for **Codex CLI snapshot artifacts** used to maintain
 
 Source of truth for the policy is `docs/adr/0001-codex-cli-parity-maintenance.md`.
 
+## Ops Playbook
+
+Maintainer runbook (Release Watch triage, snapshot update + review checklist, intentionally-unwrapped policy, and promotion criteria):
+
+`cli_manifests/codex/OPS_PLAYBOOK.md`
+
 ## Generate / Update (`current.json`)
 
 Canonical generator command:
