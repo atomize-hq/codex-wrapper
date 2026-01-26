@@ -365,7 +365,7 @@
     "name": "Ops playbook + promotion rules (code)",
     "type": "code",
     "phase": "C3",
-    "status": "in_progress",
+    "status": "completed",
     "description": "Implement the C3 spec (maintainer runbook + policy docs; non-test changes only).",
     "references": [
       "docs/adr/0001-codex-cli-parity-maintenance.md",
