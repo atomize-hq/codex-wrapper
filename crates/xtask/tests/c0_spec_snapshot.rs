@@ -359,4 +359,54 @@ mod unix {
             "exec.flags includes --alpha"
         );
     }
+
+    #[test]
+    fn c0_snapshot_records_feature_probe_and_feature_gated_commands() {
+        let temp = make_temp_dir("ccp-c0-test-features");
+
+        let codex_bin = copy_executable_fixture("fake_codex.sh", &temp);
+        let supplement = copy_fixture("supplement_commands.json", &temp);
+
+        let out_dir = temp.join("out");
+        fs::create_dir_all(&out_dir).expect("create out dir");
+
+        let snapshot = run_xtask_snapshot(&codex_bin, &out_dir, &supplement);
+
+        let features = snapshot
+            .get("features")
+            .expect("snapshot.features exists when feature probe succeeds");
+        let enabled = features
+            .get("enabled_for_snapshot")
+            .and_then(Value::as_array)
+            .expect("features.enabled_for_snapshot is array");
+        assert!(
+            enabled.iter().any(|v| v.as_str() == Some("extra_feature")),
+            "feature list includes extra_feature and snapshot enables it for discovery"
+        );
+
+        let added = features
+            .get("commands_added_when_all_enabled")
+            .and_then(Value::as_array)
+            .expect("features.commands_added_when_all_enabled is array");
+        assert!(
+            added.iter().any(|p| {
+                p.as_array()
+                    .is_some_and(|a| a.iter().filter_map(Value::as_str).eq(["extra"]))
+            }),
+            "feature-gated command path [\"extra\"] is recorded as added when enabling features"
+        );
+
+        let commands = snapshot
+            .get("commands")
+            .and_then(Value::as_array)
+            .expect("snapshot.commands is array");
+        assert!(
+            commands.iter().any(|c| {
+                c.get("path")
+                    .and_then(Value::as_array)
+                    .is_some_and(|p| p.iter().filter_map(Value::as_str).eq(["extra"]))
+            }),
+            "feature-gated command [\"extra\"] appears in merged command list"
+        );
+    }
 }

@@ -76,36 +76,60 @@ pub fn run(args: Args) -> Result<(), Error> {
     let binary_meta = BinaryMetadata::collect(&codex_binary)?;
     let (version_output, semantic_version, channel, commit) = probe_version(&codex_binary)?;
 
-    let mut command_entries = BTreeMap::<Vec<String>, CommandSnapshot>::new();
-    let mut visited = BTreeSet::<Vec<String>>::new();
-
-    let root_help = run_codex_help(&codex_binary, &[])?;
-    let root_parsed = parse_help(&root_help);
-
     let version_dir = semantic_version
         .clone()
         .unwrap_or_else(|| "unknown".to_string());
-    if args.capture_raw_help {
-        write_raw_help(&args.out_dir, &version_dir, &[], &root_help)?;
-    }
+    let (features_list, features_probe_error) = probe_features(&codex_binary);
+    let enabled_feature_names = features_list
+        .as_ref()
+        .map(|f| f.iter().map(|x| x.name.clone()).collect::<Vec<_>>())
+        .unwrap_or_default();
+    let enable_args = enabled_feature_names
+        .iter()
+        .flat_map(|name| ["--enable".to_string(), name.clone()])
+        .collect::<Vec<_>>();
 
-    for token in root_parsed.subcommands {
-        collect_command_recursive(
+    // Always snapshot the default surface. If we can probe features, do a second discovery pass
+    // with all known features enabled and merge results for maximum coverage.
+    let default_entries =
+        discover_commands(&codex_binary, &args.out_dir, &version_dir, false, &[])?;
+
+    let (mut command_entries, commands_added_when_all_enabled) = if enable_args.is_empty() {
+        if args.capture_raw_help {
+            // If we can't enable features, capture raw help for the default surface.
+            let _ = discover_commands(&codex_binary, &args.out_dir, &version_dir, true, &[]);
+        }
+        (default_entries, None)
+    } else {
+        let enabled_entries = discover_commands(
             &codex_binary,
             &args.out_dir,
             &version_dir,
             args.capture_raw_help,
-            vec![token],
-            &mut visited,
-            &mut command_entries,
+            &enable_args,
         )?;
-    }
+        let added = enabled_entries
+            .keys()
+            .filter(|k| !default_entries.contains_key(*k))
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut merged = default_entries;
+        merge_command_entries(&mut merged, enabled_entries);
+        (merged, Some(added))
+    };
 
     let (known_omissions, supplemented) =
         apply_supplements(args.supplement.as_deref(), &mut command_entries)?;
 
     let mut commands: Vec<CommandSnapshot> = command_entries.into_values().collect();
     commands.sort_by(|a, b| cmp_path(&a.path, &b.path));
+
+    let features = build_features_metadata(
+        features_list,
+        features_probe_error,
+        enabled_feature_names,
+        commands_added_when_all_enabled,
+    );
 
     let snapshot = SnapshotV1 {
         snapshot_schema_version: 1,
@@ -124,7 +148,7 @@ pub fn run(args: Args) -> Result<(), Error> {
             commit,
         },
         commands,
-        features: None,
+        features,
         known_omissions: if supplemented {
             Some(known_omissions)
         } else {
@@ -138,11 +162,79 @@ pub fn run(args: Args) -> Result<(), Error> {
     Ok(())
 }
 
-fn collect_command_recursive(
+fn discover_commands(
     codex_binary: &Path,
     out_dir: &Path,
     version_dir: &str,
     capture_raw_help: bool,
+    global_args: &[String],
+) -> Result<BTreeMap<Vec<String>, CommandSnapshot>, Error> {
+    let mut out = BTreeMap::<Vec<String>, CommandSnapshot>::new();
+    let mut visited = BTreeSet::<Vec<String>>::new();
+
+    let root_help = run_codex_help(codex_binary, global_args, &[])?;
+    let root_parsed = parse_help(&root_help);
+
+    if capture_raw_help {
+        write_raw_help(out_dir, version_dir, &[], &root_help)?;
+    }
+
+    let mut root_args = root_parsed.args;
+    if let Some(usage) = root_parsed.usage.as_deref() {
+        merge_inferred_args(&mut root_args, infer_args_from_usage(usage, &[]));
+    }
+
+    let mut root_flags = root_parsed.flags;
+    if !root_flags.is_empty() {
+        root_flags.sort_by(flag_sort_key);
+    }
+
+    out.insert(
+        Vec::new(),
+        CommandSnapshot {
+            path: Vec::new(),
+            about: root_parsed.about,
+            usage: root_parsed.usage,
+            stability: None,
+            platforms: None,
+            args: if root_args.is_empty() {
+                None
+            } else {
+                Some(root_args)
+            },
+            flags: if root_flags.is_empty() {
+                None
+            } else {
+                Some(root_flags)
+            },
+        },
+    );
+
+    let ctx = HelpCtx {
+        codex_binary,
+        global_args,
+        out_dir,
+        version_dir,
+        capture_raw_help,
+    };
+
+    for token in root_parsed.subcommands {
+        collect_command_recursive(&ctx, vec![token], &mut visited, &mut out)?;
+    }
+
+    Ok(out)
+}
+
+struct HelpCtx<'a> {
+    codex_binary: &'a Path,
+    global_args: &'a [String],
+    out_dir: &'a Path,
+    version_dir: &'a str,
+    capture_raw_help: bool,
+}
+
+fn collect_command_recursive(
+    ctx: &HelpCtx<'_>,
     path: Vec<String>,
     visited: &mut BTreeSet<Vec<String>>,
     out: &mut BTreeMap<Vec<String>, CommandSnapshot>,
@@ -151,11 +243,11 @@ fn collect_command_recursive(
         return Ok(());
     }
 
-    let help = run_codex_help(codex_binary, &path)?;
+    let help = run_codex_help(ctx.codex_binary, ctx.global_args, &path)?;
     let parsed = parse_help(&help);
 
-    if capture_raw_help {
-        write_raw_help(out_dir, version_dir, &path, &help)?;
+    if ctx.capture_raw_help {
+        write_raw_help(ctx.out_dir, ctx.version_dir, &path, &help)?;
     }
 
     let mut args = parsed.args;
@@ -183,22 +275,19 @@ fn collect_command_recursive(
     for sub in parsed.subcommands {
         let mut next = path.clone();
         next.push(sub);
-        collect_command_recursive(
-            codex_binary,
-            out_dir,
-            version_dir,
-            capture_raw_help,
-            next,
-            visited,
-            out,
-        )?;
+        collect_command_recursive(ctx, next, visited, out)?;
     }
 
     Ok(())
 }
 
-fn run_codex_help(codex_binary: &Path, path: &[String]) -> Result<String, Error> {
+fn run_codex_help(
+    codex_binary: &Path,
+    global_args: &[String],
+    path: &[String],
+) -> Result<String, Error> {
     let mut cmd = Command::new(codex_binary);
+    cmd.args(global_args);
     // Prefer `codex help <path...>` for non-root commands. Some Codex CLI versions define
     // subcommands with free positional args (e.g., `codex exec [PROMPT] [COMMAND]`), which can
     // accidentally consume the token `help` and cause `--help` to be parsed as a subcommand.
@@ -260,6 +349,97 @@ fn probe_version(codex_binary: &Path) -> Result<VersionProbe, Error> {
         .and_then(|c| c.get(1).map(|m| m.as_str().to_string()));
 
     Ok((version_output, semantic_version, channel, commit))
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct FeatureInfo {
+    name: String,
+    stage: String,
+    effective: bool,
+}
+
+fn probe_features(codex_binary: &Path) -> (Option<Vec<FeatureInfo>>, Option<String>) {
+    let mut cmd = Command::new(codex_binary);
+    cmd.args(["features", "list"]);
+    cmd.env("NO_COLOR", "1");
+    cmd.env("CLICOLOR", "0");
+    cmd.env("TERM", "dumb");
+
+    let output = match cmd.output() {
+        Ok(o) => o,
+        Err(e) => return (None, Some(format!("spawn failed: {e}"))),
+    };
+    if !output.status.success() {
+        return (
+            None,
+            Some(command_failed_message(&cmd, &output).trim().to_string()),
+        );
+    }
+
+    let text = normalize_text(&output.stdout, &output.stderr);
+    let mut features = Vec::new();
+    for line in text.lines() {
+        let t = line.trim();
+        if t.is_empty() {
+            continue;
+        }
+        let parts = t.split_whitespace().collect::<Vec<_>>();
+        if parts.len() < 3 {
+            continue;
+        }
+        let effective = match parts[2].to_ascii_lowercase().as_str() {
+            "true" => true,
+            "false" => false,
+            _ => continue,
+        };
+        features.push(FeatureInfo {
+            name: parts[0].to_string(),
+            stage: parts[1].to_string(),
+            effective,
+        });
+    }
+    features.sort_by(|a, b| a.name.cmp(&b.name));
+    (Some(features), None)
+}
+
+fn build_features_metadata(
+    listed: Option<Vec<FeatureInfo>>,
+    probe_error: Option<String>,
+    enabled_feature_names: Vec<String>,
+    commands_added: Option<Vec<Vec<String>>>,
+) -> Option<serde_json::Value> {
+    if listed.is_none() && probe_error.is_none() {
+        return None;
+    }
+
+    let mut obj = serde_json::Map::new();
+    obj.insert(
+        "mode".to_string(),
+        serde_json::Value::String("default_plus_all_enabled".to_string()),
+    );
+    if let Some(err) = probe_error {
+        obj.insert("probe_error".to_string(), serde_json::Value::String(err));
+    }
+    if let Some(list) = listed {
+        obj.insert(
+            "listed".to_string(),
+            serde_json::to_value(list).unwrap_or(serde_json::Value::Null),
+        );
+    }
+    if !enabled_feature_names.is_empty() {
+        obj.insert(
+            "enabled_for_snapshot".to_string(),
+            serde_json::to_value(enabled_feature_names).unwrap_or(serde_json::Value::Null),
+        );
+    }
+    if let Some(added) = commands_added {
+        obj.insert(
+            "commands_added_when_all_enabled".to_string(),
+            serde_json::to_value(added).unwrap_or(serde_json::Value::Null),
+        );
+    }
+
+    Some(serde_json::Value::Object(obj))
 }
 
 fn command_failed_message(cmd: &Command, output: &Output) -> String {
@@ -514,14 +694,14 @@ fn parse_flag_line(line: &str) -> Option<FlagSnapshot> {
             continue;
         }
 
-        if tok.starts_with("--") {
+        if let Some(stripped) = tok.strip_prefix("--") {
             if long.is_none()
-                && tok.len() >= 3
-                && tok[2..]
+                && !stripped.is_empty()
+                && stripped
                     .chars()
                     .all(|c| c.is_ascii_alphanumeric() || c == '-')
             {
-                long = Some(tok.to_string());
+                long = Some(format!("--{stripped}"));
             }
             continue;
         }
@@ -675,7 +855,7 @@ fn infer_args_from_usage(usage: &str, cmd_path: &[String]) -> Vec<ArgSnapshot> {
         // A clap "usage" line typically looks like: `codex <subcommands...> [OPTIONS] [ARGS...]`.
         // Only infer args when this usage line matches the command path we’re snapshotting.
         let mut idx = 0usize;
-        if tokens.get(0).is_some_and(|t| *t == "codex") {
+        if tokens.first().is_some_and(|t| *t == "codex") {
             idx += 1;
         }
 
@@ -769,6 +949,80 @@ fn parse_usage_arg_token(token: &str) -> Option<(String, bool, bool)> {
     }
 
     None
+}
+
+fn merge_command_entries(
+    base: &mut BTreeMap<Vec<String>, CommandSnapshot>,
+    extra: BTreeMap<Vec<String>, CommandSnapshot>,
+) {
+    for (path, mut entry) in extra {
+        match base.get_mut(&path) {
+            None => {
+                base.insert(path, entry);
+            }
+            Some(existing) => {
+                if existing.about.is_none() {
+                    existing.about = entry.about.take();
+                }
+                if existing.usage.is_none() {
+                    existing.usage = entry.usage.take();
+                }
+
+                if let Some(extra_args) = entry.args.take() {
+                    let mut args = existing.args.take().unwrap_or_default();
+                    merge_inferred_args(&mut args, extra_args);
+                    existing.args = if args.is_empty() { None } else { Some(args) };
+                }
+
+                if let Some(extra_flags) = entry.flags.take() {
+                    let mut flags = existing.flags.take().unwrap_or_default();
+                    merge_flags(&mut flags, extra_flags);
+                    if !flags.is_empty() {
+                        flags.sort_by(flag_sort_key);
+                    }
+                    existing.flags = if flags.is_empty() { None } else { Some(flags) };
+                }
+            }
+        }
+    }
+}
+
+fn merge_flags(dst: &mut Vec<FlagSnapshot>, src: Vec<FlagSnapshot>) {
+    for f in src {
+        let idx = if let Some(long) = f.long.as_deref() {
+            dst.iter().position(|e| e.long.as_deref() == Some(long))
+        } else if let Some(short) = f.short.as_deref() {
+            dst.iter().position(|e| e.short.as_deref() == Some(short))
+        } else {
+            None
+        };
+
+        match idx {
+            Some(i) => {
+                let e = &mut dst[i];
+                if e.long.is_none() {
+                    e.long = f.long;
+                }
+                if e.short.is_none() {
+                    e.short = f.short;
+                }
+                e.takes_value |= f.takes_value;
+                if e.value_name.is_none() {
+                    e.value_name = f.value_name;
+                }
+                if e.repeatable.is_none() {
+                    e.repeatable = f.repeatable;
+                }
+                if e.stability.is_none() {
+                    e.stability = f.stability;
+                }
+                if e.platforms.is_none() {
+                    e.platforms = f.platforms;
+                }
+            }
+            None => dst.push(f),
+        }
+    }
 }
 
 fn flag_sort_key(a: &FlagSnapshot, b: &FlagSnapshot) -> std::cmp::Ordering {

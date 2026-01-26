@@ -52,7 +52,7 @@ Optional/generated:
   - `channel` (string, optional): `stable|beta|nightly|unknown` (when derivable)
   - `commit` (string, optional)
 - `commands` (array; stable-sorted):
-  - `path` (array of strings): command/subcommand tokens (e.g., `["exec","resume"]`)
+  - `path` (array of strings): command/subcommand tokens (e.g., `["exec","resume"]`); the root `codex` command is represented as `[]`
   - `about` (string, optional)
   - `usage` (string, optional)
   - `stability` (string, optional): `stable|experimental|beta|deprecated|unknown` (when derivable)
@@ -66,7 +66,11 @@ Optional/generated:
     - `repeatable` (bool, optional)
     - `stability` (string, optional)
     - `platforms` (array, optional): `linux|macos|windows|wsl`
-- `features` (object, optional): reserved for feature-probe output.
+- `features` (object, optional): feature-probe metadata captured from `codex features list` and used to drive exhaustive help discovery:
+  - `mode` (string): currently `default_plus_all_enabled`
+  - `listed` (array, optional): parsed rows from `codex features list` (`name`, `stage`, `effective`)
+  - `enabled_for_snapshot` (array of strings, optional): features enabled via `--enable <FEATURE>` during discovery
+  - `commands_added_when_all_enabled` (array of `path` arrays, optional): command paths that only appeared when all features were enabled
 - `known_omissions` (array of strings, optional): records applied supplements for review visibility.
 
 ## Deterministic Ordering Rules (v1)
