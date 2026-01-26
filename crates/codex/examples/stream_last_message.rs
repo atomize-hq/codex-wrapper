@@ -10,7 +10,7 @@
 //!   cargo run -p codex --example stream_last_message -- "Summarize repo status"
 //! ```
 
-use std::{env, error::Error, fs, path::PathBuf};
+use std::{env, error::Error, fs, path::Path, path::PathBuf};
 
 use serde_json::{json, Value};
 use tokio::{io::AsyncWriteExt, process::Command};
@@ -72,7 +72,7 @@ fn resolve_binary() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("codex"))
 }
 
-fn binary_exists(path: &PathBuf) -> bool {
+fn binary_exists(path: &Path) -> bool {
     if path.is_absolute() || path.components().count() > 1 {
         fs::metadata(path).is_ok()
     } else {
@@ -87,10 +87,10 @@ fn binary_exists(path: &PathBuf) -> bool {
 }
 
 async fn run_codex(
-    binary: &PathBuf,
+    binary: &Path,
     prompt: &str,
-    last_message_path: &PathBuf,
-    schema_path: &PathBuf,
+    last_message_path: &Path,
+    schema_path: &Path,
 ) -> Result<(), Box<dyn Error>> {
     let mut command = Command::new(binary);
     command
@@ -131,8 +131,8 @@ async fn run_codex(
 }
 
 fn write_sample_outputs(
-    last_message_path: &PathBuf,
-    schema_path: &PathBuf,
+    last_message_path: &Path,
+    schema_path: &Path,
 ) -> Result<(), Box<dyn Error>> {
     let last_message = json!({
         "role": "assistant",

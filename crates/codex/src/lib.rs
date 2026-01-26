@@ -959,16 +959,10 @@ impl CapabilityGuard {
 /// Probes should prefer an explicit feature list when available, fall back to parsing
 /// `codex --help` flags, and finally rely on coarse version heuristics. Each attempted
 /// step is recorded so hosts can trace why a particular flag was enabled or skipped.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CapabilityProbePlan {
     /// Steps attempted in order; consumers should push entries as probes run.
     pub steps: Vec<CapabilityProbeStep>,
-}
-
-impl Default for CapabilityProbePlan {
-    fn default() -> Self {
-        Self { steps: Vec::new() }
-    }
 }
 
 /// Command-level probes used to infer feature support.
@@ -1089,21 +1083,16 @@ fn log_guard_skip(guard: &CapabilityGuard) {
 }
 
 /// Cache interaction policy for capability probes.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum CapabilityCachePolicy {
     /// Use cached entries when fingerprints match; fall back to probing when
     /// fingerprints differ or are missing and write fresh snapshots back.
+    #[default]
     PreferCache,
     /// Always run probes, overwriting any existing cache entry for the binary (useful for TTL/backoff windows or hot-swaps that keep the same path).
     Refresh,
     /// Skip cache reads and writes to force an isolated snapshot.
     Bypass,
-}
-
-impl Default for CapabilityCachePolicy {
-    fn default() -> Self {
-        CapabilityCachePolicy::PreferCache
-    }
 }
 
 /// Cache key for capability snapshots derived from a specific Codex binary path.
@@ -1204,9 +1193,7 @@ pub fn clear_capability_cache() {
 
 fn current_fingerprint(key: &CapabilityCacheKey) -> Option<BinaryFingerprint> {
     let canonical = std_fs::canonicalize(&key.binary_path).ok();
-    let metadata_path = canonical
-        .as_deref()
-        .unwrap_or_else(|| key.binary_path.as_path());
+    let metadata_path = canonical.as_deref().unwrap_or(key.binary_path.as_path());
     let metadata = std_fs::metadata(metadata_path).ok()?;
     Some(BinaryFingerprint {
         canonical_path: canonical,
@@ -3501,17 +3488,12 @@ impl SandboxMode {
 }
 
 /// Safety overrides that collapse approval/sandbox behavior.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum SafetyOverride {
+    #[default]
     Inherit,
     FullAuto,
     DangerouslyBypass,
-}
-
-impl Default for SafetyOverride {
-    fn default() -> Self {
-        SafetyOverride::Inherit
-    }
 }
 
 /// Local provider selection for OSS backends.
@@ -3533,17 +3515,12 @@ impl LocalProvider {
 }
 
 /// Three-state flag used when requests can override builder defaults.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum FlagState {
+    #[default]
     Inherit,
     Enable,
     Disable,
-}
-
-impl Default for FlagState {
-    fn default() -> Self {
-        FlagState::Inherit
-    }
 }
 
 /// Feature toggles forwarded to `--enable/--disable`.
@@ -3788,13 +3765,11 @@ const REASONING_CONFIG_KEYS: &[&str] = &[
 ];
 
 fn reasoning_config_for(model: Option<&str>) -> Option<&'static [(&'static str, &'static str)]> {
-    let Some(name) = model.map(|value| value.to_ascii_lowercase()) else {
-        return None;
-    };
+    let name = model.map(|value| value.to_ascii_lowercase())?;
     match name.as_str() {
         name if name.starts_with("gpt-5.1-codex") => Some(DEFAULT_REASONING_CONFIG_GPT5_1),
         name if name.starts_with("gpt-5.1") => Some(DEFAULT_REASONING_CONFIG_GPT5_1),
-        name if name == "gpt-5-codex" => Some(DEFAULT_REASONING_CONFIG_GPT5_CODEX),
+        "gpt-5-codex" => Some(DEFAULT_REASONING_CONFIG_GPT5_CODEX),
         name if name.starts_with("gpt-5") => Some(DEFAULT_REASONING_CONFIG_GPT5),
         _ => None,
     }
@@ -4457,20 +4432,15 @@ pub enum ItemDeltaPayload {
 }
 
 /// Item status supplied by the CLI for bookkeeping.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ItemStatus {
+    #[default]
     InProgress,
     Completed,
     Failed,
     #[serde(other)]
     Unknown,
-}
-
-impl Default for ItemStatus {
-    fn default() -> Self {
-        ItemStatus::InProgress
-    }
 }
 
 /// Human-readable content emitted by the agent.
@@ -4582,21 +4552,16 @@ pub struct McpToolCallDelta {
 }
 
 /// Lifecycle state for a tool call.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolCallStatus {
+    #[default]
     Pending,
     Running,
     Completed,
     Failed,
     #[serde(other)]
     Unknown,
-}
-
-impl Default for ToolCallStatus {
-    fn default() -> Self {
-        ToolCallStatus::Pending
-    }
 }
 
 /// Details of a web search step.
@@ -4623,21 +4588,16 @@ pub struct WebSearchDelta {
 }
 
 /// Search progress indicator.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum WebSearchStatus {
+    #[default]
     Pending,
     Running,
     Completed,
     Failed,
     #[serde(other)]
     Unknown,
-}
-
-impl Default for WebSearchStatus {
-    fn default() -> Self {
-        WebSearchStatus::Pending
-    }
 }
 
 /// Checklist maintained by the agent.
@@ -5275,6 +5235,12 @@ impl FeaturesListRequest {
             FlagState::Disable
         };
         self
+    }
+}
+
+impl Default for FeaturesListRequest {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -5997,10 +5963,7 @@ fn missing(event: &str, field: &str, line: &str) -> ExecStreamError {
 }
 
 async fn read_last_message(path: &Path) -> Option<String> {
-    match fs::read_to_string(path).await {
-        Ok(contents) => Some(contents),
-        Err(_) => None,
-    }
+    (fs::read_to_string(path).await).ok()
 }
 
 fn unique_temp_path(prefix: &str, extension: &str) -> PathBuf {
@@ -6363,7 +6326,7 @@ fn parse_feature_list_json_value(value: &Value) -> Option<Vec<CodexFeature>> {
             }
             if map.contains_key("name") || map.contains_key("enabled") || map.contains_key("stage")
             {
-                return feature_from_json_fields(None, &map).map(|feature| vec![feature]);
+                return feature_from_json_fields(None, map).map(|feature| vec![feature]);
             }
             Some(
                 map.iter()
@@ -6615,18 +6578,26 @@ mod tests {
     use std::fs as std_fs;
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
-    use std::sync::{Mutex, OnceLock};
+    use std::sync::OnceLock;
     use std::time::{Duration, SystemTime};
     use tokio::{fs, io::AsyncWriteExt};
 
-    fn env_guard() -> std::sync::MutexGuard<'static, ()> {
-        static ENV_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
-        ENV_MUTEX.get_or_init(|| Mutex::new(())).lock().unwrap()
+    fn env_mutex() -> &'static tokio::sync::Mutex<()> {
+        static ENV_MUTEX: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+        ENV_MUTEX.get_or_init(|| tokio::sync::Mutex::new(()))
+    }
+
+    fn env_guard() -> tokio::sync::MutexGuard<'static, ()> {
+        env_mutex().blocking_lock()
+    }
+
+    async fn env_guard_async() -> tokio::sync::MutexGuard<'static, ()> {
+        env_mutex().lock().await
     }
 
     #[tokio::test]
     async fn json_stream_preserves_order_and_parses_tool_calls() {
-        let lines = vec![
+        let lines = [
             r#"{"type":"thread.started","thread_id":"thread-1"}"#.to_string(),
             serde_json::to_string(&json!({
                 "type": "item.started",
@@ -6746,7 +6717,7 @@ mod tests {
 
     #[tokio::test]
     async fn json_stream_tees_logs_before_forwarding() {
-        let lines = vec![
+        let lines = [
             r#"{"type":"thread.started","thread_id":"tee-thread"}"#.to_string(),
             r#"{"type":"turn.started","thread_id":"tee-thread","turn_id":"turn-tee"}"#.to_string(),
         ];
@@ -8011,7 +7982,7 @@ fi
     #[cfg(unix)]
     #[tokio::test]
     async fn apply_respects_rust_log_default() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         let original = env::var_os("RUST_LOG");
         env::remove_var("RUST_LOG");
 
@@ -8518,7 +8489,7 @@ exit 0
 
     #[tokio::test]
     async fn probe_reprobes_when_metadata_missing() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8562,7 +8533,7 @@ exit 0
 
     #[tokio::test]
     async fn probe_refresh_policy_forces_new_snapshot() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8605,7 +8576,7 @@ fi
 
     #[tokio::test]
     async fn probe_bypass_policy_skips_cache_writes() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8696,11 +8667,12 @@ cloud-exec experimental false
 
     #[test]
     fn capability_guard_reports_detected_support() {
-        let mut flags = CodexFeatureFlags::default();
-        flags.supports_features_list = true;
-        flags.supports_output_schema = true;
-        flags.supports_add_dir = true;
-        flags.supports_mcp_login = true;
+        let flags = CodexFeatureFlags {
+            supports_features_list: true,
+            supports_output_schema: true,
+            supports_add_dir: true,
+            supports_mcp_login: true,
+        };
         let capabilities = capabilities_with_feature_flags(flags);
 
         let output_schema = capabilities.guard_output_schema();
@@ -8720,8 +8692,12 @@ cloud-exec experimental false
 
     #[test]
     fn capability_guard_marks_absent_feature_as_unsupported() {
-        let mut flags = CodexFeatureFlags::default();
-        flags.supports_features_list = true;
+        let flags = CodexFeatureFlags {
+            supports_features_list: true,
+            supports_output_schema: false,
+            supports_add_dir: false,
+            supports_mcp_login: false,
+        };
         let capabilities = capabilities_with_feature_flags(flags);
 
         let output_schema = capabilities.guard_output_schema();
@@ -8754,7 +8730,7 @@ cloud-exec experimental false
 
     #[tokio::test]
     async fn capability_snapshot_short_circuits_probes() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8811,7 +8787,7 @@ exit 99
 
     #[tokio::test]
     async fn capability_feature_overrides_apply_to_cached_entries() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8864,7 +8840,7 @@ fi
 
     #[tokio::test]
     async fn capability_version_override_replaces_probe_version() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8910,7 +8886,7 @@ fi
 
     #[tokio::test]
     async fn exec_applies_guarded_flags_when_supported() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8954,7 +8930,7 @@ fi
 
     #[tokio::test]
     async fn exec_skips_guarded_flags_when_unknown() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8999,7 +8975,7 @@ fi
 
     #[tokio::test]
     async fn mcp_login_skips_when_unsupported() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9035,7 +9011,7 @@ fi
 
     #[tokio::test]
     async fn mcp_login_runs_when_supported() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9078,7 +9054,7 @@ fi
 
     #[tokio::test]
     async fn probe_capabilities_caches_and_invalidates() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9202,8 +9178,10 @@ fi
     #[test]
     fn request_can_disable_auto_reasoning_defaults() {
         let builder = CliOverrides::default();
-        let mut patch = CliOverridesPatch::default();
-        patch.auto_reasoning_defaults = Some(false);
+        let patch = CliOverridesPatch {
+            auto_reasoning_defaults: Some(false),
+            ..Default::default()
+        };
 
         let resolved = resolve_cli_overrides(&builder, &patch, Some("gpt-5"));
         assert!(resolved.config_overrides.is_empty());
@@ -9211,8 +9189,10 @@ fi
 
     #[test]
     fn request_config_overrides_follow_builder_order() {
-        let mut builder_overrides = CliOverrides::default();
-        builder_overrides.auto_reasoning_defaults = false;
+        let mut builder_overrides = CliOverrides {
+            auto_reasoning_defaults: false,
+            ..Default::default()
+        };
         builder_overrides
             .config_overrides
             .push(ConfigOverride::new("foo", "bar"));
@@ -9233,11 +9213,15 @@ fi
 
     #[test]
     fn request_search_override_can_disable_builder_flag() {
-        let mut builder_overrides = CliOverrides::default();
-        builder_overrides.search = FlagState::Enable;
+        let builder_overrides = CliOverrides {
+            search: FlagState::Enable,
+            ..Default::default()
+        };
 
-        let mut patch = CliOverridesPatch::default();
-        patch.search = FlagState::Disable;
+        let patch = CliOverridesPatch {
+            search: FlagState::Disable,
+            ..Default::default()
+        };
 
         let resolved = resolve_cli_overrides(&builder_overrides, &patch, None);
         let args = cli_override_args(&resolved, true);
@@ -9250,11 +9234,15 @@ fi
 
     #[test]
     fn request_profile_override_replaces_builder_value() {
-        let mut builder_overrides = CliOverrides::default();
-        builder_overrides.profile = Some("builder".to_string());
+        let builder_overrides = CliOverrides {
+            profile: Some("builder".to_string()),
+            ..Default::default()
+        };
 
-        let mut patch = CliOverridesPatch::default();
-        patch.profile = Some("request".to_string());
+        let patch = CliOverridesPatch {
+            profile: Some("request".to_string()),
+            ..Default::default()
+        };
 
         let resolved = resolve_cli_overrides(&builder_overrides, &patch, None);
         let args: Vec<_> = cli_override_args(&resolved, true)
@@ -9262,7 +9250,7 @@ fi
             .map(|arg| arg.to_string_lossy().into_owned())
             .collect();
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--profile")
+            window.first().map(String::as_str) == Some("--profile")
                 && window.get(1).map(String::as_str) == Some("request")
         }));
         assert!(!args.contains(&"builder".to_string()));
@@ -9270,8 +9258,10 @@ fi
 
     #[test]
     fn request_oss_override_can_disable_builder_flag() {
-        let mut builder_overrides = CliOverrides::default();
-        builder_overrides.oss = FlagState::Enable;
+        let builder_overrides = CliOverrides {
+            oss: FlagState::Enable,
+            ..Default::default()
+        };
 
         let resolved =
             resolve_cli_overrides(&builder_overrides, &CliOverridesPatch::default(), None);
@@ -9281,8 +9271,10 @@ fi
             .collect();
         assert!(args.contains(&"--oss".to_string()));
 
-        let mut patch = CliOverridesPatch::default();
-        patch.oss = FlagState::Disable;
+        let patch = CliOverridesPatch {
+            oss: FlagState::Disable,
+            ..Default::default()
+        };
         let resolved = resolve_cli_overrides(&builder_overrides, &patch, None);
         let args: Vec<_> = cli_override_args(&resolved, true)
             .iter()
@@ -9320,19 +9312,19 @@ fi
             .collect();
 
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--enable")
+            window.first().map(String::as_str) == Some("--enable")
                 && window.get(1).map(String::as_str) == Some("builder-enable")
         }));
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--enable")
+            window.first().map(String::as_str) == Some("--enable")
                 && window.get(1).map(String::as_str) == Some("request-enable")
         }));
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--disable")
+            window.first().map(String::as_str) == Some("--disable")
                 && window.get(1).map(String::as_str) == Some("builder-disable")
         }));
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--disable")
+            window.first().map(String::as_str) == Some("--disable")
                 && window.get(1).map(String::as_str) == Some("request-disable")
         }));
     }
@@ -9409,7 +9401,7 @@ fi
 
     #[tokio::test]
     async fn exec_applies_cli_overrides_and_request_patch() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9480,7 +9472,7 @@ fi
 
     #[tokio::test]
     async fn resume_applies_search_and_selector_overrides() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9552,7 +9544,7 @@ fi
 
     #[tokio::test]
     async fn apply_respects_cli_overrides_without_search() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9596,7 +9588,7 @@ fi
 
     #[tokio::test]
     async fn auth_helper_uses_app_scoped_home_without_mutating_env() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         let temp = tempfile::tempdir().unwrap();
         let log_path = temp.path().join("auth.log");
         let app_home = temp.path().join("app-home");
@@ -9649,7 +9641,7 @@ exit 1
 
     #[tokio::test]
     async fn ensure_api_key_login_runs_when_logged_out() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         let temp = tempfile::tempdir().unwrap();
         let log_path = temp.path().join("login.log");
         let state_path = temp.path().join("api-key-state");
@@ -9711,7 +9703,7 @@ exit 2
 
     #[tokio::test]
     async fn ensure_chatgpt_login_launches_when_needed() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         let temp = tempfile::tempdir().unwrap();
         let log_path = temp.path().join("chatgpt.log");
         let state_path = temp.path().join("chatgpt-state");

@@ -73,7 +73,7 @@ impl Version {
         if parts.len() < 2 {
             return None;
         }
-        let major = parts.get(0)?.parse().ok()?;
+        let major = parts.first()?.parse().ok()?;
         let minor = parts.get(1)?.parse().ok()?;
         let patch = parts.get(2).unwrap_or(&"0").parse().ok()?;
         Some(Self {
@@ -177,7 +177,7 @@ async fn probe_capabilities(binary: &Path) -> Capability {
     }
 
     // Environment override: CODEX_FEATURE_FORCE=feature1,feature2
-    if let Some(force) = env::var("CODEX_FEATURE_FORCE").ok() {
+    if let Ok(force) = env::var("CODEX_FEATURE_FORCE") {
         forced = force
             .split(',')
             .map(|s| s.trim().to_ascii_lowercase())
@@ -190,7 +190,7 @@ async fn probe_capabilities(binary: &Path) -> Capability {
     }
 
     // Optional allowlist: CODEX_FEATURE_ADVERTISE=feature1,feature2 restricts the advertised set.
-    if let Some(allow) = env::var("CODEX_FEATURE_ADVERTISE").ok() {
+    if let Ok(allow) = env::var("CODEX_FEATURE_ADVERTISE") {
         let allow_list: Vec<String> = allow
             .split(',')
             .map(|s| s.trim().to_ascii_lowercase())
@@ -201,7 +201,7 @@ async fn probe_capabilities(binary: &Path) -> Capability {
             advertised_allow = Some(allow_list.clone());
             features.retain(|f| {
                 let norm = normalize(f);
-                allow_list.iter().any(|a| *a == norm)
+                allow_list.contains(&norm)
             });
         }
     }
@@ -345,7 +345,7 @@ fn load_manifest_file(version: &str) -> Option<(Vec<String>, String)> {
             path.display(),
             version
         );
-        return None;
+        None
     } else {
         Some((collected, path.display().to_string()))
     }

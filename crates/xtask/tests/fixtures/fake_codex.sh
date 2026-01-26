@@ -38,6 +38,13 @@ if [[ "$want_help" != "true" ]]; then
 fi
 
 case "$*" in
+  "help")
+    cat <<'EOF'
+Usage: codex help [COMMAND]...
+
+Print this message or the help of the given subcommand(s)
+EOF
+    ;;
   "exec")
     cat <<'EOF'
 Usage: codex exec <COMMAND>

@@ -71,7 +71,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let status = auth.status().await?;
     println!("Auth status under CODEX_HOME: {status:?}");
 
-    if let Some(api_key) = env::var("CODEX_API_KEY").ok() {
+    if let Ok(api_key) = env::var("CODEX_API_KEY") {
         let updated = auth.ensure_api_key_login(api_key).await?;
         println!("Auth status after ensure_api_key_login: {updated:?}");
     } else {

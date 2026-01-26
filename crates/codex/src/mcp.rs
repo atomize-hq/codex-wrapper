@@ -2261,10 +2261,12 @@ impl CodexAppServer {
     }
 }
 
+type PendingRequests = Arc<Mutex<HashMap<RequestId, oneshot::Sender<Result<Value, McpError>>>>>;
+
 /// Internal transport that handles stdio JSON-RPC.
 struct JsonRpcTransport {
     writer: mpsc::UnboundedSender<String>,
-    pending: Arc<Mutex<HashMap<RequestId, oneshot::Sender<Result<Value, McpError>>>>>,
+    pending: PendingRequests,
     notification_hook: NotificationHook,
     next_id: AtomicU64,
     tasks: Vec<JoinHandle<()>>,
@@ -2512,7 +2514,7 @@ async fn writer_task(mut stdin: ChildStdin, mut rx: mpsc::UnboundedReceiver<Stri
 
 async fn reader_task(
     stdout: ChildStdout,
-    pending: Arc<Mutex<HashMap<RequestId, oneshot::Sender<Result<Value, McpError>>>>>,
+    pending: PendingRequests,
     notification_hook: NotificationHook,
     mirror_stdio: bool,
 ) {
@@ -2627,10 +2629,7 @@ fn decode_message(value: Value) -> Option<Incoming> {
     None
 }
 
-async fn handle_response(
-    response: RpcResponse,
-    pending: &Arc<Mutex<HashMap<RequestId, oneshot::Sender<Result<Value, McpError>>>>>,
-) {
+async fn handle_response(response: RpcResponse, pending: &PendingRequests) {
     let Some(id) = parse_request_id(&response.id) else {
         warn!("received response without numeric id");
         return;
@@ -2949,8 +2948,8 @@ def mark_cancelled(req_id, reason="cancelled"):
     send({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32800, "message": reason}})
 
 def handle_turn(req_id, params):
-    thread_id = params.get("thread_id") or "thread-unknown"
-    turn_id = params.get("turn_id") or f"turn-{req_id}"
+    thread_id = params.get("threadId") or params.get("thread_id") or "thread-unknown"
+    turn_id = params.get("turnId") or params.get("turn_id") or f"turn-{req_id}"
     pending[str(req_id)] = {"status": "pending", "thread_id": thread_id, "turn_id": turn_id}
     turn_lookup[turn_id] = req_id
 
@@ -2984,13 +2983,13 @@ for line in sys.stdin:
         send({"jsonrpc": "2.0", "id": msg.get("id"), "result": {"thread_id": thread_id}})
     elif method == "thread/resume":
         params = msg.get("params", {})
-        thread_id = params.get("thread_id")
+        thread_id = params.get("threadId") or params.get("thread_id")
         send({"jsonrpc": "2.0", "id": msg.get("id"), "result": {"thread_id": thread_id, "resumed": True}})
     elif method == "turn/start":
         handle_turn(msg.get("id"), msg.get("params", {}))
     elif method == "turn/interrupt":
         params = msg.get("params", {})
-        turn_id = params.get("turn_id")
+        turn_id = params.get("turnId") or params.get("turn_id")
         req_id = turn_lookup.get(turn_id)
         if req_id:
             mark_cancelled(req_id, reason="interrupted")
@@ -3206,8 +3205,8 @@ time.sleep(30)
         let servers_value = table.get(MCP_SERVERS_KEY).cloned().expect("servers");
         let servers: BTreeMap<String, McpServerDefinition> =
             servers_value.try_into().expect("decode servers");
-        assert!(servers.get("one").is_none());
-        assert!(servers.get("two").is_some());
+        assert!(!servers.contains_key("one"));
+        assert!(servers.contains_key("two"));
     }
 
     #[test]
@@ -3687,7 +3686,10 @@ time.sleep(30)
 
         let params = TurnStartParams {
             thread_id: thread_id.clone(),
-            prompt: "hi".into(),
+            input: vec![TurnInput {
+                kind: "text".to_string(),
+                text: Some("hi".to_string()),
+            }],
             model: None,
             config: BTreeMap::new(),
         };
@@ -3768,7 +3770,10 @@ time.sleep(30)
 
         let params = TurnStartParams {
             thread_id: thread_id.clone(),
-            prompt: "cancel me".into(),
+            input: vec![TurnInput {
+                kind: "text".to_string(),
+                text: Some("cancel me".to_string()),
+            }],
             model: None,
             config: BTreeMap::new(),
         };
@@ -3848,17 +3853,17 @@ time.sleep(30)
                 .unwrap_or_default(),
             thread_id
         );
-        assert_eq!(
-            resume_response
-                .get("resumed")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-            true
-        );
+        assert!(resume_response
+            .get("resumed")
+            .and_then(Value::as_bool)
+            .unwrap_or(false));
 
         let params = TurnStartParams {
             thread_id: thread_id.clone(),
-            prompt: "resume flow".into(),
+            input: vec![TurnInput {
+                kind: "text".to_string(),
+                text: Some("resume flow".to_string()),
+            }],
             model: None,
             config: BTreeMap::new(),
         };
@@ -3938,7 +3943,10 @@ time.sleep(30)
 
         let params = TurnStartParams {
             thread_id: thread_id.clone(),
-            prompt: "please interrupt".into(),
+            input: vec![TurnInput {
+                kind: "text".to_string(),
+                text: Some("please interrupt".to_string()),
+            }],
             model: None,
             config: BTreeMap::new(),
         };
@@ -4000,13 +4008,10 @@ time.sleep(30)
             .expect("interrupt response timeout")
             .expect("recv")
             .expect("ok");
-        assert_eq!(
-            interrupt_response
-                .get("interrupted")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-            true
-        );
+        assert!(interrupt_response
+            .get("interrupted")
+            .and_then(Value::as_bool)
+            .unwrap_or(false));
 
         let _ = server.shutdown().await;
     }

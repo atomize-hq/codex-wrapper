@@ -167,7 +167,7 @@ fn read_invocations(log_path: &Path) -> Result<Vec<Invocation>, Box<dyn std::err
     Ok(invocations)
 }
 
-fn find_invocation<'a, F>(invocations: &'a [Invocation], predicate: F) -> &'a Invocation
+fn find_invocation<F>(invocations: &[Invocation], predicate: F) -> &Invocation
 where
     F: Fn(&Invocation) -> bool,
 {

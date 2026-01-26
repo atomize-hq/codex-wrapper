@@ -10,19 +10,16 @@ mod unix {
     use serde_json::Value;
 
     fn fixtures_dir() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("fixtures")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests")
+            .join("fixtures")
     }
 
     fn make_temp_dir(prefix: &str) -> PathBuf {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("system time after unix epoch");
-        let unique = format!(
-            "{}-{}-{}",
-            prefix,
-            std::process::id(),
-            now.as_nanos()
-        );
+        let unique = format!("{}-{}-{}", prefix, std::process::id(), now.as_nanos());
 
         let dir = std::env::temp_dir().join(unique);
         fs::create_dir_all(&dir).expect("create temp dir");
@@ -134,7 +131,11 @@ mod unix {
                 .and_then(Value::as_array)
                 .expect("commands[].path is array")
                 .iter()
-                .map(|v| v.as_str().expect("commands[].path token is string").to_string())
+                .map(|v| {
+                    v.as_str()
+                        .expect("commands[].path token is string")
+                        .to_string()
+                })
                 .collect::<Vec<_>>();
 
             if let Some(prev) = &last {
@@ -158,13 +159,11 @@ mod unix {
         let cmd = commands
             .iter()
             .find(|c| {
-                c.get("path")
-                    .and_then(Value::as_array)
-                    .is_some_and(|p| {
-                        p.iter()
-                            .filter_map(Value::as_str)
-                            .eq(command_path.iter().copied())
-                    })
+                c.get("path").and_then(Value::as_array).is_some_and(|p| {
+                    p.iter()
+                        .filter_map(Value::as_str)
+                        .eq(command_path.iter().copied())
+                })
             })
             .unwrap_or_else(|| panic!("missing command path {:?}", command_path));
 
@@ -221,11 +220,9 @@ mod unix {
         let sandbox = commands
             .iter()
             .find(|c| {
-                c.get("path").and_then(Value::as_array).is_some_and(|p| {
-                    p.iter()
-                        .filter_map(Value::as_str)
-                        .eq(["sandbox"].into_iter())
-                })
+                c.get("path")
+                    .and_then(Value::as_array)
+                    .is_some_and(|p| p.iter().filter_map(Value::as_str).eq(["sandbox"]))
             })
             .expect("supplemented command path [\"sandbox\"] exists in snapshot.commands");
 
@@ -243,7 +240,9 @@ mod unix {
             .and_then(Value::as_array)
             .expect("snapshot.known_omissions is array");
         assert!(
-            omissions.iter().any(|o| o.as_str() == Some("supplement/commands.json:v1:sandbox")),
+            omissions
+                .iter()
+                .any(|o| o.as_str() == Some("supplement/commands.json:v1:sandbox")),
             "known_omissions records applied supplement entry"
         );
 
@@ -272,18 +271,14 @@ mod unix {
         let mut a = run_xtask_snapshot(&codex_bin, &out_a, &supplement);
         let mut b = run_xtask_snapshot(&codex_bin, &out_b, &supplement);
 
-        a.as_object_mut()
-            .expect("snapshot is object")
-            .insert(
-                "collected_at".to_string(),
-                Value::String("1970-01-01T00:00:00Z".to_string()),
-            );
-        b.as_object_mut()
-            .expect("snapshot is object")
-            .insert(
-                "collected_at".to_string(),
-                Value::String("1970-01-01T00:00:00Z".to_string()),
-            );
+        a.as_object_mut().expect("snapshot is object").insert(
+            "collected_at".to_string(),
+            Value::String("1970-01-01T00:00:00Z".to_string()),
+        );
+        b.as_object_mut().expect("snapshot is object").insert(
+            "collected_at".to_string(),
+            Value::String("1970-01-01T00:00:00Z".to_string()),
+        );
 
         assert_eq!(
             a, b,
