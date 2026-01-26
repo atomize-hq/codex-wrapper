@@ -95,3 +95,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Commands: `cargo fmt` (pass; no output); `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 0.03s`)
 - Result: CI downloads `latest_validated.txt` Codex CLI from `cli_manifests/codex/artifacts.lock.json` and runs ADR “validated” checks; Release Watch + Update Snapshot workflows automate candidate detection and PR-based snapshot updates
 - Blockers: none
+
+## [2026-01-26 16:04 UTC] Integration Agent – C1-integ – START
+- Checked out `feat/codex-cli-parity`, `git pull --ff-only` (up to date)
+- Read ADR/plan/tasks/session log/C1-spec/kickoff prompt; updated `tasks.json` (C1-integ → `in_progress`)
+- Worktree pending (`ccp-c1-validation-integ` / `wt/ccp-c1-validation-integ` to be added after docs commit)
+- Plan: create integration worktree, merge `ccp-c1-validation-code` + `ccp-c1-validation-test`, reconcile to C1 spec, run fmt/clippy/`cargo test -p codex`/`cargo test -p codex --examples`/real-binary `cli_e2e` (isolated `CODEX_HOME`) + `make preflight`, commit integration, fast-forward into `feat/codex-cli-parity`, then update docs/log at end
+- Blockers: none
