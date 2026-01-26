@@ -402,7 +402,6 @@ fn parse_help(help: &str) -> ParsedHelp {
     for line in lines {
         let t = line.trim();
         if t.is_empty() {
-            section = None;
             continue;
         }
 
