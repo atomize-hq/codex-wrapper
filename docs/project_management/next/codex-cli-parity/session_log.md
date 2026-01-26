@@ -38,3 +38,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`ccp-c0-snapshot-code` / `wt/ccp-c0-snapshot-code` to be added after docs commit)
 - Plan: implement `xtask codex-snapshot`, add v1 schema docs + supplement scaffold, run fmt+clippy, commit via worktree, then update docs/log at end
 - Blockers: none
+
+## [2026-01-26 15:02 UTC] Test Agent – C0-test – START
+- Checked out `feat/codex-cli-parity`, `git pull --ff-only` (up to date)
+- Read plan/tasks/session log/C0-spec/kickoff prompt; updated `tasks.json` (C0-test → `in_progress`)
+- Worktree pending (`ccp-c0-snapshot-test` / `wt/ccp-c0-snapshot-test` to be added after docs commit)
+- Plan: add snapshot determinism + stable ordering + supplement tests, run `cargo fmt` + `cargo test -p xtask`, commit via worktree, then update docs/log at end
+- Blockers: none

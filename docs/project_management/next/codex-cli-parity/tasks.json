@@ -42,10 +42,10 @@
   {
     "id": "C0-test",
     "name": "Snapshot schema + generator (test)",
-    "type": "test",
-    "phase": "C0",
-    "status": "pending",
-    "description": "Add tests/fixtures validating the C0 spec (tests only; xtask-focused).",
+	    "type": "test",
+	    "phase": "C0",
+	    "status": "in_progress",
+	    "description": "Add tests/fixtures validating the C0 spec (tests only; xtask-focused).",
     "references": [
       "docs/adr/0001-codex-cli-parity-maintenance.md",
       "docs/project_management/next/codex-cli-parity/plan.md",
