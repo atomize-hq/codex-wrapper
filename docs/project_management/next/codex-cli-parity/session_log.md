@@ -64,3 +64,8 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`ccp-c0-snapshot-integ` / `wt/ccp-c0-snapshot-integ` to be added after docs commit)
 - Plan: create integration worktree, merge `ccp-c0-snapshot-code` + `ccp-c0-snapshot-test`, reconcile to C0 spec, run fmt/clippy/`cargo test -p xtask`/`make preflight`, commit integration, fast-forward into `feat/codex-cli-parity`, then update docs/log at end
 - Blockers: none
+
+## [2026-01-26 15:50 UTC] Integration Agent – C0-integ – END
+- Worktree `wt/ccp-c0-snapshot-integ` on branch `ccp-c0-snapshot-integ` (commit 03a8c28) merged `ccp-c0-snapshot-code` + `ccp-c0-snapshot-test`, reconciled to C0 spec, and fast-forwarded `feat/codex-cli-parity`
+- Commands: `cargo fmt` (pass); `cargo clippy --workspace --all-targets -- -D warnings` (pass); `cargo test -p xtask` (pass); `make preflight` (pass)
+- Blockers: none
