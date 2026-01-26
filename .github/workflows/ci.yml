@@ -53,8 +53,10 @@ jobs:
           curl -fsSL -o codex.tgz "$URL"
           test "$(wc -c < codex.tgz)" = "$SIZE"
           echo "$SHA  codex.tgz" | sha256sum -c -
-          tar -xzf codex.tgz codex
-          install -m 0755 codex ./codex-x86_64-unknown-linux-musl
+          MEMBER="$(tar -tzf codex.tgz | awk 'NF && $0 !~ /\\/$/ {print; exit}')"
+          test -n "$MEMBER"
+          tar -xzf codex.tgz "$MEMBER"
+          install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
           ./codex-x86_64-unknown-linux-musl --version
 
       - name: Validated checks (real binary)
@@ -94,8 +96,10 @@ jobs:
           curl -fsSL -o codex.tgz "$URL"
           test "$(wc -c < codex.tgz)" = "$SIZE"
           echo "$SHA  codex.tgz" | sha256sum -c -
-          tar -xzf codex.tgz codex
-          install -m 0755 codex ./codex-x86_64-unknown-linux-musl
+          MEMBER="$(tar -tzf codex.tgz | awk 'NF && $0 !~ /\\/$/ {print; exit}')"
+          test -n "$MEMBER"
+          tar -xzf codex.tgz "$MEMBER"
+          install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
           ./codex-x86_64-unknown-linux-musl --version
 
       - name: Validated checks (real binary)

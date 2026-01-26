@@ -604,17 +604,46 @@ async fn execpolicy_check_is_missing_in_current_cli() -> Result<(), Box<dyn std:
 }
 
 fn locate_binary() -> Option<PathBuf> {
-    env::var_os(BINARY_ENV)
+    let candidate = env::var_os(BINARY_ENV)
         .map(PathBuf::from)
         .or_else(|| env::var_os("CODEX_BINARY").map(PathBuf::from))
-        .or_else(|| {
-            let candidate = PathBuf::from("codex");
-            if candidate.as_os_str().is_empty() {
-                None
-            } else {
-                Some(candidate)
+        .unwrap_or_else(|| PathBuf::from("codex"));
+    if candidate.as_os_str().is_empty() {
+        return None;
+    }
+    Some(resolve_binary_candidate(candidate))
+}
+
+fn resolve_binary_candidate(candidate: PathBuf) -> PathBuf {
+    if candidate.is_absolute() || candidate.exists() || candidate.as_os_str() == "codex" {
+        return candidate;
+    }
+
+    let Some(workspace_root) = find_workspace_root() else {
+        return candidate;
+    };
+
+    let resolved = workspace_root.join(&candidate);
+    if resolved.exists() {
+        resolved
+    } else {
+        candidate
+    }
+}
+
+fn find_workspace_root() -> Option<PathBuf> {
+    let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    loop {
+        let manifest = dir.join("Cargo.toml");
+        if let Ok(contents) = fs::read_to_string(&manifest) {
+            if contents.contains("[workspace]") {
+                return Some(dir);
             }
-        })
+        }
+        if !dir.pop() {
+            return None;
+        }
+    }
 }
 
 fn read_version(binary: &Path) -> Option<String> {

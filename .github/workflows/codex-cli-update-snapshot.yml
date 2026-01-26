@@ -84,8 +84,10 @@ jobs:
             cli_manifests/codex/artifacts.lock.json > artifacts.lock.json.tmp
           mv artifacts.lock.json.tmp cli_manifests/codex/artifacts.lock.json
 
-          tar -xzf codex.tgz codex
-          install -m 0755 codex ./codex-x86_64-unknown-linux-musl
+          MEMBER="$(tar -tzf codex.tgz | awk 'NF && $0 !~ /\\/$/ {print; exit}')"
+          test -n "$MEMBER"
+          tar -xzf codex.tgz "$MEMBER"
+          install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
           ./codex-x86_64-unknown-linux-musl --version
 
       - name: Update version pointers
@@ -124,4 +126,3 @@ jobs:
             - Updates `cli_manifests/codex/latest_validated.txt` (and optionally `min_supported.txt`)
           branch: "automation/codex-cli-${{ inputs.version }}"
           delete-branch: true
-

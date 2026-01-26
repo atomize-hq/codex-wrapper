@@ -1538,10 +1538,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
@@ -1717,10 +1714,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         if let Some(prompt) = &prompt {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
@@ -1816,10 +1810,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })
+        spawn_with_retry(&mut command, self.command_env.binary_path())
     }
 
     /// Spawns `codex login --mcp` when the probed binary advertises support.
@@ -1846,10 +1837,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         Ok(Some(child))
     }
@@ -1963,10 +1951,7 @@ impl CodexClient {
         apply_cli_overrides(&mut command, &resolved_overrides, false);
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2059,10 +2044,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2151,10 +2133,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2274,10 +2253,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
         stdin
@@ -2326,10 +2302,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })
+        spawn_with_retry(&mut command, self.command_env.binary_path())
     }
 
     /// Runs `codex sandbox <platform> [--full-auto|--log-denials] [--config/--enable/--disable] -- <COMMAND...>`.
@@ -2397,10 +2370,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut process)?;
 
-        let mut child = process.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut process, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2497,10 +2467,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut process)?;
 
-        let mut child = process.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut process, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2851,10 +2818,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         if send_prompt_via_stdin {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
@@ -2971,10 +2935,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -3915,6 +3876,33 @@ fn apply_cli_overrides(
     for arg in cli_override_args(resolved, include_search) {
         command.arg(arg);
     }
+}
+
+fn spawn_with_retry(
+    command: &mut Command,
+    binary: &Path,
+) -> Result<tokio::process::Child, CodexError> {
+    let mut backoff = Duration::from_millis(2);
+    for attempt in 0..5 {
+        match command.spawn() {
+            Ok(child) => return Ok(child),
+            Err(source) => {
+                let is_busy = matches!(source.kind(), std::io::ErrorKind::ExecutableFileBusy)
+                    || source.raw_os_error() == Some(26);
+                if is_busy && attempt < 4 {
+                    std::thread::sleep(backoff);
+                    backoff = std::cmp::min(backoff * 2, Duration::from_millis(50));
+                    continue;
+                }
+                return Err(CodexError::Spawn {
+                    binary: binary.to_path_buf(),
+                    source,
+                });
+            }
+        }
+    }
+
+    unreachable!("spawn_with_retry should return before exhausting retries")
 }
 
 #[derive(Clone, Debug)]
