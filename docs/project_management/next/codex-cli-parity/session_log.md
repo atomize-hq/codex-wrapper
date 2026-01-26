@@ -167,6 +167,12 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Plan: evaluate whether C3 introduces testable Rust logic; if yes, add tests/fixtures only and run `cargo fmt` + `cargo test -p codex`; otherwise record a no-op END entry with rationale
 - Blockers: none
 
+## [2026-01-26 17:15 UTC] Test Agent – C3-test – END
+- Worktree `wt/ccp-c3-ops-test` on branch `ccp-c3-ops-test` (no commits; no-op)
+- Commands: `cargo fmt` (skipped; no-op); `cargo test -p codex` (skipped; no-op)
+- Results: C3 is docs-only (ops playbook + promotion rules under `cli_manifests/codex/`) with no new Rust logic to validate via `cargo test`; coverage remains unchanged
+- Blockers: none
+
 ## [2026-01-26 17:13 UTC] Code Agent – C3-code – END
 - Worktree `wt/ccp-c3-ops-code` on branch `ccp-c3-ops-code` (commit ff10a2b) added maintainer ops runbook at `cli_manifests/codex/OPS_PLAYBOOK.md` and linked it from `cli_manifests/codex/README.md`
 - Commands: `cargo fmt` (pass; no output); `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 8.52s`)
