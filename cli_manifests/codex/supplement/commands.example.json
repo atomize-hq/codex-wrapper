@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "commands": [
+    {
+      "path": ["sandbox"],
+      "platforms": ["linux", "macos"],
+      "note": "Example v1 supplement entry: use supplements to record known `--help` discovery omissions explicitly (optionally with platforms). Do not add entries for commands that already appear in the recursive help discovery."
+    }
+  ]
+}

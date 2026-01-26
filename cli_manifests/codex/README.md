@@ -85,6 +85,8 @@ Optional/generated:
 
 `supplement/commands.json` exists to make known help gaps explicit and reviewable (without heuristics).
 
+An example file is provided at `supplement/commands.example.json` — keep `supplement/commands.json` for real, discovered omissions only.
+
 Schema:
 - `version` (int): must be `1`
 - `commands` (array):
