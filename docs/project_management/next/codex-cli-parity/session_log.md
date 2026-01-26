@@ -143,3 +143,12 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`ccp-c2-jsonl-integ` / `wt/ccp-c2-jsonl-integ` to be added after docs commit)
 - Plan: create integration worktree, merge `ccp-c2-jsonl-code` + `ccp-c2-jsonl-test`, reconcile to C2 spec, run fmt/clippy/`cargo test -p codex`/`make preflight`, commit integration, fast-forward into `feat/codex-cli-parity`, then update docs/log at end
 - Blockers: none
+
+## [2026-01-26 16:51 UTC] Integration Agent – C2-integ – END
+- Worktree `wt/ccp-c2-jsonl-integ` on branch `ccp-c2-jsonl-integ` (commit 638081c) merged `ccp-c2-jsonl-code` + `ccp-c2-jsonl-test`, reconciled to C2-spec.md, and fast-forwarded `feat/codex-cli-parity`
+- Reconciliation: normalize legacy `content: "<string>"` / `delta: "<string>"` payloads into typed `TextContent`/`TextDelta`; document normalization in `crates/codex/JSONL_COMPAT.md`; retry transient `ETXTBSY` spawns when launching stdio MCP/app servers
+- Commands: `cargo fmt` (pass; no output)
+- Commands: `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 6.07s`)
+- Commands: `cargo test -p codex` (pass; `test result: ok. 125 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out`)
+- Commands: `make preflight` (pass; ran `cargo fmt && cargo clippy --workspace --all-targets -- -D warnings && cargo clean && cargo check --workspace --all-targets && cargo test --workspace --all-targets`)
+- Blockers: none
