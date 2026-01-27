@@ -132,6 +132,11 @@ Concrete CI matrix (minimal; can be expanded later):
 - macOS: `aarch64-apple-darwin`
 - Windows: `x86_64-pc-windows-msvc`
 
+Platform mapping (normative; see `RULES.json`):
+- `x86_64-unknown-linux-musl` → `linux`
+- `aarch64-apple-darwin` → `macos`
+- `x86_64-pc-windows-msvc` → `windows`
+
 Partial union policy:
 - If the required Linux snapshot is missing, fail the run (no union).
 - If macOS/Windows snapshots are missing, emit a union with `complete=false` and an explicit `missing_targets[]` list.

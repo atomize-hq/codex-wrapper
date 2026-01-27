@@ -50,6 +50,7 @@
         "when_missing": "apply_to_all_targets",
         "when_present": "apply_to_targets_whose_os_matches"
       },
+      "platform_mapping_source": "union.platform_mapping",
       "union_effect": "Supplemented commands appear in the union only on the targets where the supplement applied; availability is expressed via available_on.",
       "known_omissions_tracking": {
         "per_target_field": "known_omissions",
@@ -69,6 +70,11 @@
       "aarch64-apple-darwin",
       "x86_64-pc-windows-msvc"
     ],
+    "platform_mapping": {
+      "x86_64-unknown-linux-musl": "linux",
+      "aarch64-apple-darwin": "macos",
+      "x86_64-pc-windows-msvc": "windows"
+    },
     "partial_union_policy": {
       "when_required_target_missing": "fail",
       "when_non_required_targets_missing": "emit_union_complete_false",
@@ -172,6 +178,7 @@
         "no_scope_means": "all_expected_targets"
       },
       "platforms_expand_to_expected_targets": true,
+      "platforms_expand_using": "union.platform_mapping",
       "scope_set_resolution": {
         "mode": "union",
         "fields": [
