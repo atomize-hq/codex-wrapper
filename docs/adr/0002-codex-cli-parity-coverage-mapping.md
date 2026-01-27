@@ -167,6 +167,14 @@ Implementation guidance:
 - Allow “passthrough” declarations where only generic argument forwarding exists (so the report can highlight candidates for `explicit` promotion).
 - Keep narrative notes separate from key identity whenever possible (notes are helpful, but should not churn diffs).
 
+Scoping semantics (normative; see `RULES.json` for exact contract):
+- Multiple coverage entries may share the same `path` as long as their `scope` sets are disjoint.
+- For a given `target_triple`, the comparer resolves coverage by selecting the single matching entry in order of specificity:
+  1) `scope.target_triples` match
+  2) `scope.platforms` match (expanded to the expected targets)
+  3) no `scope` (applies to all expected targets)
+- If more than one entry matches for the same unit (command path, flag key, or arg name), the wrapper coverage manifest is invalid and comparison must error (no “best effort” guessing).
+
 ### Coverage Report
 
 The comparer will produce:

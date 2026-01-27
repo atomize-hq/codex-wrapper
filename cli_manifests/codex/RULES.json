@@ -105,6 +105,45 @@
       ]
     }
   },
+  "wrapper_coverage": {
+    "scope_semantics": {
+      "defaults": {
+        "no_scope_means": "all_expected_targets"
+      },
+      "platforms_expand_to_expected_targets": true,
+      "scope_set_resolution": {
+        "mode": "union",
+        "fields": [
+          "platforms",
+          "target_triples"
+        ]
+      }
+    },
+    "resolution": {
+      "mode": "single_best_match_required",
+      "best_match_order": [
+        "target_triples",
+        "platforms",
+        "no_scope"
+      ],
+      "on_multiple_matches": "error_manifest_invalid",
+      "on_no_match": "treat_as_unknown"
+    },
+    "validation": {
+      "disallow_overlapping_scopes": true,
+      "overlap_units": [
+        "command_path",
+        "command_flag_key",
+        "command_arg_name"
+      ],
+      "error_message_requirements": [
+        "include_path",
+        "include_unit_key",
+        "include_target_triple",
+        "include_matching_entry_indexes"
+      ]
+    }
+  },
   "report": {
     "schema_version": 1,
     "required_deltas": [
