@@ -122,6 +122,13 @@ Version status metadata:
   - `validated`: passed the validation matrix (promotion-grade for `latest_validated.txt` / `current.json`).
   - `supported`: wrapper coverage meets policy requirements for this version (stronger than validated).
 
+Supported (normative summary; see `RULES.json` for exact contract):
+- Requires a complete union snapshot (`complete=true`) with a known `semantic_version`.
+- For every upstream command/flag/arg surfaced on a target, wrapper coverage must resolve to one of:
+  - `explicit`, `passthrough`, or `intentionally_unsupported`
+- `unsupported`, `unknown`, and missing coverage entries are disallowed for `supported`.
+- Any `intentionally_unsupported` entry must include a rationale note.
+
 Snapshots must include:
 - a root command entry represented as `path: []` so global flags/args are comparable,
 - platform metadata for where the snapshot was generated (at minimum `binary.target_triple`; `os` and `arch` are still recorded as well),

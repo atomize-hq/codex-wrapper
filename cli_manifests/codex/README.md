@@ -134,4 +134,4 @@ Statuses:
 - `snapshotted`: snapshots generated and schema-valid; no wrapper claims.
 - `reported`: coverage report generated; work queue available; no wrapper validation claim.
 - `validated`: passed the validation matrix (promotion-grade for `latest_validated.txt` / `current.json`).
-- `supported`: wrapper coverage meets policy requirements for this version (stronger than validated).
+- `supported`: wrapper coverage meets policy requirements for this version (stronger than validated). Concretely, all surfaced commands/flags/args on all expected targets are covered as `explicit|passthrough|intentionally_unsupported` (no missing/unknown/unsupported), and any `intentionally_unsupported` requires a rationale note.
