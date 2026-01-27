@@ -48,7 +48,7 @@ We will implement a **coverage mapping system** that compares:
 
 This system is “diff-first” in the sense that its primary output is a **structured coverage delta**, not a prose checklist and not a raw `git diff`:
 - Input: two machine-readable inventories (`upstream snapshot` + `wrapper_coverage.json`), keyed by command `path` + flag/arg identity.
-- Output: deterministic reports that list added/removed/changed commands, flags, and positional args, plus their wrapper coverage level (`explicit|passthrough|unsupported|unknown`).
+- Output: deterministic reports that list added/removed/changed commands, flags, and positional args, plus their wrapper coverage level (`explicit|passthrough|unsupported|intentionally_unsupported|unknown`).
 
 It will avoid network access at crate runtime. Any upstream release discovery/download remains CI/workflow-driven (per ADR 0001).
 
@@ -81,15 +81,29 @@ Notes:
 ### Upstream Snapshots
 
 We will store versioned upstream snapshots and treat them as generated artifacts:
-- `cli_manifests/codex/snapshots/<version>.json` (schema v1; same structure as `current.json`)
+- `cli_manifests/codex/snapshots/<version>/<target-triple>.json` (schema v1; same structure as `current.json`)
 - Optional raw help captures for debugging:
-  - `cli_manifests/codex/raw_help/<version>/**`
+  - `cli_manifests/codex/raw_help/<version>/<target-triple>/**`
 
 `cli_manifests/codex/current.json` remains the “latest validated snapshot” convenience pointer (or may be replaced by a small pointer file), but the versioned snapshots are the canonical historical inputs for coverage comparisons.
 
 Snapshots must include:
 - a root command entry represented as `path: []` so global flags/args are comparable,
+- platform metadata for where the snapshot was generated (at minimum `target_triple`, ideally also `os` and `arch`),
 - feature probe metadata (what features were enabled during discovery, the `stable|beta|experimental` stage for each feature, and what commands only appeared when enabled).
+
+### Multi-Platform Discovery and Merge
+
+Some upstream surfaces are platform-gated (or behave differently) across Linux/macOS/Windows (and sometimes by architecture). To make drift detection robust:
+
+- Generate upstream snapshots in CI for each supported OS (Linux/macOS/Windows), using the same snapshot schema and “all features enabled” mode.
+- Compare wrapper coverage against snapshots per-platform (so OS-specific gaps don’t get lost).
+- Optionally generate a merged “union” view as a convenience report input:
+  - merged inventory is a union by command `path` + flag/arg identity,
+  - each unit records an availability set (which `target_triple`s it appeared on),
+  - the coverage report can be filtered to “any platform”, “all platforms”, or a specific platform.
+
+Promotion policy (ADR 0001) can still gate `latest_validated` on Linux-only integration validation, while discovery snapshots remain multi-platform to uncover gated surfaces early.
 
 ### Wrapper Capability Snapshot (building block, not a coverage manifest)
 
@@ -151,8 +165,8 @@ Report sections (conceptual):
 When a new upstream stable release is identified (Release Watch / manual):
 
 1. Generate or download the target binary in CI/workflow (no runtime downloads).
-2. Generate an upstream snapshot with all features enabled.
-3. Run the coverage comparer against:
+2. Generate upstream snapshots with all features enabled across CI OS matrix (Linux/macOS/Windows).
+3. Run the coverage comparer per-platform (and optionally against a merged union snapshot) for:
    - `min_supported` snapshot,
    - `latest_validated` snapshot,
    - candidate stable snapshot.
