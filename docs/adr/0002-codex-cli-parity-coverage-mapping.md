@@ -24,6 +24,19 @@ What is still missing is an automated, *granular* mapping from:
 
 …so maintainers can produce a clean, structured work queue when a new stable upstream release lands.
 
+### Existing (legacy) inventories
+
+The repo contains older, static inventories used during early planning:
+- `capability_manifest.json` (static “supports matrix”, created in the init commit)
+- `CLI_MATRIX.md` (static command/flag inventory)
+
+These are useful as historical reference but are not suitable as long-term sources of truth:
+- they are not generated deterministically from code or binaries,
+- they are not granularly keyed for reliable automated diffs,
+- they will drift unless manually maintained.
+
+This ADR defines the replacement system: generated upstream snapshots + generated wrapper coverage + deterministic reports.
+
 ## Decision
 
 We will implement a **coverage mapping system** that compares:
@@ -34,6 +47,8 @@ We will implement a **coverage mapping system** that compares:
 …and produces a deterministic **coverage report** that can be converted into triad tasks.
 
 This system is “diff-first” and will avoid network access at crate runtime. Any upstream release discovery/download remains CI/workflow-driven (per ADR 0001).
+
+Critically, the wrapper coverage manifest is not meant to be hand-edited JSON. It must be produced by a deterministic generator (from code and/or wrapper probes) so it can be refreshed by CI/cron with human-in-the-loop gating only.
 
 ## Definitions
 
@@ -67,6 +82,21 @@ We will store versioned upstream snapshots and treat them as generated artifacts
 
 `cli_manifests/codex/current.json` remains the “latest validated snapshot” convenience pointer (or may be replaced by a small pointer file), but the versioned snapshots are the canonical historical inputs for coverage comparisons.
 
+Snapshots must include:
+- a root command entry represented as `path: []` so global flags/args are comparable,
+- feature probe metadata (what features were enabled during discovery, the `stable|beta|experimental` stage for each feature, and what commands only appeared when enabled).
+
+### Wrapper Capability Snapshot (building block, not a coverage manifest)
+
+`crates/codex` already contains a runtime probe model (`CodexCapabilities`) and an example snapshot generator:
+- `cargo run -p codex --example capability_snapshot -- <codex-binary> <out-path> refresh`
+
+This snapshot is useful for wrapper runtime decisions and CI automation (e.g., “what version/features did we actually probe?”), but it is **not** a substitute for `wrapper_coverage.json`:
+- it does not enumerate the full command/flag/positional-arg surface area,
+- it focuses on “what this binary reports + what probes we ran” rather than “what the wrapper supports”.
+
+We should reuse this capability snapshot as an input to automation (metadata + sanity checks), while keeping the wrapper coverage manifest as a deterministic, generator-produced inventory keyed to upstream `path`/flag/arg identities.
+
 ### Wrapper Coverage Manifest
 
 We will maintain a deterministic wrapper coverage manifest, version-controlled:
@@ -89,7 +119,12 @@ Schema (v1, conceptual):
     - `note` (optional)
   - `note` (optional)
 
-The source of truth for this manifest should live near `crates/codex` so it stays aligned with the actual APIs; the emitted JSON is the stable comparison input.
+The emitted JSON is the stable comparison input. The source of truth must live near `crates/codex` so it stays aligned with the actual APIs and is refreshed deterministically.
+
+Implementation guidance:
+- Prefer generating `wrapper_coverage.json` from code (explicit mapping tables keyed by upstream `path`/flag/arg identity).
+- Allow “passthrough” declarations where only generic argument forwarding exists (so the report can highlight candidates for `explicit` promotion).
+- Keep narrative notes separate from key identity whenever possible (notes are helpful, but should not churn diffs).
 
 ### Coverage Report
 
@@ -135,4 +170,3 @@ When a new upstream stable release is identified (Release Watch / manual):
 ## Follow-ups (out of scope for this ADR)
 - JSONL/event-schema parity reporting (separate report stream; likely separate ADR).
 - Automatic task creation from reports (allowed later, but human review remains required).
-
