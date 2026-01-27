@@ -278,6 +278,15 @@
         "markdown_optional": "cli_manifests/codex/reports/<version>/coverage.<filter>.md"
       }
     },
+    "pointers": {
+      "dir": "cli_manifests/codex/pointers/",
+      "latest_validated_by_target": "cli_manifests/codex/pointers/latest_validated/<target_triple>.txt",
+      "latest_supported_by_target": "cli_manifests/codex/pointers/latest_supported/<target_triple>.txt",
+      "compat": {
+        "latest_validated": "cli_manifests/codex/latest_validated.txt",
+        "meaning": "Canonical pointer for the required target (Linux). Must match pointers/latest_validated/x86_64-unknown-linux-musl.txt."
+      }
+    },
     "ci_artifacts": {
       "provider": "github_actions",
       "raw_help": "cli_manifests/codex/raw_help/<version>/<target_triple>/**",
@@ -336,6 +345,28 @@
     },
     "promotion_gate": {
       "latest_validated_requires": "validated"
+    },
+    "status_gates": {
+      "validated_requires": [
+        "validation_passed_on_required_target",
+        "supported_on_required_target"
+      ],
+      "supported_requires": [
+        "supported_on_all_expected_targets"
+      ]
+    },
+    "pointer_update_policy": {
+      "latest_supported_by_target": {
+        "requires": [
+          "supported_on_target"
+        ]
+      },
+      "latest_validated_by_target": {
+        "requires": [
+          "validation_passed_on_target",
+          "supported_on_target"
+        ]
+      }
     }
   },
   "automation": {

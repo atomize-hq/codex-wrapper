@@ -135,3 +135,12 @@ Statuses:
 - `reported`: coverage report generated; work queue available; no wrapper validation claim.
 - `validated`: passed the validation matrix (promotion-grade for `latest_validated.txt` / `current.json`).
 - `supported`: wrapper coverage meets policy requirements for this version (stronger than validated). Concretely, all surfaced commands/flags/args on all expected targets are covered as `explicit|passthrough|intentionally_unsupported` (no missing/unknown/unsupported), and any `intentionally_unsupported` requires a rationale note.
+
+## Per-Target Pointers (planned)
+
+Pointers per target triple (committed):
+- `pointers/latest_supported/<target_triple>.txt`
+- `pointers/latest_validated/<target_triple>.txt`
+
+Compatibility:
+- `latest_validated.txt` remains the canonical pointer for the required target (`x86_64-unknown-linux-musl`) and must match `pointers/latest_validated/x86_64-unknown-linux-musl.txt`.

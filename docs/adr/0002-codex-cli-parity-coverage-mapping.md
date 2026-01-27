@@ -143,6 +143,19 @@ Workflow sketch:
 Branch hygiene:
 - Automation commits must land only on dedicated automation branches/PRs for that version (not directly on `feat/*` or mainline).
 
+## Per-Target Pointers (validated/supported)
+
+Because Linux promotion can proceed even when macOS/Windows signals are missing or lagging, we track pointers per `target_triple`:
+- `cli_manifests/codex/pointers/latest_supported/<target_triple>.txt`
+- `cli_manifests/codex/pointers/latest_validated/<target_triple>.txt`
+
+Compatibility:
+- `cli_manifests/codex/latest_validated.txt` remains the canonical pointer for the required target (`x86_64-unknown-linux-musl`) and must match `pointers/latest_validated/x86_64-unknown-linux-musl.txt`.
+
+Status gates:
+- `validated` requires validation passing on the required target and coverage being supported on that target.
+- `supported` remains the stricter “supported on all expected targets” designation.
+
 Snapshots must include:
 - a root command entry represented as `path: []` so global flags/args are comparable,
 - platform metadata for where the snapshot was generated (at minimum `binary.target_triple`; `os` and `arch` are still recorded as well),
