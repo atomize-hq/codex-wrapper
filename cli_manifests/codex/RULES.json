@@ -26,6 +26,10 @@
       "reporting": "Coverage deltas for global positional args are reported only under the root path ([])."
     }
   },
+  "scope": {
+    "parity_model": "help_surface_only",
+    "meaning": "This ruleset governs help-surface parity only (commands/flags/positional args from help and usage inference). Deeper runtime parsing semantics (operand forwarding, -- handling, prompt placeholder expansion) are out of scope unless a separate behavioral/probe layer is introduced."
+  },
   "features": {
     "stage_strings": [
       "stable",

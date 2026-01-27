@@ -19,6 +19,9 @@ Feature enable policy (for exhaustive discovery):
 - Use best-effort enabling of all features listed by `codex features list` except those with stage `removed`.
 - If enabling a feature fails, record the failure and continue discovery with the subset of features that successfully enabled.
 
+Scope note (positional parsing semantics):
+- The parity/coverage mapping system is help-surface based (commands/flags/positional args as discoverable from `--help` and `Usage:` inference). It does not attempt to model deeper runtime parsing semantics (operand forwarding, `--` handling, prompt placeholder expansion) unless we add a dedicated, probeable “behavioral semantics” layer later.
+
 ADR 0001 established the operational workflow to manage drift:
 - generate a deterministic CLI snapshot from a specific `codex` binary,
 - review diffs as a checklist,
