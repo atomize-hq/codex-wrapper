@@ -192,7 +192,9 @@ Platform mapping (normative; see `RULES.json`):
 Partial union policy:
 - If the required Linux snapshot is missing, fail the run (no union).
 - If macOS/Windows snapshots are missing, emit a union with `complete=false` and an explicit `missing_targets[]` list.
-- Promotion workflows must not advance `latest_validated` / `current.json` when `complete=false` unless a human explicitly overrides and records the reason.
+Promotion (v1):
+- We allow Linux-first promotion even when `complete=false`, as long as the required target is present, passes validation, and is supported by wrapper coverage on that target.
+- macOS/Windows pointers advance independently when their signals are available.
 
 Promotion policy (ADR 0001) can still gate `latest_validated` on Linux-only integration validation, while discovery snapshots remain multi-platform to uncover gated surfaces early.
 

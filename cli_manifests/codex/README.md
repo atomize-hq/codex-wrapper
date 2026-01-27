@@ -144,3 +144,7 @@ Pointers per target triple (committed):
 
 Compatibility:
 - `latest_validated.txt` remains the canonical pointer for the required target (`x86_64-unknown-linux-musl`) and must match `pointers/latest_validated/x86_64-unknown-linux-musl.txt`.
+
+Promotion (v1):
+- Linux-first promotion is allowed even when the union snapshot is incomplete (`complete=false`), as long as Linux passed validation and is supported by coverage.
+- macOS/Windows pointers advance independently when their signals are available.

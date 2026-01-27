@@ -94,6 +94,19 @@
         "missing_targets"
       ]
     },
+    "promotion_policy": {
+      "mode": "linux_first_v1",
+      "allow_promote_when_incomplete": true,
+      "requirements_for_latest_validated_and_current": [
+        "required_target_present_in_inputs",
+        "validation_passed_on_required_target",
+        "supported_on_required_target"
+      ],
+      "notes": [
+        "In v1, promotion is allowed even when union complete=false, as long as Linux (required target) passed validation and is supported by coverage.",
+        "macOS/Windows pointers advance independently when their signals are available."
+      ]
+    },
     "conflict_handling": {
       "strategy": "record_conflicts_and_preserve_availability",
       "on_conflict": "never_fail",
