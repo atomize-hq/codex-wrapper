@@ -542,6 +542,8 @@
         "tool",
         "mode",
         "collected_at",
+        "expected_targets",
+        "complete",
         "inputs",
         "commands"
       ],
@@ -558,6 +560,27 @@
         "collected_at": {
           "$ref": "#/$defs/Rfc3339String"
         },
+        "expected_targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetTriple"
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Authoritative list of targets expected for this union snapshot (CI matrix)."
+        },
+        "complete": {
+          "type": "boolean",
+          "description": "True if all expected_targets were successfully included in inputs."
+        },
+        "missing_targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetTriple"
+          },
+          "uniqueItems": true,
+          "description": "Present only when complete=false."
+        },
         "inputs": {
           "type": "array",
           "items": {
@@ -571,7 +594,23 @@
             "$ref": "#/$defs/UnionCommandSnapshotV2"
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "complete": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "missing_targets"
+            ]
+          }
+        }
+      ]
     },
     "WrapperSurfaceScopedTargets": {
       "type": "object",

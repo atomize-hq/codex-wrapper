@@ -112,6 +112,16 @@ Some upstream surfaces are platform-gated (or behave differently) across Linux/m
   - each unit records an availability set (which `target_triple`s it appeared on),
   - the coverage report can be filtered to “any platform”, “all platforms”, or a specific platform.
 
+Concrete CI matrix (minimal; can be expanded later):
+- Linux: `x86_64-unknown-linux-musl` (required; promotion anchor)
+- macOS: `aarch64-apple-darwin`
+- Windows: `x86_64-pc-windows-msvc`
+
+Partial union policy:
+- If the required Linux snapshot is missing, fail the run (no union).
+- If macOS/Windows snapshots are missing, emit a union with `complete=false` and an explicit `missing_targets[]` list.
+- Promotion workflows must not advance `latest_validated` / `current.json` when `complete=false` unless a human explicitly overrides and records the reason.
+
 Promotion policy (ADR 0001) can still gate `latest_validated` on Linux-only integration validation, while discovery snapshots remain multi-platform to uncover gated surfaces early.
 
 ### Wrapper Capability Snapshot (building block, not a coverage manifest)
