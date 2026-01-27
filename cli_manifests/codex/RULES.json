@@ -216,6 +216,27 @@
       "meaning": "Wrapper coverage entries with no corresponding upstream surface (after platform filtering). Treat as stale or wrapper-only and surface for cleanup/review."
     }
   },
+  "storage": {
+    "committed": {
+      "snapshots": {
+        "union": "cli_manifests/codex/snapshots/<version>/union.json",
+        "per_target": "cli_manifests/codex/snapshots/<version>/<target_triple>.json",
+        "current_union_pointer": "cli_manifests/codex/current.json"
+      },
+      "reports": {
+        "json": "cli_manifests/codex/reports/<version>/coverage.<filter>.json",
+        "markdown_optional": "cli_manifests/codex/reports/<version>/coverage.<filter>.md"
+      }
+    },
+    "ci_artifacts": {
+      "provider": "github_actions",
+      "raw_help": "cli_manifests/codex/raw_help/<version>/<target_triple>/**",
+      "notes": [
+        "Raw help is uploaded via CI artifact storage (not committed).",
+        "conflicts[].evidence.help_ref_by_target paths are relative to this raw_help bundle."
+      ]
+    }
+  },
   "sorting": {
     "commands": "lexicographic_path",
     "flags": "by_key_then_long_then_short",

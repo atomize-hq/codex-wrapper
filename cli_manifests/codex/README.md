@@ -32,7 +32,7 @@ The source of truth for artifact shapes and merge/compare semantics is:
 
 Optional/generated:
 
-- `raw_help/<semantic_version>/**` — raw `--help` captures (for debugging help parser drift):
+- `raw_help/<semantic_version>/**` — raw `--help` captures (for debugging help parser drift; stored as CI artifacts, not committed):
   - Root help: `raw_help/<semantic_version>/help.txt`
   - Per-command help: `raw_help/<semantic_version>/commands/<token1>/<token2>/help.txt`
 - `supplement/commands.json` — small, explicit hand-maintained supplements for known “help omissions”.

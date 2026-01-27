@@ -100,7 +100,7 @@ We will store versioned upstream snapshots and treat them as generated artifacts
 - Per-target inputs: `cli_manifests/codex/snapshots/<version>/<target-triple>.json` (schema v1)
 - Union snapshot: `cli_manifests/codex/snapshots/<version>/union.json` (schema v2; multi-platform merged view)
 - Optional raw help captures for debugging:
-  - `cli_manifests/codex/raw_help/<version>/<target-triple>/**`
+  - `cli_manifests/codex/raw_help/<version>/<target-triple>/**` (stored as GitHub Actions artifacts; not committed)
 
 `cli_manifests/codex/current.json` is the convenience pointer for the latest validated union snapshot (schema v2). Per-target snapshots are the required merge inputs and are used for debugging platform-specific drift.
 
