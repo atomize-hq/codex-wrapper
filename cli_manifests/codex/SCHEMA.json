@@ -434,6 +434,31 @@
             ]
           }
         },
+        "help_context": {
+          "type": "string",
+          "description": "Optional hint about where the differing value came from (e.g., Usage, Options, Arguments)."
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Optional references to the raw help captures that produced the conflict (typically stored as CI artifacts).",
+          "properties": {
+            "help_ref_by_target": {
+              "type": "object",
+              "description": "Map of target_triple -> relative path to the raw help file used as evidence.",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "help_sha256_by_target": {
+              "type": "object",
+              "description": "Map of target_triple -> sha256 of the raw help text used as evidence.",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "note": {
           "type": "string"
         }

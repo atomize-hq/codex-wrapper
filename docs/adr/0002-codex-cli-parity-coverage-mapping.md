@@ -111,6 +111,9 @@ Some upstream surfaces are platform-gated (or behave differently) across Linux/m
   - merged inventory is a union by command `path` + flag/arg identity,
   - each unit records an availability set (which `target_triple`s it appeared on),
   - the coverage report can be filtered to “any platform”, “all platforms”, or a specific platform.
+  - when per-target help-derived fields diverge (e.g., flag value-taking semantics, usage text), the union records a `conflicts[]` entry that captures:
+    - the targets involved and their observed values, and
+    - optional evidence references to raw help captures (path + sha256) so maintainers can inspect the exact help text.
 
 Concrete CI matrix (minimal; can be expanded later):
 - Linux: `x86_64-unknown-linux-musl` (required; promotion anchor)

@@ -28,14 +28,35 @@
     },
     "conflict_handling": {
       "strategy": "record_conflicts_and_preserve_availability",
+      "on_conflict": "never_fail",
       "conflict_payload_location": "commands[].conflicts",
       "conflict_entry_shape": {
         "unit": "command|flag|arg",
         "path": "command path tokens",
         "field": "field name that differs",
         "values_by_target": "map target_triple -> scalar JSON value",
+        "help_context": "Usage|Options|Arguments|etc (optional)",
+        "evidence": {
+          "help_ref_by_target": "map target_triple -> relative raw help path (optional)",
+          "help_sha256_by_target": "map target_triple -> sha256 of raw help text (optional)"
+        },
         "key": "required when unit=flag",
         "name": "required when unit=arg"
+      },
+      "fields_tracked": {
+        "command": [
+          "about",
+          "usage"
+        ],
+        "flag": [
+          "takes_value",
+          "value_name",
+          "repeatable"
+        ],
+        "arg": [
+          "required",
+          "variadic"
+        ]
       }
     },
     "canonical_keys": {
