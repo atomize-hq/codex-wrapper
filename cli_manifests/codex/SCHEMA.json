@@ -70,6 +70,7 @@
         "sha256",
         "size_bytes",
         "platform",
+        "target_triple",
         "version_output"
       ],
       "properties": {
@@ -85,7 +86,7 @@
         },
         "target_triple": {
           "$ref": "#/$defs/TargetTriple",
-          "description": "Recommended for CI and multi-platform merges."
+          "description": "Required. Used for CI and multi-platform merges."
         },
         "version_output": {
           "type": "string"

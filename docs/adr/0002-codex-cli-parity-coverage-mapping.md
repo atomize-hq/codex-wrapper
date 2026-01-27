@@ -94,11 +94,11 @@ We will store versioned upstream snapshots and treat them as generated artifacts
 - Optional raw help captures for debugging:
   - `cli_manifests/codex/raw_help/<version>/<target-triple>/**`
 
-`cli_manifests/codex/current.json` is the convenience pointer for the latest validated union snapshot (schema v2). Per-target snapshots are used as the merge inputs and for debugging platform-specific drift.
+`cli_manifests/codex/current.json` is the convenience pointer for the latest validated union snapshot (schema v2). Per-target snapshots are the required merge inputs and are used for debugging platform-specific drift.
 
 Snapshots must include:
 - a root command entry represented as `path: []` so global flags/args are comparable,
-- platform metadata for where the snapshot was generated (at minimum `target_triple`, ideally also `os` and `arch`),
+- platform metadata for where the snapshot was generated (at minimum `binary.target_triple`; `os` and `arch` are still recorded as well),
 - feature probe metadata (what features were enabled during discovery, the `stable|beta|experimental` stage for each feature, and what commands only appeared when enabled).
 
 ### Multi-Platform Discovery and Merge
@@ -107,7 +107,7 @@ Some upstream surfaces are platform-gated (or behave differently) across Linux/m
 
 - Generate upstream snapshots in CI for each supported OS (Linux/macOS/Windows), using the same snapshot schema and “all features enabled” mode.
 - Compare wrapper coverage against snapshots per-platform (so OS-specific gaps don’t get lost).
-- Optionally generate a merged “union” view as a convenience report input:
+- Generate a merged “union” view as the canonical snapshot input for comparisons:
   - merged inventory is a union by command `path` + flag/arg identity,
   - each unit records an availability set (which `target_triple`s it appeared on),
   - the coverage report can be filtered to “any platform”, “all platforms”, or a specific platform.

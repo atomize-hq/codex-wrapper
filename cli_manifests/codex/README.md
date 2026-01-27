@@ -79,7 +79,7 @@ Optional/generated:
   - `commands_added_when_all_enabled` (array of `path` arrays, optional): command paths that only appeared when all features were enabled
 - `known_omissions` (array of strings, optional): records applied supplements for review visibility.
 
-Note: multi-platform union snapshots (option A) are specified in `SCHEMA.json` as schema v2 (`mode: "union"`). Until implemented, the generator emits schema v1.
+Note: for the multi-platform “union snapshot” approach, `current.json` is specified in `SCHEMA.json` as schema v2 (`mode: "union"`), and per-target inputs are schema v1. Until implemented, the generator emits schema v1.
 
 ## Deterministic Ordering Rules (v1)
 
