@@ -43,7 +43,7 @@ Optional/generated:
 
 - Keep JSON deterministic: stable sort order, avoid timestamps in fields that would churn diffs unnecessarily (use `collected_at` only).
 - Treat `min_supported.txt` and `latest_validated.txt` as the only authoritative pointers.
-- Avoid large “history dumps” unless we have a concrete need; prefer keeping only the current snapshot plus raw help for the validated version.
+- Retention: keep snapshots + reports for the last 3 validated versions (sliding window), plus the versions referenced by `min_supported.txt` and `latest_validated.txt`.
 
 ## Snapshot Schema (v1)
 

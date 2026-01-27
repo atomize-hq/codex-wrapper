@@ -111,6 +111,9 @@ We will store versioned upstream snapshots and treat them as generated artifacts
 
 `cli_manifests/codex/current.json` is the convenience pointer for the latest validated union snapshot (schema v2). Per-target snapshots are the required merge inputs and are used for debugging platform-specific drift.
 
+Retention (committed artifacts):
+- Keep snapshots + reports for the last 3 validated versions (sliding window), plus the versions referenced by `min_supported.txt` and `latest_validated.txt`.
+
 Snapshots must include:
 - a root command entry represented as `path: []` so global flags/args are comparable,
 - platform metadata for where the snapshot was generated (at minimum `binary.target_triple`; `os` and `arch` are still recorded as well),

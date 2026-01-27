@@ -285,6 +285,22 @@
         "Raw help is uploaded via CI artifact storage (not committed).",
         "conflicts[].evidence.help_ref_by_target paths are relative to this raw_help bundle."
       ]
+    },
+    "retention": {
+      "mode": "sliding_window",
+      "keep_last_validated": 3,
+      "always_keep": [
+        "min_supported",
+        "latest_validated"
+      ],
+      "applies_to": [
+        "snapshots",
+        "reports"
+      ],
+      "notes": [
+        "Keep union + per-target snapshots and reports for the last 3 validated versions, plus min_supported and latest_validated pointers.",
+        "Raw help retention is governed by CI artifact retention settings."
+      ]
     }
   },
   "ci_validation": {
