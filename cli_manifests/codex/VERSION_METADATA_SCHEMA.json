@@ -16,7 +16,9 @@
       "const": 1
     },
     "semantic_version": {
-      "type": "string"
+      "type": "string",
+      "description": "Upstream codex semantic version (SemVer-like).",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$"
     },
     "status": {
       "type": "string",

@@ -102,6 +102,10 @@ CI validation:
 - CI must hard-fail if any committed parity artifact (snapshots, wrapper coverage, reports) does not validate against `SCHEMA.json`.
 - CI must also validate per-version status metadata files against `VERSION_METADATA_SCHEMA.json`.
 
+Version and timestamp normalization (normative; see `RULES.json`):
+- Upstream `binary.semantic_version` is parsed from the codex binary and must be SemVer-like; promotion pointers accept stable `MAJOR.MINOR.PATCH` only.
+- To avoid churn, CI should set timestamps deterministically (or omit them where allowed) for committed artifacts.
+
 ### Upstream Snapshots
 
 We will store versioned upstream snapshots and treat them as generated artifacts:

@@ -24,7 +24,8 @@
     },
     "SemverString": {
       "type": "string",
-      "description": "Semantic version string (SemVer)."
+      "description": "Semantic version string (SemVer-like). Allows prerelease/build metadata.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$"
     },
     "TargetTriple": {
       "type": "string",

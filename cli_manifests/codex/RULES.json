@@ -6,6 +6,27 @@
     "flag": "prefer_long_else_short",
     "arg": "name"
   },
+  "versioning": {
+    "upstream": {
+      "semantic_version_field": "binary.semantic_version",
+      "semantic_version_pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$",
+      "notes": [
+        "Upstream version comes from the codex binary; we also record binary.version_output for full fidelity.",
+        "Promotion/pointer updates are restricted to stable releases per policy (no prerelease/build)."
+      ]
+    },
+    "wrapper": {
+      "wrapper_version_source": "crate_version",
+      "notes": [
+        "wrapper_version in wrapper_coverage.json refers to this repo's wrapper crate version and is distinct from upstream codex semantic_version."
+      ]
+    },
+    "pointers": {
+      "stable_semver_pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "disallow_prefix_v": true,
+      "disallow_prerelease_or_build": true
+    }
+  },
   "globals": {
     "root_path": [],
     "meaning": "The root command entry (path=[]) is the canonical location for global flags/options and any top-level positional args. Global flags must be compared/reported at the root scope and must not be duplicated as per-command missing items.",
@@ -461,6 +482,29 @@
       "CI must fail if any committed artifact does not validate against SCHEMA.json.",
       "Raw help artifacts are not committed and are not schema-validated."
     ]
+  },
+  "timestamps": {
+    "snapshots": {
+      "field": "collected_at",
+      "policy": "deterministic_in_ci",
+      "notes": [
+        "To avoid churn in committed artifacts, CI should set collected_at deterministically (e.g., from SOURCE_DATE_EPOCH)."
+      ]
+    },
+    "reports": {
+      "generated_at_field": "generated_at",
+      "policy": "deterministic_or_omit",
+      "notes": [
+        "Prefer omitting report timestamps from committed reports; if present, make them deterministic in CI."
+      ]
+    },
+    "version_metadata": {
+      "field": "updated_at",
+      "policy": "deterministic_in_ci",
+      "notes": [
+        "updated_at should be deterministic in CI to keep diffs stable across reruns."
+      ]
+    }
   },
   "sorting": {
     "commands": "lexicographic_path",

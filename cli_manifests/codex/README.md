@@ -26,6 +26,10 @@ The source of truth for artifact shapes and merge/compare semantics is:
 
 CI should hard-fail if any committed artifact does not validate against `SCHEMA.json`.
 
+Versioning/timestamps:
+- `binary.semantic_version` is the upstream codex version (SemVer-like); promotion pointers accept stable `MAJOR.MINOR.PATCH` only.
+- CI should set committed timestamps deterministically (or omit them where allowed) to avoid churn across reruns.
+
 ## On-disk Layout (v1)
 
 - `min_supported.txt` — minimum supported Codex CLI version (single semver line).
