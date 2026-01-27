@@ -118,6 +118,7 @@ We will store versioned upstream snapshots and treat them as generated artifacts
 
 Retention (committed artifacts):
 - Keep snapshots + reports for the last 3 validated versions (sliding window), plus the versions referenced by `min_supported.txt` and `latest_validated.txt`.
+  - Retention pruning must be mechanical/deterministic (implemented by CI tooling; no LLM decisions).
 
 Version status metadata:
 - To avoid overloading the word “validated”, we track per-version workflow state in `cli_manifests/codex/versions/<version>.json`:
@@ -162,8 +163,10 @@ Status gates:
 
 Pointer file format + invariants (normative; see `RULES.json` for exact contract):
 - Each pointer file is a single UTF-8 line plus trailing newline: either `<semver>` or `none`.
+- Pointer files should always exist for every expected target; use `none` until a value is known.
 - `latest_validated.txt` must match `pointers/latest_validated/x86_64-unknown-linux-musl.txt` and must not be `none`.
 - `current.json.binary.semantic_version` must match `latest_validated.txt` (Linux-first v1).
+- `current.json` must be byte-for-byte identical to `snapshots/<latest_validated>/union.json`.
 
 Snapshots must include:
 - a root command entry represented as `path: []` so global flags/args are comparable,

@@ -155,3 +155,7 @@ Promotion (v1):
 
 Pointer file format:
 - Each pointer file contains a single line (`<semver>` or `none`) and must end with a newline.
+- Pointer files should always exist for every expected target; use `none` until a value is known.
+
+Retention enforcement:
+- Pruning snapshots/reports outside the sliding window should be done mechanically/deterministically by CI tooling (no LLM decisions).
