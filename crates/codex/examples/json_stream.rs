@@ -8,6 +8,8 @@ use codex::{CodexClient, ExecStreamRequest, ItemDeltaPayload, ItemPayload, Threa
 use futures_util::StreamExt;
 use std::{env, error::Error, path::PathBuf, time::Duration};
 
+type ParsedArgs = (String, Option<PathBuf>, Option<PathBuf>);
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let (prompt, output_last_message, json_event_log) = parse_args()?;
@@ -49,7 +51,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn parse_args() -> Result<(String, Option<PathBuf>, Option<PathBuf>), Box<dyn Error>> {
+fn parse_args() -> Result<ParsedArgs, Box<dyn Error>> {
     let mut args = env::args().skip(1).peekable();
     if matches!(args.peek().map(|s| s.as_str()), Some("--")) {
         args.next();

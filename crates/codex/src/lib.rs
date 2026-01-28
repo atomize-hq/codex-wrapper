@@ -959,16 +959,10 @@ impl CapabilityGuard {
 /// Probes should prefer an explicit feature list when available, fall back to parsing
 /// `codex --help` flags, and finally rely on coarse version heuristics. Each attempted
 /// step is recorded so hosts can trace why a particular flag was enabled or skipped.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CapabilityProbePlan {
     /// Steps attempted in order; consumers should push entries as probes run.
     pub steps: Vec<CapabilityProbeStep>,
-}
-
-impl Default for CapabilityProbePlan {
-    fn default() -> Self {
-        Self { steps: Vec::new() }
-    }
 }
 
 /// Command-level probes used to infer feature support.
@@ -1089,21 +1083,16 @@ fn log_guard_skip(guard: &CapabilityGuard) {
 }
 
 /// Cache interaction policy for capability probes.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum CapabilityCachePolicy {
     /// Use cached entries when fingerprints match; fall back to probing when
     /// fingerprints differ or are missing and write fresh snapshots back.
+    #[default]
     PreferCache,
     /// Always run probes, overwriting any existing cache entry for the binary (useful for TTL/backoff windows or hot-swaps that keep the same path).
     Refresh,
     /// Skip cache reads and writes to force an isolated snapshot.
     Bypass,
-}
-
-impl Default for CapabilityCachePolicy {
-    fn default() -> Self {
-        CapabilityCachePolicy::PreferCache
-    }
 }
 
 /// Cache key for capability snapshots derived from a specific Codex binary path.
@@ -1204,9 +1193,7 @@ pub fn clear_capability_cache() {
 
 fn current_fingerprint(key: &CapabilityCacheKey) -> Option<BinaryFingerprint> {
     let canonical = std_fs::canonicalize(&key.binary_path).ok();
-    let metadata_path = canonical
-        .as_deref()
-        .unwrap_or_else(|| key.binary_path.as_path());
+    let metadata_path = canonical.as_deref().unwrap_or(key.binary_path.as_path());
     let metadata = std_fs::metadata(metadata_path).ok()?;
     Some(BinaryFingerprint {
         canonical_path: canonical,
@@ -1551,10 +1538,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
@@ -1730,10 +1714,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         if let Some(prompt) = &prompt {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
@@ -1829,10 +1810,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })
+        spawn_with_retry(&mut command, self.command_env.binary_path())
     }
 
     /// Spawns `codex login --mcp` when the probed binary advertises support.
@@ -1859,10 +1837,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         Ok(Some(child))
     }
@@ -1976,10 +1951,7 @@ impl CodexClient {
         apply_cli_overrides(&mut command, &resolved_overrides, false);
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2072,10 +2044,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2164,10 +2133,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2287,10 +2253,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
         stdin
@@ -2339,10 +2302,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })
+        spawn_with_retry(&mut command, self.command_env.binary_path())
     }
 
     /// Runs `codex sandbox <platform> [--full-auto|--log-denials] [--config/--enable/--disable] -- <COMMAND...>`.
@@ -2410,10 +2370,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut process)?;
 
-        let mut child = process.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut process, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2510,10 +2467,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut process)?;
 
-        let mut child = process.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut process, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -2864,10 +2818,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         if send_prompt_via_stdin {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
@@ -2984,10 +2935,7 @@ impl CodexClient {
 
         self.command_env.apply(&mut command)?;
 
-        let mut child = command.spawn().map_err(|source| CodexError::Spawn {
-            binary: self.command_env.binary_path().to_path_buf(),
-            source,
-        })?;
+        let mut child = spawn_with_retry(&mut command, self.command_env.binary_path())?;
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
         let stderr = child.stderr.take().ok_or(CodexError::StderrUnavailable)?;
@@ -3501,17 +3449,12 @@ impl SandboxMode {
 }
 
 /// Safety overrides that collapse approval/sandbox behavior.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum SafetyOverride {
+    #[default]
     Inherit,
     FullAuto,
     DangerouslyBypass,
-}
-
-impl Default for SafetyOverride {
-    fn default() -> Self {
-        SafetyOverride::Inherit
-    }
 }
 
 /// Local provider selection for OSS backends.
@@ -3533,17 +3476,12 @@ impl LocalProvider {
 }
 
 /// Three-state flag used when requests can override builder defaults.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum FlagState {
+    #[default]
     Inherit,
     Enable,
     Disable,
-}
-
-impl Default for FlagState {
-    fn default() -> Self {
-        FlagState::Inherit
-    }
 }
 
 /// Feature toggles forwarded to `--enable/--disable`.
@@ -3788,13 +3726,11 @@ const REASONING_CONFIG_KEYS: &[&str] = &[
 ];
 
 fn reasoning_config_for(model: Option<&str>) -> Option<&'static [(&'static str, &'static str)]> {
-    let Some(name) = model.map(|value| value.to_ascii_lowercase()) else {
-        return None;
-    };
+    let name = model.map(|value| value.to_ascii_lowercase())?;
     match name.as_str() {
         name if name.starts_with("gpt-5.1-codex") => Some(DEFAULT_REASONING_CONFIG_GPT5_1),
         name if name.starts_with("gpt-5.1") => Some(DEFAULT_REASONING_CONFIG_GPT5_1),
-        name if name == "gpt-5-codex" => Some(DEFAULT_REASONING_CONFIG_GPT5_CODEX),
+        "gpt-5-codex" => Some(DEFAULT_REASONING_CONFIG_GPT5_CODEX),
         name if name.starts_with("gpt-5") => Some(DEFAULT_REASONING_CONFIG_GPT5),
         _ => None,
     }
@@ -3940,6 +3876,33 @@ fn apply_cli_overrides(
     for arg in cli_override_args(resolved, include_search) {
         command.arg(arg);
     }
+}
+
+fn spawn_with_retry(
+    command: &mut Command,
+    binary: &Path,
+) -> Result<tokio::process::Child, CodexError> {
+    let mut backoff = Duration::from_millis(2);
+    for attempt in 0..5 {
+        match command.spawn() {
+            Ok(child) => return Ok(child),
+            Err(source) => {
+                let is_busy = matches!(source.kind(), std::io::ErrorKind::ExecutableFileBusy)
+                    || source.raw_os_error() == Some(26);
+                if is_busy && attempt < 4 {
+                    std::thread::sleep(backoff);
+                    backoff = std::cmp::min(backoff * 2, Duration::from_millis(50));
+                    continue;
+                }
+                return Err(CodexError::Spawn {
+                    binary: binary.to_path_buf(),
+                    source,
+                });
+            }
+        }
+    }
+
+    unreachable!("spawn_with_retry should return before exhausting retries")
 }
 
 #[derive(Clone, Debug)]
@@ -4315,7 +4278,7 @@ pub enum CodexError {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum ThreadEvent {
-    #[serde(rename = "thread.started")]
+    #[serde(rename = "thread.started", alias = "thread.resumed")]
     ThreadStarted(ThreadStarted),
     #[serde(rename = "turn.started")]
     TurnStarted(TurnStarted),
@@ -4323,9 +4286,9 @@ pub enum ThreadEvent {
     TurnCompleted(TurnCompleted),
     #[serde(rename = "turn.failed")]
     TurnFailed(TurnFailed),
-    #[serde(rename = "item.started")]
+    #[serde(rename = "item.started", alias = "item.created")]
     ItemStarted(ItemEnvelope<ItemSnapshot>),
-    #[serde(rename = "item.delta")]
+    #[serde(rename = "item.delta", alias = "item.updated")]
     ItemDelta(ItemDelta),
     #[serde(rename = "item.completed")]
     ItemCompleted(ItemEnvelope<ItemSnapshot>),
@@ -4406,7 +4369,7 @@ pub struct ItemSnapshot {
 pub struct ItemDelta {
     pub thread_id: String,
     pub turn_id: String,
-    #[serde(rename = "item_id")]
+    #[serde(rename = "item_id", alias = "id")]
     pub item_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub index: Option<u32>,
@@ -4457,9 +4420,10 @@ pub enum ItemDeltaPayload {
 }
 
 /// Item status supplied by the CLI for bookkeeping.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ItemStatus {
+    #[default]
     InProgress,
     Completed,
     Failed,
@@ -4467,22 +4431,21 @@ pub enum ItemStatus {
     Unknown,
 }
 
-impl Default for ItemStatus {
-    fn default() -> Self {
-        ItemStatus::InProgress
-    }
-}
-
 /// Human-readable content emitted by the agent.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TextContent {
     pub text: String,
+    #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub extra: BTreeMap<String, Value>,
 }
 
 /// Incremental content fragment for streaming items.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TextDelta {
+    #[serde(rename = "text_delta", alias = "text")]
     pub text_delta: String,
+    #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub extra: BTreeMap<String, Value>,
 }
 
 /// Snapshot of a command execution, including accumulated stdout/stderr.
@@ -4491,9 +4454,19 @@ pub struct CommandExecutionState {
     pub command: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exit_code: Option<i32>,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "String::is_empty",
+        alias = "aggregated_output",
+        alias = "output"
+    )]
     pub stdout: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "String::is_empty",
+        alias = "error_output",
+        alias = "err"
+    )]
     pub stderr: String,
     #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
     pub extra: BTreeMap<String, Value>,
@@ -4502,9 +4475,19 @@ pub struct CommandExecutionState {
 /// Streaming delta for command execution.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CommandExecutionDelta {
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "String::is_empty",
+        alias = "aggregated_output",
+        alias = "output"
+    )]
     pub stdout: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "String::is_empty",
+        alias = "error_output",
+        alias = "err"
+    )]
     pub stderr: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exit_code: Option<i32>,
@@ -4515,16 +4498,27 @@ pub struct CommandExecutionDelta {
 /// File change or diff applied by the agent.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FileChangeState {
+    #[serde(alias = "file_path")]
     pub path: PathBuf,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub change: Option<FileChangeKind>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "patch")]
     pub diff: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exit_code: Option<i32>,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "String::is_empty",
+        alias = "aggregated_output",
+        alias = "output"
+    )]
     pub stdout: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "String::is_empty",
+        alias = "error_output",
+        alias = "err"
+    )]
     pub stderr: String,
     #[serde(flatten, default, skip_serializing_if = "BTreeMap::is_empty")]
     pub extra: BTreeMap<String, Value>,
@@ -4533,11 +4527,21 @@ pub struct FileChangeState {
 /// Streaming delta describing a file change.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FileChangeDelta {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "patch")]
     pub diff: Option<String>,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "String::is_empty",
+        alias = "aggregated_output",
+        alias = "output"
+    )]
     pub stdout: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
+    #[serde(
+        default,
+        skip_serializing_if = "String::is_empty",
+        alias = "error_output",
+        alias = "err"
+    )]
     pub stderr: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exit_code: Option<i32>,
@@ -4558,7 +4562,9 @@ pub enum FileChangeKind {
 /// State of an MCP tool call.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct McpToolCallState {
+    #[serde(alias = "server")]
     pub server_name: String,
+    #[serde(alias = "tool")]
     pub tool_name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arguments: Option<Value>,
@@ -4582,21 +4588,16 @@ pub struct McpToolCallDelta {
 }
 
 /// Lifecycle state for a tool call.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolCallStatus {
+    #[default]
     Pending,
     Running,
     Completed,
     Failed,
     #[serde(other)]
     Unknown,
-}
-
-impl Default for ToolCallStatus {
-    fn default() -> Self {
-        ToolCallStatus::Pending
-    }
 }
 
 /// Details of a web search step.
@@ -4623,21 +4624,16 @@ pub struct WebSearchDelta {
 }
 
 /// Search progress indicator.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum WebSearchStatus {
+    #[default]
     Pending,
     Running,
     Completed,
     Failed,
     #[serde(other)]
     Unknown,
-}
-
-impl Default for WebSearchStatus {
-    fn default() -> Self {
-        WebSearchStatus::Pending
-    }
 }
 
 /// Checklist maintained by the agent.
@@ -5278,6 +5274,12 @@ impl FeaturesListRequest {
     }
 }
 
+impl Default for FeaturesListRequest {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Decision returned by execpolicy evaluation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -5819,14 +5821,8 @@ where
             }
         }
 
-        let send_result = match normalize_thread_event(&line, &mut context) {
-            Ok(event) => sender.send(Ok(event)).await,
-            Err(err) => {
-                let _ = sender.send(Err(err)).await;
-                break;
-            }
-        };
-        if send_result.is_err() {
+        let event = normalize_thread_event(&line, &mut context);
+        if sender.send(event).await.is_err() {
             break;
         }
     }
@@ -5861,21 +5857,21 @@ fn normalize_thread_event(
         })?;
 
     match event_type.as_str() {
-        "thread.started" => {
-            let thread_id = extract_str(&value, "thread_id")
-                .ok_or_else(|| missing("thread.started", "thread_id", line))?;
+        "thread.started" | "thread.resumed" => {
+            let thread_id = extract_str_from_keys(&value, &["thread_id", "conversation_id", "id"])
+                .ok_or_else(|| missing(&event_type, "thread_id", line))?;
             context.current_thread_id = Some(thread_id.to_string());
             context.current_turn_id = None;
         }
         "turn.started" => {
-            let turn_id = extract_str(&value, "turn_id")
+            let turn_id = extract_str_from_keys(&value, &["turn_id", "id"])
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| {
                     let id = format!("synthetic-turn-{}", context.next_synthetic_turn.max(1));
                     context.next_synthetic_turn = context.next_synthetic_turn.saturating_add(1);
                     id
                 });
-            let thread_id = extract_str(&value, "thread_id")
+            let thread_id = extract_str_from_keys(&value, &["thread_id", "conversation_id"])
                 .map(|s| s.to_string())
                 .or_else(|| context.current_thread_id.clone())
                 .ok_or_else(|| missing("turn.started", "thread_id", line))?;
@@ -5885,11 +5881,11 @@ fn normalize_thread_event(
             context.current_turn_id = Some(turn_id);
         }
         "turn.completed" | "turn.failed" => {
-            let turn_id = extract_str(&value, "turn_id")
+            let turn_id = extract_str_from_keys(&value, &["turn_id", "id"])
                 .map(|s| s.to_string())
                 .or_else(|| context.current_turn_id.clone())
                 .ok_or_else(|| missing(&event_type, "turn_id", line))?;
-            let thread_id = extract_str(&value, "thread_id")
+            let thread_id = extract_str_from_keys(&value, &["thread_id", "conversation_id"])
                 .map(|s| s.to_string())
                 .or_else(|| context.current_thread_id.clone())
                 .ok_or_else(|| missing(&event_type, "thread_id", line))?;
@@ -5900,11 +5896,14 @@ fn normalize_thread_event(
         }
         t if t.starts_with("item.") => {
             normalize_item_payload(&mut value);
+            if event_type == "item.delta" || event_type == "item.updated" {
+                normalize_item_delta_payload(&mut value);
+            }
             let turn_id = extract_str(&value, "turn_id")
                 .map(|s| s.to_string())
                 .or_else(|| context.current_turn_id.clone())
                 .ok_or_else(|| missing(&event_type, "turn_id", line))?;
-            let thread_id = extract_str(&value, "thread_id")
+            let thread_id = extract_str_from_keys(&value, &["thread_id", "conversation_id"])
                 .map(|s| s.to_string())
                 .or_else(|| context.current_thread_id.clone())
                 .ok_or_else(|| missing(&event_type, "thread_id", line))?;
@@ -5928,9 +5927,46 @@ fn extract_str<'a>(value: &'a serde_json::Value, key: &str) -> Option<&'a str> {
         .filter(|s| !s.is_empty())
 }
 
+fn extract_str_from_keys<'a>(value: &'a serde_json::Value, keys: &[&str]) -> Option<&'a str> {
+    for key in keys {
+        if let Some(found) = extract_str(value, key) {
+            return Some(found);
+        }
+    }
+    None
+}
+
 fn set_str(value: &mut serde_json::Value, key: &str, new_value: String) {
     if let Some(map) = value.as_object_mut() {
         map.insert(key.to_string(), serde_json::Value::String(new_value));
+    }
+}
+
+fn normalize_item_delta_payload(value: &mut serde_json::Value) {
+    let Some(map) = value.as_object_mut() else {
+        return;
+    };
+
+    if !map.contains_key("delta") {
+        if let Some(content) = map.remove("content") {
+            map.insert("delta".to_string(), content);
+        }
+    }
+
+    let Some(item_type) = map.get("item_type").and_then(|value| value.as_str()) else {
+        return;
+    };
+
+    if !matches!(item_type, "agent_message" | "reasoning") {
+        return;
+    }
+
+    let Some(delta) = map.get_mut("delta") else {
+        return;
+    };
+
+    if let Some(text_delta) = delta.as_str() {
+        *delta = serde_json::json!({ "text_delta": text_delta });
     }
 }
 
@@ -5978,6 +6014,20 @@ fn normalize_item_payload(value: &mut serde_json::Value) {
         }
     }
 
+    let item_type = item_object
+        .get("item_type")
+        .and_then(|value| value.as_str())
+        .or_else(|| item_object.get("type").and_then(|value| value.as_str()))
+        .map(|value| value.to_string());
+
+    if matches!(item_type.as_deref(), Some("agent_message" | "reasoning")) {
+        if let Some(content) = item_object.get_mut("content") {
+            if let Some(text) = content.as_str() {
+                *content = serde_json::json!({ "text": text });
+            }
+        }
+    }
+
     if let Some(root) = value.as_object_mut() {
         for (mut key, mut v) in item_object {
             if key == "type" {
@@ -5997,10 +6047,7 @@ fn missing(event: &str, field: &str, line: &str) -> ExecStreamError {
 }
 
 async fn read_last_message(path: &Path) -> Option<String> {
-    match fs::read_to_string(path).await {
-        Ok(contents) => Some(contents),
-        Err(_) => None,
-    }
+    (fs::read_to_string(path).await).ok()
 }
 
 fn unique_temp_path(prefix: &str, extension: &str) -> PathBuf {
@@ -6363,7 +6410,7 @@ fn parse_feature_list_json_value(value: &Value) -> Option<Vec<CodexFeature>> {
             }
             if map.contains_key("name") || map.contains_key("enabled") || map.contains_key("stage")
             {
-                return feature_from_json_fields(None, &map).map(|feature| vec![feature]);
+                return feature_from_json_fields(None, map).map(|feature| vec![feature]);
             }
             Some(
                 map.iter()
@@ -6615,18 +6662,26 @@ mod tests {
     use std::fs as std_fs;
     #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
-    use std::sync::{Mutex, OnceLock};
+    use std::sync::OnceLock;
     use std::time::{Duration, SystemTime};
     use tokio::{fs, io::AsyncWriteExt};
 
-    fn env_guard() -> std::sync::MutexGuard<'static, ()> {
-        static ENV_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
-        ENV_MUTEX.get_or_init(|| Mutex::new(())).lock().unwrap()
+    fn env_mutex() -> &'static tokio::sync::Mutex<()> {
+        static ENV_MUTEX: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+        ENV_MUTEX.get_or_init(|| tokio::sync::Mutex::new(()))
+    }
+
+    fn env_guard() -> tokio::sync::MutexGuard<'static, ()> {
+        env_mutex().blocking_lock()
+    }
+
+    async fn env_guard_async() -> tokio::sync::MutexGuard<'static, ()> {
+        env_mutex().lock().await
     }
 
     #[tokio::test]
     async fn json_stream_preserves_order_and_parses_tool_calls() {
-        let lines = vec![
+        let lines = [
             r#"{"type":"thread.started","thread_id":"thread-1"}"#.to_string(),
             serde_json::to_string(&json!({
                 "type": "item.started",
@@ -6746,7 +6801,7 @@ mod tests {
 
     #[tokio::test]
     async fn json_stream_tees_logs_before_forwarding() {
-        let lines = vec![
+        let lines = [
             r#"{"type":"thread.started","thread_id":"tee-thread"}"#.to_string(),
             r#"{"type":"turn.started","thread_id":"tee-thread","turn_id":"turn-tee"}"#.to_string(),
         ];
@@ -8011,7 +8066,7 @@ fi
     #[cfg(unix)]
     #[tokio::test]
     async fn apply_respects_rust_log_default() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         let original = env::var_os("RUST_LOG");
         env::remove_var("RUST_LOG");
 
@@ -8518,7 +8573,7 @@ exit 0
 
     #[tokio::test]
     async fn probe_reprobes_when_metadata_missing() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8562,7 +8617,7 @@ exit 0
 
     #[tokio::test]
     async fn probe_refresh_policy_forces_new_snapshot() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8605,7 +8660,7 @@ fi
 
     #[tokio::test]
     async fn probe_bypass_policy_skips_cache_writes() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8696,11 +8751,12 @@ cloud-exec experimental false
 
     #[test]
     fn capability_guard_reports_detected_support() {
-        let mut flags = CodexFeatureFlags::default();
-        flags.supports_features_list = true;
-        flags.supports_output_schema = true;
-        flags.supports_add_dir = true;
-        flags.supports_mcp_login = true;
+        let flags = CodexFeatureFlags {
+            supports_features_list: true,
+            supports_output_schema: true,
+            supports_add_dir: true,
+            supports_mcp_login: true,
+        };
         let capabilities = capabilities_with_feature_flags(flags);
 
         let output_schema = capabilities.guard_output_schema();
@@ -8720,8 +8776,12 @@ cloud-exec experimental false
 
     #[test]
     fn capability_guard_marks_absent_feature_as_unsupported() {
-        let mut flags = CodexFeatureFlags::default();
-        flags.supports_features_list = true;
+        let flags = CodexFeatureFlags {
+            supports_features_list: true,
+            supports_output_schema: false,
+            supports_add_dir: false,
+            supports_mcp_login: false,
+        };
         let capabilities = capabilities_with_feature_flags(flags);
 
         let output_schema = capabilities.guard_output_schema();
@@ -8754,7 +8814,7 @@ cloud-exec experimental false
 
     #[tokio::test]
     async fn capability_snapshot_short_circuits_probes() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8811,7 +8871,7 @@ exit 99
 
     #[tokio::test]
     async fn capability_feature_overrides_apply_to_cached_entries() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8864,7 +8924,7 @@ fi
 
     #[tokio::test]
     async fn capability_version_override_replaces_probe_version() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8910,7 +8970,7 @@ fi
 
     #[tokio::test]
     async fn exec_applies_guarded_flags_when_supported() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8954,7 +9014,7 @@ fi
 
     #[tokio::test]
     async fn exec_skips_guarded_flags_when_unknown() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -8999,7 +9059,7 @@ fi
 
     #[tokio::test]
     async fn mcp_login_skips_when_unsupported() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9035,7 +9095,7 @@ fi
 
     #[tokio::test]
     async fn mcp_login_runs_when_supported() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9078,7 +9138,7 @@ fi
 
     #[tokio::test]
     async fn probe_capabilities_caches_and_invalidates() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9202,8 +9262,10 @@ fi
     #[test]
     fn request_can_disable_auto_reasoning_defaults() {
         let builder = CliOverrides::default();
-        let mut patch = CliOverridesPatch::default();
-        patch.auto_reasoning_defaults = Some(false);
+        let patch = CliOverridesPatch {
+            auto_reasoning_defaults: Some(false),
+            ..Default::default()
+        };
 
         let resolved = resolve_cli_overrides(&builder, &patch, Some("gpt-5"));
         assert!(resolved.config_overrides.is_empty());
@@ -9211,8 +9273,10 @@ fi
 
     #[test]
     fn request_config_overrides_follow_builder_order() {
-        let mut builder_overrides = CliOverrides::default();
-        builder_overrides.auto_reasoning_defaults = false;
+        let mut builder_overrides = CliOverrides {
+            auto_reasoning_defaults: false,
+            ..Default::default()
+        };
         builder_overrides
             .config_overrides
             .push(ConfigOverride::new("foo", "bar"));
@@ -9233,11 +9297,15 @@ fi
 
     #[test]
     fn request_search_override_can_disable_builder_flag() {
-        let mut builder_overrides = CliOverrides::default();
-        builder_overrides.search = FlagState::Enable;
+        let builder_overrides = CliOverrides {
+            search: FlagState::Enable,
+            ..Default::default()
+        };
 
-        let mut patch = CliOverridesPatch::default();
-        patch.search = FlagState::Disable;
+        let patch = CliOverridesPatch {
+            search: FlagState::Disable,
+            ..Default::default()
+        };
 
         let resolved = resolve_cli_overrides(&builder_overrides, &patch, None);
         let args = cli_override_args(&resolved, true);
@@ -9250,11 +9318,15 @@ fi
 
     #[test]
     fn request_profile_override_replaces_builder_value() {
-        let mut builder_overrides = CliOverrides::default();
-        builder_overrides.profile = Some("builder".to_string());
+        let builder_overrides = CliOverrides {
+            profile: Some("builder".to_string()),
+            ..Default::default()
+        };
 
-        let mut patch = CliOverridesPatch::default();
-        patch.profile = Some("request".to_string());
+        let patch = CliOverridesPatch {
+            profile: Some("request".to_string()),
+            ..Default::default()
+        };
 
         let resolved = resolve_cli_overrides(&builder_overrides, &patch, None);
         let args: Vec<_> = cli_override_args(&resolved, true)
@@ -9262,7 +9334,7 @@ fi
             .map(|arg| arg.to_string_lossy().into_owned())
             .collect();
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--profile")
+            window.first().map(String::as_str) == Some("--profile")
                 && window.get(1).map(String::as_str) == Some("request")
         }));
         assert!(!args.contains(&"builder".to_string()));
@@ -9270,8 +9342,10 @@ fi
 
     #[test]
     fn request_oss_override_can_disable_builder_flag() {
-        let mut builder_overrides = CliOverrides::default();
-        builder_overrides.oss = FlagState::Enable;
+        let builder_overrides = CliOverrides {
+            oss: FlagState::Enable,
+            ..Default::default()
+        };
 
         let resolved =
             resolve_cli_overrides(&builder_overrides, &CliOverridesPatch::default(), None);
@@ -9281,8 +9355,10 @@ fi
             .collect();
         assert!(args.contains(&"--oss".to_string()));
 
-        let mut patch = CliOverridesPatch::default();
-        patch.oss = FlagState::Disable;
+        let patch = CliOverridesPatch {
+            oss: FlagState::Disable,
+            ..Default::default()
+        };
         let resolved = resolve_cli_overrides(&builder_overrides, &patch, None);
         let args: Vec<_> = cli_override_args(&resolved, true)
             .iter()
@@ -9320,19 +9396,19 @@ fi
             .collect();
 
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--enable")
+            window.first().map(String::as_str) == Some("--enable")
                 && window.get(1).map(String::as_str) == Some("builder-enable")
         }));
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--enable")
+            window.first().map(String::as_str) == Some("--enable")
                 && window.get(1).map(String::as_str) == Some("request-enable")
         }));
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--disable")
+            window.first().map(String::as_str) == Some("--disable")
                 && window.get(1).map(String::as_str) == Some("builder-disable")
         }));
         assert!(args.windows(2).any(|window| {
-            window.get(0).map(String::as_str) == Some("--disable")
+            window.first().map(String::as_str) == Some("--disable")
                 && window.get(1).map(String::as_str) == Some("request-disable")
         }));
     }
@@ -9409,7 +9485,7 @@ fi
 
     #[tokio::test]
     async fn exec_applies_cli_overrides_and_request_patch() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9480,7 +9556,7 @@ fi
 
     #[tokio::test]
     async fn resume_applies_search_and_selector_overrides() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9552,7 +9628,7 @@ fi
 
     #[tokio::test]
     async fn apply_respects_cli_overrides_without_search() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         clear_capability_cache();
 
         let temp = tempfile::tempdir().unwrap();
@@ -9596,7 +9672,7 @@ fi
 
     #[tokio::test]
     async fn auth_helper_uses_app_scoped_home_without_mutating_env() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         let temp = tempfile::tempdir().unwrap();
         let log_path = temp.path().join("auth.log");
         let app_home = temp.path().join("app-home");
@@ -9649,7 +9725,7 @@ exit 1
 
     #[tokio::test]
     async fn ensure_api_key_login_runs_when_logged_out() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         let temp = tempfile::tempdir().unwrap();
         let log_path = temp.path().join("login.log");
         let state_path = temp.path().join("api-key-state");
@@ -9711,7 +9787,7 @@ exit 2
 
     #[tokio::test]
     async fn ensure_chatgpt_login_launches_when_needed() {
-        let _guard = env_guard();
+        let _guard = env_guard_async().await;
         let temp = tempfile::tempdir().unwrap();
         let log_path = temp.path().join("chatgpt.log");
         let state_path = temp.path().join("chatgpt-state");

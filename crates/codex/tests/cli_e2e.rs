@@ -129,7 +129,7 @@ async fn exec_resume_diff_apply_live_roundtrip() -> Result<(), Box<dyn std::erro
     let exec_stream = match client.stream_exec(exec_request).await {
         Ok(stream) => stream,
         Err(err) => {
-            cli.note_skip(&format!("exec stream failed to start: {err}"));
+            cli.note_skip(format!("exec stream failed to start: {err}"));
             return Ok(());
         }
     };
@@ -139,7 +139,7 @@ async fn exec_resume_diff_apply_live_roundtrip() -> Result<(), Box<dyn std::erro
             Ok(ThreadEvent::ThreadStarted(started)) => thread_id = Some(started.thread_id.clone()),
             Ok(_) => {}
             Err(err) => {
-                cli.note_skip(&format!("exec stream parse error: {err}"));
+                cli.note_skip(format!("exec stream parse error: {err}"));
                 continue;
             }
         }
@@ -148,12 +148,12 @@ async fn exec_resume_diff_apply_live_roundtrip() -> Result<(), Box<dyn std::erro
     let exec_completion = match exec_stream.completion.await {
         Ok(done) => done,
         Err(err) => {
-            cli.note_skip(&format!("exec completion failed: {err}"));
+            cli.note_skip(format!("exec completion failed: {err}"));
             return Ok(());
         }
     };
     if !exec_completion.status.success() {
-        cli.note_skip(&format!(
+        cli.note_skip(format!(
             "exec exited with {} (live run)",
             exec_completion.status
         ));
@@ -169,13 +169,13 @@ async fn exec_resume_diff_apply_live_roundtrip() -> Result<(), Box<dyn std::erro
     let diff = match client.diff().await {
         Ok(output) => output,
         Err(CodexError::NonZeroExit { status, stderr }) => {
-            cli.note_skip(&format!("diff returned {}: {}", status, stderr.trim()));
+            cli.note_skip(format!("diff returned {}: {}", status, stderr.trim()));
             return Ok(());
         }
         Err(err) => return Err(err.into()),
     };
     if !diff.status.success() {
-        cli.note_skip(&format!(
+        cli.note_skip(format!(
             "diff exited {} without producing a replayable diff",
             diff.status
         ));
@@ -185,13 +185,13 @@ async fn exec_resume_diff_apply_live_roundtrip() -> Result<(), Box<dyn std::erro
     let apply = match client.apply().await {
         Ok(output) => output,
         Err(CodexError::NonZeroExit { status, stderr }) => {
-            cli.note_skip(&format!("apply returned {}: {}", status, stderr.trim()));
+            cli.note_skip(format!("apply returned {}: {}", status, stderr.trim()));
             return Ok(());
         }
         Err(err) => return Err(err.into()),
     };
     if !apply.status.success() {
-        cli.note_skip(&format!(
+        cli.note_skip(format!(
             "apply exited {} without applying changes",
             apply.status
         ));
@@ -221,26 +221,26 @@ async fn exec_resume_diff_apply_live_roundtrip() -> Result<(), Box<dyn std::erro
     let resume_stream = match client.stream_resume(resume_request).await {
         Ok(stream) => stream,
         Err(err) => {
-            cli.note_skip(&format!("resume failed to start: {err}"));
+            cli.note_skip(format!("resume failed to start: {err}"));
             return Ok(());
         }
     };
     let mut resume_events = resume_stream.events;
     while let Some(event) = resume_events.next().await {
         if let Err(err) = event {
-            cli.note_skip(&format!("resume stream parse error: {err}"));
+            cli.note_skip(format!("resume stream parse error: {err}"));
             continue;
         }
     }
     let resume_completion = match resume_stream.completion.await {
         Ok(done) => done,
         Err(err) => {
-            cli.note_skip(&format!("resume completion failed: {err}"));
+            cli.note_skip(format!("resume completion failed: {err}"));
             return Ok(());
         }
     };
     if !resume_completion.status.success() {
-        cli.note_skip(&format!(
+        cli.note_skip(format!(
             "resume exited {} without finishing successfully",
             resume_completion.status
         ));
@@ -274,7 +274,7 @@ async fn features_list_prefers_text_when_json_flag_is_missing(
     {
         Ok(output) => output,
         Err(CodexError::NonZeroExit { status, stderr }) => {
-            cli.note_skip(&format!(
+            cli.note_skip(format!(
                 "features list failed with {status}: {}",
                 stderr.trim()
             ));
@@ -305,7 +305,7 @@ async fn app_server_codegen_generates_schema_bundle() -> Result<(), Box<dyn std:
     {
         Ok(output) => output,
         Err(CodexError::NonZeroExit { status, stderr }) => {
-            cli.note_skip(&format!(
+            cli.note_skip(format!(
                 "app-server codegen exited {status}: {}",
                 stderr.trim()
             ));
@@ -339,7 +339,7 @@ async fn sandbox_runs_echo_command() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     if !run.status.success() {
-        cli.note_skip(&format!("sandbox exited {}: {}", run.status, run.stderr));
+        cli.note_skip(format!("sandbox exited {}: {}", run.status, run.stderr));
         return Ok(());
     }
 
@@ -369,7 +369,7 @@ async fn responses_api_proxy_emits_server_info_and_shuts_down(
     {
         Ok(handle) => handle,
         Err(CodexError::NonZeroExit { status, stderr }) => {
-            cli.note_skip(&format!(
+            cli.note_skip(format!(
                 "responses-api-proxy exited {status}: {}",
                 stderr.trim()
             ));
@@ -399,7 +399,7 @@ async fn responses_api_proxy_emits_server_info_and_shuts_down(
     }
 
     let Some(info) = info else {
-        cli.note_skip(&format!(
+        cli.note_skip(format!(
             "responses-api-proxy did not emit server info (last error: {})",
             last_err.unwrap_or_else(|| "missing file".to_string())
         ));
@@ -408,7 +408,7 @@ async fn responses_api_proxy_emits_server_info_and_shuts_down(
     };
 
     if let Err(err) = send_http_shutdown(info.port) {
-        cli.note_skip(&format!(
+        cli.note_skip(format!(
             "failed to hit responses-api-proxy shutdown endpoint on port {}: {err}",
             info.port
         ));
@@ -426,7 +426,7 @@ async fn responses_api_proxy_emits_server_info_and_shuts_down(
     };
 
     if !status.success() {
-        cli.note_skip(&format!(
+        cli.note_skip(format!(
             "responses-api-proxy exited with {} after shutdown request",
             status
         ));
@@ -468,7 +468,7 @@ async fn stdio_to_uds_relays_bytes() -> Result<(), Box<dyn std::error::Error>> {
     {
         Ok(child) => child,
         Err(CodexError::Spawn { source, .. }) => {
-            cli.note_skip(&format!("failed to spawn stdio-to-uds: {source}"));
+            cli.note_skip(format!("failed to spawn stdio-to-uds: {source}"));
             let _ = server.join();
             return Ok(());
         }
@@ -487,7 +487,7 @@ async fn stdio_to_uds_relays_bytes() -> Result<(), Box<dyn std::error::Error>> {
     let echoed = match time::timeout(Duration::from_secs(5), stdout.next_line()).await {
         Ok(Ok(Some(line))) => line,
         other => {
-            cli.note_skip(&format!("stdio-to-uds did not echo data: {other:?}"));
+            cli.note_skip(format!("stdio-to-uds did not echo data: {other:?}"));
             let _ = child.kill().await;
             let _ = server.join();
             return Ok(());
@@ -507,7 +507,7 @@ async fn stdio_to_uds_relays_bytes() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     if !status.success() {
-        cli.note_skip(&format!(
+        cli.note_skip(format!(
             "stdio-to-uds exited with {} after relaying data",
             status
         ));
@@ -527,14 +527,14 @@ async fn diff_and_apply_report_current_cli_gaps() -> Result<(), Box<dyn std::err
     match cli.client.diff().await {
         Ok(output) => {
             if !output.status.success() {
-                cli.note_skip(&format!(
+                cli.note_skip(format!(
                     "codex diff exited {} without producing a replayable diff",
                     output.status
                 ));
             }
         }
         Err(CodexError::NonZeroExit { status, stderr }) => {
-            cli.note_skip(&format!(
+            cli.note_skip(format!(
                 "codex diff returned {} (likely TTY/task prerequisite): {}",
                 status,
                 stderr.trim()
@@ -546,14 +546,14 @@ async fn diff_and_apply_report_current_cli_gaps() -> Result<(), Box<dyn std::err
     match cli.client.apply().await {
         Ok(output) => {
             if !output.status.success() {
-                cli.note_skip(&format!(
+                cli.note_skip(format!(
                     "codex apply exited {} without an actionable task id",
                     output.status
                 ));
             }
         }
         Err(CodexError::NonZeroExit { status, stderr }) => {
-            cli.note_skip(&format!(
+            cli.note_skip(format!(
                 "codex apply returned {} (missing task id or flag support): {}",
                 status,
                 stderr.trim()
@@ -591,7 +591,7 @@ async fn execpolicy_check_is_missing_in_current_cli() -> Result<(), Box<dyn std:
             );
         }
         Err(CodexError::NonZeroExit { status, stderr }) => {
-            cli.note_skip(&format!(
+            cli.note_skip(format!(
                 "execpolicy check not supported on this binary ({}): {}",
                 status,
                 stderr.trim()
@@ -604,17 +604,46 @@ async fn execpolicy_check_is_missing_in_current_cli() -> Result<(), Box<dyn std:
 }
 
 fn locate_binary() -> Option<PathBuf> {
-    env::var_os(BINARY_ENV)
+    let candidate = env::var_os(BINARY_ENV)
         .map(PathBuf::from)
         .or_else(|| env::var_os("CODEX_BINARY").map(PathBuf::from))
-        .or_else(|| {
-            let candidate = PathBuf::from("codex");
-            if candidate.as_os_str().is_empty() {
-                None
-            } else {
-                Some(candidate)
+        .unwrap_or_else(|| PathBuf::from("codex"));
+    if candidate.as_os_str().is_empty() {
+        return None;
+    }
+    Some(resolve_binary_candidate(candidate))
+}
+
+fn resolve_binary_candidate(candidate: PathBuf) -> PathBuf {
+    if candidate.is_absolute() || candidate.exists() || candidate.as_os_str() == "codex" {
+        return candidate;
+    }
+
+    let Some(workspace_root) = find_workspace_root() else {
+        return candidate;
+    };
+
+    let resolved = workspace_root.join(&candidate);
+    if resolved.exists() {
+        resolved
+    } else {
+        candidate
+    }
+}
+
+fn find_workspace_root() -> Option<PathBuf> {
+    let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    loop {
+        let manifest = dir.join("Cargo.toml");
+        if let Ok(contents) = fs::read_to_string(&manifest) {
+            if contents.contains("[workspace]") {
+                return Some(dir);
             }
-        })
+        }
+        if !dir.pop() {
+            return None;
+        }
+    }
 }
 
 fn read_version(binary: &Path) -> Option<String> {
@@ -703,11 +732,7 @@ fn run_git(args: &[&str], cwd: &Path) -> Result<(), Box<dyn std::error::Error>> 
     if status.success() {
         Ok(())
     } else {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("git {:?} failed with {status}", args),
-        )
-        .into())
+        Err(std::io::Error::other(format!("git {:?} failed with {status}", args)).into())
     }
 }
 
