@@ -165,3 +165,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
   - `cargo test -p codex` (pass; 125 unit tests + 1 integration + 8 e2e + 3 fixtures + 5 jsonl + 2 doc tests)
   - `make preflight` (pass; `Removed 8166 files, 4.2GiB total`)
 - Blockers: none
+
+## [2026-01-28 16:42 UTC] Code Agent – C3-code – START
+- Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C3-code → `in_progress`)
+- Worktree pending (`ccm-c3-reports-code` / `wt/ccm-c3-reports-code` to be added after docs commit)
+- Plan: implement `xtask codex-report`, `xtask codex-version-metadata`, and `xtask codex-retain` per C3-spec; run required commands; commit via worktree; update docs/tasks/log at end
+- Blockers: none
