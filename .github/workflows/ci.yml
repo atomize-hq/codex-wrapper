@@ -54,7 +54,7 @@ jobs:
           curl -fsSL -o codex.tgz "$URL"
           test "$(wc -c < codex.tgz)" = "$SIZE"
           echo "$SHA  codex.tgz" | sha256sum -c -
-          MEMBER="$(tar -tzf codex.tgz | awk 'NF && $0 !~ /\\/$/ {print; exit}')"
+          MEMBER="$(tar -tzf codex.tgz | awk 'NF && substr($0,length($0),1) != "/" {print; exit}')"
           test -n "$MEMBER"
           tar -xzf codex.tgz "$MEMBER"
           install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
@@ -98,7 +98,7 @@ jobs:
           curl -fsSL -o codex.tgz "$URL"
           test "$(wc -c < codex.tgz)" = "$SIZE"
           echo "$SHA  codex.tgz" | sha256sum -c -
-          MEMBER="$(tar -tzf codex.tgz | awk 'NF && $0 !~ /\\/$/ {print; exit}')"
+          MEMBER="$(tar -tzf codex.tgz | awk 'NF && substr($0,length($0),1) != "/" {print; exit}')"
           test -n "$MEMBER"
           tar -xzf codex.tgz "$MEMBER"
           install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl

@@ -98,7 +98,7 @@ jobs:
 
           # Sanity check: linux binary is runnable on this runner.
           LINUX_ASSET="_download/codex-x86_64-unknown-linux-musl.tar.gz"
-          MEMBER="$(tar -tzf "$LINUX_ASSET" | awk 'NF && $0 !~ /\\/$/ {print; exit}')"
+          MEMBER="$(tar -tzf "$LINUX_ASSET" | awk 'NF && substr($0,length($0),1) != "/" {print; exit}')"
           test -n "$MEMBER"
           tar -xzf "$LINUX_ASSET" "$MEMBER"
           install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
