@@ -105,3 +105,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Commands: `cargo fmt` (pass; no output); `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Checking xtask v0.2.0 (...)`; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 0.91s`)
 - Result: per-target snapshots can be written to `cli_manifests/codex/snapshots/<version>/<target_triple>.json`; union generation hard-fails when the required target is missing and otherwise emits `complete=false` + `missing_targets[]` when non-required snapshots are absent.
 - Blockers: none
+
+## [2026-01-28 15:34 UTC] Integration Agent – C1-integ – START
+- Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C1-integ → `in_progress`)
+- Worktree pending (`ccm-c1-union-integ` / `wt/ccm-c1-union-integ` to be added after docs commit)
+- Plan: merge `ccm-c1-union-code` + `ccm-c1-union-test`, reconcile to C1-spec, run required commands, commit via worktree, then fast-forward into `feat/codex-cli-parity-coverage-mapping`
+- Blockers: none
