@@ -1542,15 +1542,21 @@ impl CodexClient {
 
         {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
-            stdin
-                .write_all(prompt.as_bytes())
-                .await
-                .map_err(CodexError::StdinWrite)?;
-            stdin
-                .write_all(b"\n")
-                .await
-                .map_err(CodexError::StdinWrite)?;
-            stdin.shutdown().await.map_err(CodexError::StdinWrite)?;
+            if let Err(source) = stdin.write_all(prompt.as_bytes()).await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source).into());
+                }
+            }
+            if let Err(source) = stdin.write_all(b"\n").await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source).into());
+                }
+            }
+            if let Err(source) = stdin.shutdown().await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source).into());
+                }
+            }
         }
 
         let stdout = child.stdout.take().ok_or(CodexError::StdoutUnavailable)?;
@@ -1718,15 +1724,21 @@ impl CodexClient {
 
         if let Some(prompt) = &prompt {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
-            stdin
-                .write_all(prompt.as_bytes())
-                .await
-                .map_err(CodexError::StdinWrite)?;
-            stdin
-                .write_all(b"\n")
-                .await
-                .map_err(CodexError::StdinWrite)?;
-            stdin.shutdown().await.map_err(CodexError::StdinWrite)?;
+            if let Err(source) = stdin.write_all(prompt.as_bytes()).await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source).into());
+                }
+            }
+            if let Err(source) = stdin.write_all(b"\n").await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source).into());
+                }
+            }
+            if let Err(source) = stdin.shutdown().await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source).into());
+                }
+            }
         } else {
             let _ = child.stdin.take();
         }
@@ -2822,15 +2834,21 @@ impl CodexClient {
 
         if send_prompt_via_stdin {
             let mut stdin = child.stdin.take().ok_or(CodexError::StdinUnavailable)?;
-            stdin
-                .write_all(prompt.as_bytes())
-                .await
-                .map_err(CodexError::StdinWrite)?;
-            stdin
-                .write_all(b"\n")
-                .await
-                .map_err(CodexError::StdinWrite)?;
-            stdin.shutdown().await.map_err(CodexError::StdinWrite)?;
+            if let Err(source) = stdin.write_all(prompt.as_bytes()).await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source));
+                }
+            }
+            if let Err(source) = stdin.write_all(b"\n").await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source));
+                }
+            }
+            if let Err(source) = stdin.shutdown().await {
+                if source.kind() != std::io::ErrorKind::BrokenPipe {
+                    return Err(CodexError::StdinWrite(source));
+                }
+            }
         } else {
             let _ = child.stdin.take();
         }
