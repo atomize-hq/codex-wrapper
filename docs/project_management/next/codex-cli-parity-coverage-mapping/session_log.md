@@ -75,6 +75,13 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
   - `make preflight` (pass; runs `cargo fmt && cargo clippy ... && cargo clean && cargo check ... && cargo test ...`; `Removed 2946 files, 1.1GiB total`)
 - Blockers: none
 
+## [2026-01-28 15:06 UTC] Test Agent – C1-test – START
+- Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C1-test → `in_progress`)
+- Worktree pending (`ccm-c1-union-test` / `wt/ccm-c1-union-test` to be added after docs commit)
+- Plan: add C1 tests/fixtures for per-target snapshot output + union merge semantics (missing required target hard error; non-required missing => `complete=false` + `missing_targets`; conflicts recorded not fatal; determinism), run required commands, commit via worktree, update docs/tasks/log at end
+- Blockers: none
+
 ## [2026-01-28 15:06 UTC] Code Agent – C1-code – START
 - Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
 - Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C1-code → `in_progress`)
