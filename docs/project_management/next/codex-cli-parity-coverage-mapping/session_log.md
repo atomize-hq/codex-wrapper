@@ -130,6 +130,12 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Plan: implement `xtask codex-wrapper-coverage` per C2-spec (generate `cli_manifests/codex/wrapper_coverage.json` from `crates/codex/src/wrapper_coverage_manifest.rs` with deterministic ordering + `SOURCE_DATE_EPOCH` timestamps), run required commands, commit via worktree, update docs/tasks/log at end
 - Blockers: none
 
+## [2026-01-28 16:20 UTC] Code Agent – C2-code – END
+- Worktree `wt/ccm-c2-wrapper-coverage-code` on branch `ccm-c2-wrapper-coverage-code` (commit `57617ff`) implemented `xtask codex-wrapper-coverage` to generate deterministic `wrapper_coverage.json` from `crates/codex/src/wrapper_coverage_manifest.rs` (rules-based ordering + `SOURCE_DATE_EPOCH` support).
+- Commands: `cargo fmt` (pass; no output); `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 1.04s`)
+- Result: `cargo run -p xtask -- codex-wrapper-coverage --out <FILE>` now emits schema-compatible, pretty-printed JSON (trailing newline) with `wrapper_version` sourced from the `codex` crate version.
+- Blockers: none
+
 ## [2026-01-28 16:14 UTC] Test Agent – C2-test – START
 - Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
 - Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C2-test → `in_progress`)
