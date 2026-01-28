@@ -100,8 +100,10 @@ jobs:
           LINUX_ASSET="_download/codex-x86_64-unknown-linux-musl.tar.gz"
           MEMBER="$(tar -tzf "$LINUX_ASSET" | awk 'NF && substr($0,length($0),1) != "/" {print; exit}')"
           test -n "$MEMBER"
-          tar -xzf "$LINUX_ASSET" "$MEMBER"
-          install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
+          rm -rf _extract
+          mkdir -p _extract
+          tar -xzf "$LINUX_ASSET" -C _extract "$MEMBER"
+          install -m 0755 "_extract/$MEMBER" ./codex-x86_64-unknown-linux-musl
           ./codex-x86_64-unknown-linux-musl --version
 
       - name: Update version pointers

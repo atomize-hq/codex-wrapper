@@ -56,8 +56,10 @@ jobs:
           echo "$SHA  codex.tgz" | sha256sum -c -
           MEMBER="$(tar -tzf codex.tgz | awk 'NF && substr($0,length($0),1) != "/" {print; exit}')"
           test -n "$MEMBER"
-          tar -xzf codex.tgz "$MEMBER"
-          install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
+          rm -rf _extract
+          mkdir -p _extract
+          tar -xzf codex.tgz -C _extract "$MEMBER"
+          install -m 0755 "_extract/$MEMBER" ./codex-x86_64-unknown-linux-musl
           ./codex-x86_64-unknown-linux-musl --version
 
       - name: Validated checks (real binary)
@@ -100,8 +102,10 @@ jobs:
           echo "$SHA  codex.tgz" | sha256sum -c -
           MEMBER="$(tar -tzf codex.tgz | awk 'NF && substr($0,length($0),1) != "/" {print; exit}')"
           test -n "$MEMBER"
-          tar -xzf codex.tgz "$MEMBER"
-          install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
+          rm -rf _extract
+          mkdir -p _extract
+          tar -xzf codex.tgz -C _extract "$MEMBER"
+          install -m 0755 "_extract/$MEMBER" ./codex-x86_64-unknown-linux-musl
           ./codex-x86_64-unknown-linux-musl --version
 
       - name: Validated checks (real binary)
