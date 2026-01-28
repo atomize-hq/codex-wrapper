@@ -147,3 +147,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree `wt/ccm-c2-wrapper-coverage-test` on branch `ccm-c2-wrapper-coverage-test` (commit `c1f38aa`) added `crates/xtask/tests/c2_spec_wrapper_coverage.rs` covering: wrapper coverage generator determinism + wrapper_version; validator rejects `intentionally_unsupported` without `note`; validator rejects overlapping wrapper scopes (no-scope and platforms expansion).
 - Commands: `cargo fmt` (pass; no output); `cargo test -p xtask --test c2_spec_wrapper_coverage` (fail: `xtask` missing `codex-wrapper-coverage` subcommand; panics with “xtask is missing `codex-wrapper-coverage` (C2-code must add the subcommand)”).
 - Blockers: pending C2-code implementation of `xtask codex-wrapper-coverage` (command + generator) per C2-spec.
+
+## [2026-01-28 16:35 UTC] Integration Agent – C2-integ – START
+- Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C2-integ → `in_progress`)
+- Worktree pending (`ccm-c2-wrapper-coverage-integ` / `wt/ccm-c2-wrapper-coverage-integ` to be added after docs commit)
+- Plan: merge `ccm-c2-wrapper-coverage-code` + `ccm-c2-wrapper-coverage-test`, reconcile to C2-spec (wire `codex-wrapper-coverage` subcommand), run required commands, commit via worktree, then fast-forward into `feat/codex-cli-parity-coverage-mapping`
+- Blockers: none
