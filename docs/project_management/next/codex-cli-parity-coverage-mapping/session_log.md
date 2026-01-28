@@ -99,3 +99,9 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`ccm-c1-union-code` / `wt/ccm-c1-union-code` to be added after docs commit)
 - Plan: extend `xtask codex-snapshot` (per-target `--out-file` + raw help under `raw_help/<version>/<target_triple>`), implement `xtask codex-union` (deterministic union + conflicts per RULES/ADR), run required commands, commit via worktree, update docs/tasks/log at end
 - Blockers: none
+
+## [2026-01-28 15:32 UTC] Code Agent – C1-code – END
+- Worktree `wt/ccm-c1-union-code` on branch `ccm-c1-union-code` (commit `d5b2f20`) implemented C1 per-target snapshots + union builder: `xtask codex-snapshot` now supports per-target `--out-file` and CI raw help layout via `--capture-raw-help --raw-help-target <target_triple>`, and new `xtask codex-union` merges per-target snapshots into `snapshots/<version>/union.json` with conflict recording.
+- Commands: `cargo fmt` (pass; no output); `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Checking xtask v0.2.0 (...)`; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 0.91s`)
+- Result: per-target snapshots can be written to `cli_manifests/codex/snapshots/<version>/<target_triple>.json`; union generation hard-fails when the required target is missing and otherwise emits `complete=false` + `missing_targets[]` when non-required snapshots are absent.
+- Blockers: none
