@@ -102,7 +102,7 @@ fn c4_spec_ci_workflow_has_conditional_codex_validate_gate() {
 
     // Ensure the job actually runs codex-validate (not just mentions it).
     let validate_invocation =
-        Regex::new(r"cargo\\s+run\\s+-p\\s+xtask\\s+--[\\s\\\\]*\\n?[\\s\\\\]*codex-validate")
+        Regex::new(r"cargo\s+run\s+-p\s+xtask\s+--[\s\\]*\n?[\s\\]*codex-validate")
             .expect("valid regex");
     assert!(
         validate_invocation.is_match(&yml),

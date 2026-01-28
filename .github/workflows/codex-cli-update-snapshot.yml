@@ -23,6 +23,7 @@ jobs:
     outputs:
       tag: ${{ steps.upstream.outputs.tag }}
       source_date_epoch: ${{ steps.upstream.outputs.source_date_epoch }}
+      snapshot_matrix: ${{ steps.matrix.outputs.snapshot_matrix }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +46,36 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "source_date_epoch=${SOURCE_DATE_EPOCH}" >> "$GITHUB_OUTPUT"
 
+      - name: Compute snapshot matrix from RULES.json (union.expected_targets)
+        id: matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RULES="cli_manifests/codex/RULES.json"
+
+          entries=()
+          while IFS= read -r target; do
+            case "$target" in
+              x86_64-unknown-linux-musl)
+                entries+=("{\"target_triple\":\"$target\",\"runs_on\":\"ubuntu-latest\",\"asset_name\":\"codex-$target.tar.gz\",\"binary_path\":\"./codex-$target\",\"extract\":true}")
+                ;;
+              aarch64-apple-darwin)
+                entries+=("{\"target_triple\":\"$target\",\"runs_on\":\"macos-latest\",\"asset_name\":\"codex-$target.tar.gz\",\"binary_path\":\"./codex-$target\",\"extract\":true}")
+                ;;
+              x86_64-pc-windows-msvc)
+                entries+=("{\"target_triple\":\"$target\",\"runs_on\":\"windows-latest\",\"asset_name\":\"codex-$target.exe\",\"binary_path\":\"./codex-$target.exe\",\"extract\":false}")
+                ;;
+              *)
+                echo "Unsupported target_triple in ${RULES} union.expected_targets: ${target}" >&2
+                exit 1
+                ;;
+            esac
+          done < <(jq -r '.union.expected_targets[]' "$RULES")
+
+          printf '%s\n' "${entries[@]}" | jq -s '{include: .}' > snapshot_matrix.json
+          echo "snapshot_matrix=$(cat snapshot_matrix.json)" >> "$GITHUB_OUTPUT"
+
       - name: Download artifacts + update lockfile
         shell: bash
         env:
@@ -53,13 +84,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          cat > targets.json <<'JSON'
-          [
-            {"target_triple":"x86_64-unknown-linux-musl","asset_name":"codex-x86_64-unknown-linux-musl.tar.gz"},
-            {"target_triple":"aarch64-apple-darwin","asset_name":"codex-aarch64-apple-darwin.tar.gz"},
-            {"target_triple":"x86_64-pc-windows-msvc","asset_name":"codex-x86_64-pc-windows-msvc.exe"}
-          ]
-          JSON
+          jq '.include | map({target_triple, asset_name})' snapshot_matrix.json > targets.json
 
           mkdir -p _download
           jq -c '.[]' targets.json | while read -r row; do
@@ -117,23 +142,7 @@ jobs:
     runs-on: ${{ matrix.runs_on }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - target_triple: x86_64-unknown-linux-musl
-            runs_on: ubuntu-latest
-            asset_name: codex-x86_64-unknown-linux-musl.tar.gz
-            binary_path: ./codex-x86_64-unknown-linux-musl
-            extract: true
-          - target_triple: aarch64-apple-darwin
-            runs_on: macos-latest
-            asset_name: codex-aarch64-apple-darwin.tar.gz
-            binary_path: ./codex-aarch64-apple-darwin
-            extract: true
-          - target_triple: x86_64-pc-windows-msvc
-            runs_on: windows-latest
-            asset_name: codex-x86_64-pc-windows-msvc.exe
-            binary_path: ./codex-x86_64-pc-windows-msvc.exe
-            extract: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.snapshot_matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
