@@ -218,6 +218,16 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Plan: update CI workflows per C4-spec (snapshot → union → wrapper-coverage → report → version-metadata → validate + artifact uploads), then run fmt/clippy and commit via worktree
 - Blockers: none
 
+## [2026-01-28 18:19 UTC] Code Agent – C4-code – END
+- Worktree `wt/ccm-c4-ci-code` on branch `ccm-c4-ci-code` (commit `edfe1bf`) updated CI workflows per C4-spec:
+  - `.github/workflows/codex-cli-update-snapshot.yml`: multi-platform per-target snapshots + raw help artifact uploads; Linux union → wrapper coverage → reports → version metadata (reported) → `xtask codex-validate`; uploads a committed-artifact bundle as a PR fallback; PR creation remains best-effort.
+  - `.github/workflows/ci.yml`: adds a hard-gate `xtask codex-validate` job that runs only when `cli_manifests/codex/versions/*.json` exists.
+  - `.gitignore`: ignore `cli_manifests/codex/raw_help/` and CI-only `_download/`/`_extract/` to prevent accidental commits.
+- Commands:
+  - `cargo fmt` (pass; no output)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 8.84s`)
+- Blockers: none
+
 ## [2026-01-28 18:01 UTC] Test Agent – C4-test – START
 - Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
 - Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C4-test → `in_progress`)
