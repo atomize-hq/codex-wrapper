@@ -40,11 +40,12 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ needs.versions.outputs.latest_validated }}"
-          ASSET="codex-x86_64-unknown-linux-musl.tar.gz"
+          TARGET="x86_64-unknown-linux-musl"
+          ASSET="codex-${TARGET}.tar.gz"
 
-          URL="$(jq -r --arg v "$VERSION" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .os=="linux" and .arch=="x86_64" and .variant=="musl" and .asset_name==$a) | .download_url' cli_manifests/codex/artifacts.lock.json)"
-          SHA="$(jq -r --arg v "$VERSION" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .os=="linux" and .arch=="x86_64" and .variant=="musl" and .asset_name==$a) | .sha256' cli_manifests/codex/artifacts.lock.json)"
-          SIZE="$(jq -r --arg v "$VERSION" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .os=="linux" and .arch=="x86_64" and .variant=="musl" and .asset_name==$a) | .size_bytes' cli_manifests/codex/artifacts.lock.json)"
+          URL="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .target_triple==$t and .asset_name==$a) | .download_url' cli_manifests/codex/artifacts.lock.json)"
+          SHA="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .target_triple==$t and .asset_name==$a) | .sha256' cli_manifests/codex/artifacts.lock.json)"
+          SIZE="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .target_triple==$t and .asset_name==$a) | .size_bytes' cli_manifests/codex/artifacts.lock.json)"
 
           test -n "$URL" && test "$URL" != "null"
           test -n "$SHA" && test "$SHA" != "null"
@@ -83,11 +84,12 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ needs.versions.outputs.min_supported }}"
-          ASSET="codex-x86_64-unknown-linux-musl.tar.gz"
+          TARGET="x86_64-unknown-linux-musl"
+          ASSET="codex-${TARGET}.tar.gz"
 
-          URL="$(jq -r --arg v "$VERSION" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .os=="linux" and .arch=="x86_64" and .variant=="musl" and .asset_name==$a) | .download_url' cli_manifests/codex/artifacts.lock.json)"
-          SHA="$(jq -r --arg v "$VERSION" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .os=="linux" and .arch=="x86_64" and .variant=="musl" and .asset_name==$a) | .sha256' cli_manifests/codex/artifacts.lock.json)"
-          SIZE="$(jq -r --arg v "$VERSION" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .os=="linux" and .arch=="x86_64" and .variant=="musl" and .asset_name==$a) | .size_bytes' cli_manifests/codex/artifacts.lock.json)"
+          URL="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .target_triple==$t and .asset_name==$a) | .download_url' cli_manifests/codex/artifacts.lock.json)"
+          SHA="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .target_triple==$t and .asset_name==$a) | .sha256' cli_manifests/codex/artifacts.lock.json)"
+          SIZE="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.codex_version==$v and .target_triple==$t and .asset_name==$a) | .size_bytes' cli_manifests/codex/artifacts.lock.json)"
 
           test -n "$URL" && test "$URL" != "null"
           test -n "$SHA" && test "$SHA" != "null"

@@ -32,42 +32,52 @@ jobs:
         run: |
           set -euo pipefail
           TAG="rust-v${VERSION}"
-          ASSET="codex-x86_64-unknown-linux-musl.tar.gz"
 
           curl -fsSL "https://api.github.com/repos/openai/codex/releases/tags/${TAG}" > release.json
           test "$(jq -r '.draft' release.json)" = "false"
           test "$(jq -r '.prerelease' release.json)" = "false"
 
-          URL="$(jq -r --arg a "$ASSET" '.assets[] | select(.name==$a) | .browser_download_url' release.json)"
-          test -n "$URL" && test "$URL" != "null"
-
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "asset=${ASSET}" >> "$GITHUB_OUTPUT"
-          echo "url=${URL}" >> "$GITHUB_OUTPUT"
 
-      - name: Download artifact + update lockfile
+      - name: Download artifacts + update lockfile
         shell: bash
         env:
           VERSION: ${{ inputs.version }}
-          ASSET: ${{ steps.upstream.outputs.asset }}
-          URL: ${{ steps.upstream.outputs.url }}
+          TAG: ${{ steps.upstream.outputs.tag }}
         run: |
           set -euo pipefail
-          curl -fsSL -o codex.tgz "$URL"
-          SIZE_BYTES="$(wc -c < codex.tgz | tr -d ' ')"
-          SHA256="$(sha256sum codex.tgz | awk '{print $1}')"
 
-          jq -n \
-            --arg v "$VERSION" \
-            --arg os "linux" \
-            --arg arch "x86_64" \
-            --arg variant "musl" \
-            --arg asset "$ASSET" \
-            --arg url "$URL" \
-            --arg sha "$SHA256" \
-            --argjson size "$SIZE_BYTES" \
-            '{codex_version:$v, os:$os, arch:$arch, variant:$variant, asset_name:$asset, download_url:$url, sha256:$sha, size_bytes:$size}' \
-            > artifact.json
+          cat > targets.json <<'JSON'
+          [
+            {"target_triple":"x86_64-unknown-linux-musl","asset_name":"codex-x86_64-unknown-linux-musl.tar.gz"},
+            {"target_triple":"aarch64-apple-darwin","asset_name":"codex-aarch64-apple-darwin.tar.gz"},
+            {"target_triple":"x86_64-pc-windows-msvc","asset_name":"codex-x86_64-pc-windows-msvc.exe"}
+          ]
+          JSON
+
+          mkdir -p _download
+          jq -c '.[]' targets.json | while read -r row; do
+            TARGET="$(jq -r '.target_triple' <<<"$row")"
+            ASSET="$(jq -r '.asset_name' <<<"$row")"
+            URL="https://github.com/openai/codex/releases/download/${TAG}/${ASSET}"
+
+            OUT="_download/${ASSET}"
+            curl -fsSL -o "$OUT" "$URL"
+            SIZE_BYTES="$(wc -c < "$OUT" | tr -d ' ')"
+            SHA256="$(sha256sum "$OUT" | awk '{print $1}')"
+
+            jq -n \
+              --arg v "$VERSION" \
+              --arg t "$TARGET" \
+              --arg asset "$ASSET" \
+              --arg url "$URL" \
+              --arg sha "$SHA256" \
+              --argjson size "$SIZE_BYTES" \
+              '{codex_version:$v, target_triple:$t, asset_name:$asset, download_url:$url, sha256:$sha, size_bytes:$size}' \
+              > "_download/${TARGET}.artifact.json"
+          done
+
+          jq -s '.' _download/*.artifact.json > artifact.json
 
           jq \
             --slurpfile new artifact.json \
@@ -76,17 +86,20 @@ jobs:
               | .upstream_repo = "openai/codex"
               | .artifacts = (
                   ( .artifacts // [] )
-                  | map(select(.codex_version != $new[0].codex_version or .os != $new[0].os or .arch != $new[0].arch or .variant != $new[0].variant))
+                  | map(select(.codex_version != $new[0].codex_version))
                   + $new
-                  | sort_by([(.codex_version|split(".")|map(tonumber)), .os, .arch, .variant])
+                  | unique_by(.codex_version, .target_triple)
+                  | sort_by([(.codex_version|split(".")|map(tonumber)), .target_triple])
                 )
             ' \
             cli_manifests/codex/artifacts.lock.json > artifacts.lock.json.tmp
           mv artifacts.lock.json.tmp cli_manifests/codex/artifacts.lock.json
 
-          MEMBER="$(tar -tzf codex.tgz | awk 'NF && $0 !~ /\\/$/ {print; exit}')"
+          # Sanity check: linux binary is runnable on this runner.
+          LINUX_ASSET="_download/codex-x86_64-unknown-linux-musl.tar.gz"
+          MEMBER="$(tar -tzf "$LINUX_ASSET" | awk 'NF && $0 !~ /\\/$/ {print; exit}')"
           test -n "$MEMBER"
-          tar -xzf codex.tgz "$MEMBER"
+          tar -xzf "$LINUX_ASSET" "$MEMBER"
           install -m 0755 "$MEMBER" ./codex-x86_64-unknown-linux-musl
           ./codex-x86_64-unknown-linux-musl --version
 
@@ -121,7 +134,7 @@ jobs:
           body: |
             Updates Codex CLI snapshot artifacts and version pointers.
 
-            - Downloads `rust-v${{ inputs.version }}` linux musl binary and records `sha256` + `size_bytes` in `cli_manifests/codex/artifacts.lock.json`
+            - Downloads `rust-v${{ inputs.version }}` release assets from GitHub Releases and records `download_url` + `sha256` + `size_bytes` in `cli_manifests/codex/artifacts.lock.json` (Linux/macOS/Windows targets)
             - Regenerates `cli_manifests/codex/current.json` (and `raw_help/<version>/...`) via `xtask codex-snapshot`
             - Updates `cli_manifests/codex/latest_validated.txt` (and optionally `min_supported.txt`)
           branch: "automation/codex-cli-${{ inputs.version }}"

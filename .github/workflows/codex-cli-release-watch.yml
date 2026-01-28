@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  issues: write
+  actions: write
 
 jobs:
   watch:
@@ -63,41 +63,17 @@ jobs:
               return;
             }
 
-            const title = `Codex CLI release watch: candidate ${candidate}`;
-            const releaseUrl = (v) => `https://github.com/openai/codex/releases/tag/rust-v${v}`;
-            const workflowUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/codex-cli-update-snapshot.yml`;
-            const body =
-              `Upstream Codex CLI release watch detected a new candidate.\n\n` +
-              `- latest_validated: ${latestValidated}\n` +
-              `- latest_stable: ${latestStable} (${releaseUrl(latestStable)})\n` +
-              `- candidate (stable-minus-one): ${candidate} (${releaseUrl(candidate)})\n\n` +
-              `Checklist:\n` +
-              `- [ ] Run Update Snapshot workflow: ${workflowUrl}\n` +
-              `  - version: ${candidate}\n` +
-              `  - update_min_supported: false (unless policy bump is intended)\n`;
+            core.info(`Dispatching codex-cli-update-snapshot.yml for version=${candidate}`);
 
-            const search = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open in:title "${title}"`,
-            });
-
-            if (search.data.items.length > 0) {
-              const issueNumber = search.data.items[0].number;
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                title,
-                body,
-              });
-              core.info(`Updated issue #${issueNumber}: ${title}`);
-              return;
-            }
-
-            const created = await github.rest.issues.create({
+            await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title,
-              body,
+              workflow_id: "codex-cli-update-snapshot.yml",
+              ref: "feat/codex-cli-parity",
+              inputs: {
+                version: candidate,
+                update_min_supported: "false",
+              },
             });
-            core.info(`Created issue #${created.data.number}: ${title}`);
 
+            core.info(`Dispatched workflow for candidate ${candidate}`);
