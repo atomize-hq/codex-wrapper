@@ -5039,19 +5039,37 @@ impl ResponsesApiProxyHandle {
             return Ok(None);
         };
 
-        let contents = fs::read_to_string(path).await.map_err(|source| {
-            CodexError::ResponsesApiProxyInfoRead {
-                path: path.clone(),
-                source,
+        const MAX_ATTEMPTS: usize = 10;
+        const BACKOFF_MS: u64 = 25;
+
+        for attempt in 0..MAX_ATTEMPTS {
+            match fs::read_to_string(path).await {
+                Ok(contents) => match serde_json::from_str::<ResponsesApiProxyInfo>(&contents) {
+                    Ok(info) => return Ok(Some(info)),
+                    Err(source) => {
+                        if attempt + 1 == MAX_ATTEMPTS {
+                            return Err(CodexError::ResponsesApiProxyInfoParse {
+                                path: path.clone(),
+                                source,
+                            });
+                        }
+                    }
+                },
+                Err(source) => {
+                    let is_missing = source.kind() == std::io::ErrorKind::NotFound;
+                    if !is_missing || attempt + 1 == MAX_ATTEMPTS {
+                        return Err(CodexError::ResponsesApiProxyInfoRead {
+                            path: path.clone(),
+                            source,
+                        });
+                    }
+                }
             }
-        })?;
-        let info: ResponsesApiProxyInfo = serde_json::from_str(&contents).map_err(|source| {
-            CodexError::ResponsesApiProxyInfoParse {
-                path: path.clone(),
-                source,
-            }
-        })?;
-        Ok(Some(info))
+
+            tokio::time::sleep(std::time::Duration::from_millis(BACKOFF_MS)).await;
+        }
+
+        unreachable!("read_server_info loop must return by MAX_ATTEMPTS")
     }
 }
 
