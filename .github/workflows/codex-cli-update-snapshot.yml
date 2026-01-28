@@ -128,6 +128,18 @@ jobs:
             --capture-raw-help \
             --supplement cli_manifests/codex/supplement/commands.json
 
+      - name: Upload snapshot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: "codex-cli-snapshot-${{ inputs.version }}"
+          if-no-files-found: error
+          path: |
+            cli_manifests/codex/current.json
+            cli_manifests/codex/raw_help/${{ inputs.version }}/
+            cli_manifests/codex/artifacts.lock.json
+            cli_manifests/codex/latest_validated.txt
+            cli_manifests/codex/min_supported.txt
+
       - name: Create PR (best effort)
         continue-on-error: true
         uses: peter-evans/create-pull-request@v6
@@ -143,15 +155,3 @@ jobs:
             - Updates `cli_manifests/codex/latest_validated.txt` (and optionally `min_supported.txt`)
           branch: "automation/codex-cli-${{ inputs.version }}"
           delete-branch: true
-
-      - name: Upload snapshot artifacts (fallback when PR creation disabled)
-        uses: actions/upload-artifact@v4
-        with:
-          name: "codex-cli-snapshot-${{ inputs.version }}"
-          if-no-files-found: error
-          path: |
-            cli_manifests/codex/current.json
-            cli_manifests/codex/raw_help/${{ inputs.version }}/
-            cli_manifests/codex/artifacts.lock.json
-            cli_manifests/codex/latest_validated.txt
-            cli_manifests/codex/min_supported.txt
