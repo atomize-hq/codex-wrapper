@@ -64,3 +64,13 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`ccm-c0-validate-integ` / `wt/ccm-c0-validate-integ` to be added after docs commit)
 - Plan: merge `ccm-c0-validate-code` + `ccm-c0-validate-test`, reconcile to C0-spec (wire `codex-validate` subcommand), run required commands, commit via worktree, then fast-forward into `feat/codex-cli-parity-coverage-mapping`
 - Blockers: none
+
+## [2026-01-28 14:54 UTC] Integration Agent – C0-integ – END
+- Worktree `wt/ccm-c0-validate-integ` on branch `ccm-c0-validate-integ` (commit `9e4ad45`) merged `ccm-c0-validate-code` + `ccm-c0-validate-test`, fixed `jsonschema` compilation by rewriting repo-relative schema `$id` to file URIs at runtime, and ensured `xtask codex-validate` runs and tests pass.
+- Merged `ccm-c0-validate-integ` → fast-forwarded `feat/codex-cli-parity-coverage-mapping`
+- Commands:
+  - `cargo fmt` (pass; no output)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 9.55s`)
+  - `cargo test -p xtask` (pass; `c0_spec_snapshot` 4 passed, `c0_spec_validate` 5 passed)
+  - `make preflight` (pass; runs `cargo fmt && cargo clippy ... && cargo clean && cargo check ... && cargo test ...`; `Removed 2946 files, 1.1GiB total`)
+- Blockers: none
