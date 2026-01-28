@@ -122,3 +122,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
   - `cargo test -p xtask` (pass)
   - `make preflight` (pass; `Removed 3099 files, 1.2GiB total`)
 - Blockers: none
+
+## [2026-01-28 16:06 UTC] Code Agent – C2-code – START
+- Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C2-code → `in_progress`)
+- Worktree pending (`ccm-c2-wrapper-coverage-code` / `wt/ccm-c2-wrapper-coverage-code` to be added after docs commit)
+- Plan: implement `xtask codex-wrapper-coverage` per C2-spec (generate `cli_manifests/codex/wrapper_coverage.json` from `crates/codex/src/wrapper_coverage_manifest.rs` with deterministic ordering + `SOURCE_DATE_EPOCH` timestamps), run required commands, commit via worktree, update docs/tasks/log at end
+- Blockers: none

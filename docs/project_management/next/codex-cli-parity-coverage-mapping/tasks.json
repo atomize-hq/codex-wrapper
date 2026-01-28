@@ -248,7 +248,7 @@
     "name": "Wrapper coverage generator (code)",
     "type": "code",
     "phase": "C2",
-    "status": "pending",
+    "status": "in_progress",
     "description": "Implement deterministic generation of `cli_manifests/codex/wrapper_coverage.json` per C2-spec (production code only).",
     "references": [
       "docs/adr/0002-codex-cli-parity-coverage-mapping.md",
