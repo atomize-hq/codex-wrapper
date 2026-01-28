@@ -154,3 +154,14 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`ccm-c2-wrapper-coverage-integ` / `wt/ccm-c2-wrapper-coverage-integ` to be added after docs commit)
 - Plan: merge `ccm-c2-wrapper-coverage-code` + `ccm-c2-wrapper-coverage-test`, reconcile to C2-spec (wire `codex-wrapper-coverage` subcommand), run required commands, commit via worktree, then fast-forward into `feat/codex-cli-parity-coverage-mapping`
 - Blockers: none
+
+## [2026-01-28 16:40 UTC] Integration Agent – C2-integ – END
+- Worktree `wt/ccm-c2-wrapper-coverage-integ` on branch `ccm-c2-wrapper-coverage-integ` (tip `ff00487`) merged `ccm-c2-wrapper-coverage-code` + `ccm-c2-wrapper-coverage-test` and reconciled to C2-spec (wired `xtask codex-wrapper-coverage` subcommand + generator; added C2 tests).
+- Merged `ccm-c2-wrapper-coverage-integ` → fast-forwarded `feat/codex-cli-parity-coverage-mapping`
+- Commands:
+  - `cargo fmt` (pass; no output)
+  - `cargo clippy --workspace --all-targets -- -D warnings` (pass; `Finished \`dev\` profile [unoptimized + debuginfo] target(s) in 10.92s`)
+  - `cargo test -p xtask` (pass; includes `c2_spec_wrapper_coverage` 4 passed)
+  - `cargo test -p codex` (pass; 125 unit tests + 1 integration + 8 e2e + 3 fixtures + 5 jsonl + 2 doc tests)
+  - `make preflight` (pass; `Removed 8166 files, 4.2GiB total`)
+- Blockers: none
