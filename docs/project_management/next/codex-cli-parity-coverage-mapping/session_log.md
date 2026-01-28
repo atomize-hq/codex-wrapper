@@ -38,3 +38,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`ccm-c0-validate-code` / `wt/ccm-c0-validate-code` to be added after docs commit)
 - Plan: implement `xtask codex-validate` per C0-spec + VALIDATOR_SPEC, run required commands, commit via worktree, update docs/tasks/log at end
 - Blockers: none
+
+## [2026-01-28 14:13 UTC] Test Agent – C0-test – START
+- Checked out `feat/codex-cli-parity-coverage-mapping`, `git pull --ff-only` (already up to date)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C0-test → `in_progress`)
+- Worktree pending (`ccm-c0-validate-test` / `wt/ccm-c0-validate-test` to be added after docs commit)
+- Plan: add tests for `xtask codex-validate` per C0-spec (pass case + deterministic error cases), run required commands, commit via worktree, update docs/tasks/log at end
+- Blockers: none
