@@ -173,7 +173,7 @@
       "Remove worktree `wt/wcg-c1-scenarios-3-6-code`."
     ],
     "worktree": "wt/wcg-c1-scenarios-3-6-code",
-    "integration_task": "C4-integ",
+    "integration_task": "C1-integ",
     "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C1-code.md",
     "depends_on": ["C0-integ"],
     "concurrent_with": ["C1-test"]
@@ -217,10 +217,52 @@
       "Remove worktree `wt/wcg-c1-scenarios-3-6-test`."
     ],
     "worktree": "wt/wcg-c1-scenarios-3-6-test",
-    "integration_task": "C4-integ",
+    "integration_task": "C1-integ",
     "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C1-test.md",
     "depends_on": ["C0-integ"],
     "concurrent_with": ["C1-code"]
+  },
+  {
+    "id": "C1-integ",
+    "name": "Scenario Catalog v1 (3-6) (integration)",
+    "type": "integration",
+    "phase": "C1",
+    "status": "pending",
+    "description": "Merge C1 code/test, reconcile to C1 spec, and gate with fmt/clippy/tests/preflight (no committed artifacts refreshed in C1).",
+    "references": [
+      "docs/adr/0003-wrapper-coverage-auto-generation.md",
+      "docs/specs/codex-wrapper-coverage-generator-contract.md",
+      "docs/specs/codex-wrapper-coverage-scenarios-v1.md",
+      "cli_manifests/codex/RULES.json",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/plan.md",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/C1-spec.md",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C1-integ.md"
+    ],
+    "acceptance_criteria": [
+      "C1 merged and matches C1-spec.md",
+      "Commands executed and logged: `cargo fmt`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p xtask`, `make preflight`",
+      "`SOURCE_DATE_EPOCH=0 cargo run -p xtask -- codex-wrapper-coverage --out /tmp/wrapper_coverage.json` succeeds"
+    ],
+    "start_checklist": [
+      "git checkout feat/codex-wrapper-coverage-auto-generation && git pull --ff-only",
+      "Read plan.md, tasks.json, session_log.md, C1-spec.md, kickoff prompt",
+      "Set task status to in_progress in docs/project_management/next/codex-wrapper-coverage-auto-generation/tasks.json (orchestration branch)",
+      "Add START entry to docs/project_management/next/codex-wrapper-coverage-auto-generation/session_log.md; commit docs with message 'docs: start C1-integ'",
+      "Create the integration branch and worktree: `git worktree add -b wcg-c1-scenarios-3-6-integ wt/wcg-c1-scenarios-3-6-integ feat/codex-wrapper-coverage-auto-generation`.",
+      "Do not edit `docs/project_management/next/codex-wrapper-coverage-auto-generation/tasks.json` or `docs/project_management/next/codex-wrapper-coverage-auto-generation/session_log.md` from the worktree."
+    ],
+    "end_checklist": [
+      "Merge upstream branches `wcg-c1-scenarios-3-6-code` and `wcg-c1-scenarios-3-6-test` into the integration worktree and reconcile behavior to C1-spec.md.",
+      "Run required commands (capture outputs): `cargo fmt`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test -p xtask`; `make preflight`.",
+      "Commit integration changes on branch `wcg-c1-scenarios-3-6-integ`.",
+      "Fast-forward merge `wcg-c1-scenarios-3-6-integ` into `feat/codex-wrapper-coverage-auto-generation`; update tasks.json to completed; add an END entry to session_log.md with commands/results/blockers; commit docs with 'docs: finish C1-integ'.",
+      "Remove worktree `wt/wcg-c1-scenarios-3-6-integ`."
+    ],
+    "worktree": "wt/wcg-c1-scenarios-3-6-integ",
+    "integration_task": "C1-integ",
+    "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C1-integ.md",
+    "depends_on": ["C1-code", "C1-test"],
+    "concurrent_with": []
   },
   {
     "id": "C2-code",
@@ -261,9 +303,9 @@
       "Remove worktree `wt/wcg-c2-scenarios-7-9-code`."
     ],
     "worktree": "wt/wcg-c2-scenarios-7-9-code",
-    "integration_task": "C4-integ",
+    "integration_task": "C2-integ",
     "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C2-code.md",
-    "depends_on": ["C1-code"],
+    "depends_on": ["C1-integ"],
     "concurrent_with": ["C2-test"]
   },
   {
@@ -305,10 +347,52 @@
       "Remove worktree `wt/wcg-c2-scenarios-7-9-test`."
     ],
     "worktree": "wt/wcg-c2-scenarios-7-9-test",
-    "integration_task": "C4-integ",
+    "integration_task": "C2-integ",
     "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C2-test.md",
-    "depends_on": ["C1-test"],
+    "depends_on": ["C1-integ"],
     "concurrent_with": ["C2-code"]
+  },
+  {
+    "id": "C2-integ",
+    "name": "Scenario Catalog v1 (7-9) (integration)",
+    "type": "integration",
+    "phase": "C2",
+    "status": "pending",
+    "description": "Merge C2 code/test, reconcile to C2 spec, and gate with fmt/clippy/tests/preflight (no committed artifacts refreshed in C2).",
+    "references": [
+      "docs/adr/0003-wrapper-coverage-auto-generation.md",
+      "docs/specs/codex-wrapper-coverage-generator-contract.md",
+      "docs/specs/codex-wrapper-coverage-scenarios-v1.md",
+      "cli_manifests/codex/RULES.json",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/plan.md",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/C2-spec.md",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C2-integ.md"
+    ],
+    "acceptance_criteria": [
+      "C2 merged and matches C2-spec.md",
+      "Commands executed and logged: `cargo fmt`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p xtask`, `make preflight`",
+      "`SOURCE_DATE_EPOCH=0 cargo run -p xtask -- codex-wrapper-coverage --out /tmp/wrapper_coverage.json` succeeds"
+    ],
+    "start_checklist": [
+      "git checkout feat/codex-wrapper-coverage-auto-generation && git pull --ff-only",
+      "Read plan.md, tasks.json, session_log.md, C2-spec.md, kickoff prompt",
+      "Set task status to in_progress in docs/project_management/next/codex-wrapper-coverage-auto-generation/tasks.json (orchestration branch)",
+      "Add START entry to docs/project_management/next/codex-wrapper-coverage-auto-generation/session_log.md; commit docs with message 'docs: start C2-integ'",
+      "Create the integration branch and worktree: `git worktree add -b wcg-c2-scenarios-7-9-integ wt/wcg-c2-scenarios-7-9-integ feat/codex-wrapper-coverage-auto-generation`.",
+      "Do not edit `docs/project_management/next/codex-wrapper-coverage-auto-generation/tasks.json` or `docs/project_management/next/codex-wrapper-coverage-auto-generation/session_log.md` from the worktree."
+    ],
+    "end_checklist": [
+      "Merge upstream branches `wcg-c2-scenarios-7-9-code` and `wcg-c2-scenarios-7-9-test` into the integration worktree and reconcile behavior to C2-spec.md.",
+      "Run required commands (capture outputs): `cargo fmt`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test -p xtask`; `make preflight`.",
+      "Commit integration changes on branch `wcg-c2-scenarios-7-9-integ`.",
+      "Fast-forward merge `wcg-c2-scenarios-7-9-integ` into `feat/codex-wrapper-coverage-auto-generation`; update tasks.json to completed; add an END entry to session_log.md with commands/results/blockers; commit docs with 'docs: finish C2-integ'.",
+      "Remove worktree `wt/wcg-c2-scenarios-7-9-integ`."
+    ],
+    "worktree": "wt/wcg-c2-scenarios-7-9-integ",
+    "integration_task": "C2-integ",
+    "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C2-integ.md",
+    "depends_on": ["C2-code", "C2-test"],
+    "concurrent_with": []
   },
   {
     "id": "C3-code",
@@ -352,9 +436,9 @@
       "Remove worktree `wt/wcg-c3-scenarios-10-12-code`."
     ],
     "worktree": "wt/wcg-c3-scenarios-10-12-code",
-    "integration_task": "C4-integ",
+    "integration_task": "C3-integ",
     "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C3-code.md",
-    "depends_on": ["C2-code"],
+    "depends_on": ["C2-integ"],
     "concurrent_with": ["C3-test"]
   },
   {
@@ -398,10 +482,52 @@
       "Remove worktree `wt/wcg-c3-scenarios-10-12-test`."
     ],
     "worktree": "wt/wcg-c3-scenarios-10-12-test",
-    "integration_task": "C4-integ",
+    "integration_task": "C3-integ",
     "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C3-test.md",
-    "depends_on": ["C2-test"],
+    "depends_on": ["C2-integ"],
     "concurrent_with": ["C3-code"]
+  },
+  {
+    "id": "C3-integ",
+    "name": "Scenario Catalog v1 (10-12) + parity exclusions (integration)",
+    "type": "integration",
+    "phase": "C3",
+    "status": "pending",
+    "description": "Merge C3 code/test, reconcile to C3 spec, and gate with fmt/clippy/tests/preflight (no committed artifacts refreshed in C3).",
+    "references": [
+      "docs/adr/0003-wrapper-coverage-auto-generation.md",
+      "docs/specs/codex-wrapper-coverage-generator-contract.md",
+      "docs/specs/codex-wrapper-coverage-scenarios-v1.md",
+      "cli_manifests/codex/RULES.json",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/plan.md",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/C3-spec.md",
+      "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C3-integ.md"
+    ],
+    "acceptance_criteria": [
+      "C3 merged and matches C3-spec.md",
+      "Commands executed and logged: `cargo fmt`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test -p xtask`, `make preflight`",
+      "`SOURCE_DATE_EPOCH=0 cargo run -p xtask -- codex-wrapper-coverage --out /tmp/wrapper_coverage.json` succeeds"
+    ],
+    "start_checklist": [
+      "git checkout feat/codex-wrapper-coverage-auto-generation && git pull --ff-only",
+      "Read plan.md, tasks.json, session_log.md, C3-spec.md, kickoff prompt",
+      "Set task status to in_progress in docs/project_management/next/codex-wrapper-coverage-auto-generation/tasks.json (orchestration branch)",
+      "Add START entry to docs/project_management/next/codex-wrapper-coverage-auto-generation/session_log.md; commit docs with message 'docs: start C3-integ'",
+      "Create the integration branch and worktree: `git worktree add -b wcg-c3-scenarios-10-12-integ wt/wcg-c3-scenarios-10-12-integ feat/codex-wrapper-coverage-auto-generation`.",
+      "Do not edit `docs/project_management/next/codex-wrapper-coverage-auto-generation/tasks.json` or `docs/project_management/next/codex-wrapper-coverage-auto-generation/session_log.md` from the worktree."
+    ],
+    "end_checklist": [
+      "Merge upstream branches `wcg-c3-scenarios-10-12-code` and `wcg-c3-scenarios-10-12-test` into the integration worktree and reconcile behavior to C3-spec.md.",
+      "Run required commands (capture outputs): `cargo fmt`; `cargo clippy --workspace --all-targets -- -D warnings`; `cargo test -p xtask`; `make preflight`.",
+      "Commit integration changes on branch `wcg-c3-scenarios-10-12-integ`.",
+      "Fast-forward merge `wcg-c3-scenarios-10-12-integ` into `feat/codex-wrapper-coverage-auto-generation`; update tasks.json to completed; add an END entry to session_log.md with commands/results/blockers; commit docs with 'docs: finish C3-integ'.",
+      "Remove worktree `wt/wcg-c3-scenarios-10-12-integ`."
+    ],
+    "worktree": "wt/wcg-c3-scenarios-10-12-integ",
+    "integration_task": "C3-integ",
+    "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C3-integ.md",
+    "depends_on": ["C3-code", "C3-test"],
+    "concurrent_with": []
   },
   {
     "id": "C4-integ",
@@ -447,15 +573,7 @@
     "worktree": "wt/wcg-c4-integration",
     "integration_task": "C4-integ",
     "kickoff_prompt": "docs/project_management/next/codex-wrapper-coverage-auto-generation/kickoff_prompts/C4-integ.md",
-    "depends_on": [
-      "C0-integ",
-      "C1-code",
-      "C1-test",
-      "C2-code",
-      "C2-test",
-      "C3-code",
-      "C3-test"
-    ],
+    "depends_on": ["C3-integ"],
     "concurrent_with": []
   }
 ]

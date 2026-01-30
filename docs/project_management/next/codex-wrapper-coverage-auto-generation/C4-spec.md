@@ -17,14 +17,10 @@ Integrate all ADR 0003 scenario coverage slices into a coherent, validated, comm
 
 ## Scope
 
-### 1) Merge and reconcile all scenario coverage changes
-Files (expected):
-- `crates/codex/src/wrapper_coverage_manifest.rs`
-- `crates/xtask/src/codex_wrapper_coverage.rs`
-- `crates/xtask/tests/*` (tests added by C1/C2/C3)
+### 1) Validate the integrated state
+Integration assumes C1/C2/C3 are already merged into `feat/codex-wrapper-coverage-auto-generation` via their per-phase integration tasks.
 
 Integration MUST:
-- merge the completed task branches from C1/C2/C3 (code + tests),
 - reconcile any drift so behavior matches the specs `C1-spec.md`, `C2-spec.md`, `C3-spec.md` exactly,
 - keep v1 invariants (no scope fields; note restrictions),
 - keep determinism rules (`SOURCE_DATE_EPOCH` required; no wall clock fallback).
@@ -71,4 +67,3 @@ Integration MUST update docs only to eliminate contradictions introduced by impl
 - `make preflight` passes.
 - `SOURCE_DATE_EPOCH=0 cargo run -p xtask -- codex-validate --root cli_manifests/codex` passes.
 - Committed `cli_manifests/codex/wrapper_coverage.json` is non-empty and validator-clean.
-
