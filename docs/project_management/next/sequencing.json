@@ -57,7 +57,7 @@
           ],
           "deliverables": [
             "Maintainer checklist for snapshot/diff/validate/release",
-            "Trial-run checklist to move 0.61.0 → 0.77.0 on Linux"
+            "Trial-run checklist to move 0.61.0 -> 0.77.0 on Linux"
           ]
         }
       ]
@@ -116,8 +116,25 @@
         },
         {
           "id": "C4",
-          "name": "CI wiring (snapshot → union → report → validate)",
+          "name": "CI wiring (snapshot -> union -> report -> validate)",
           "spec": "docs/project_management/next/codex-cli-parity-coverage-mapping/C4-spec.md"
+        }
+      ]
+    },
+    {
+      "id": "codex_wrapper_coverage_auto_generation",
+      "name": "CODEX_WRAPPER_COVERAGE_AUTO_GENERATION",
+      "source": "docs/adr/0003-wrapper-coverage-auto-generation.md",
+      "phases": [
+        {
+          "id": "C0",
+          "name": "Non-empty deterministic core",
+          "spec": "docs/project_management/next/codex-wrapper-coverage-auto-generation/C0-spec.md"
+        },
+        {
+          "id": "C1",
+          "name": "Full scenario catalog (v1) + parity exclusions",
+          "spec": "docs/project_management/next/codex-wrapper-coverage-auto-generation/C1-spec.md"
         }
       ]
     }
@@ -222,8 +239,22 @@
     {
       "order": 240,
       "id": "codex_cli_parity_coverage_mapping:C4",
-      "title": "CI wiring (snapshot → union → report → validate)",
+      "title": "CI wiring (snapshot -> union -> report -> validate)",
       "depends_on": ["codex_cli_parity_coverage_mapping:C3"],
+      "blocks": []
+    },
+    {
+      "order": 250,
+      "id": "codex_wrapper_coverage_auto_generation:C0",
+      "title": "Non-empty deterministic wrapper coverage",
+      "depends_on": ["codex_cli_parity_coverage_mapping:C4"],
+      "blocks": ["codex_wrapper_coverage_auto_generation:C1"]
+    },
+    {
+      "order": 260,
+      "id": "codex_wrapper_coverage_auto_generation:C1",
+      "title": "Scenario catalog v1 + parity exclusions",
+      "depends_on": ["codex_wrapper_coverage_auto_generation:C0"],
       "blocks": []
     }
   ]
