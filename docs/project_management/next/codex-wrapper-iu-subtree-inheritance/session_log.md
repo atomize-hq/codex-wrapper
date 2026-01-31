@@ -71,3 +71,10 @@ START/END entries only. Do not edit from worktrees.
 - Merged `iu4-c0-report-iu-inheritance-code` + `iu4-c0-report-iu-inheritance-test`, fast-forwarded `feat/codex-wrapper-iu-subtree-inheritance`
 - Commands: `cargo fmt` (pass); `cargo clippy --workspace --all-targets -- -D warnings` (pass); `cargo test -p xtask --test c5_spec_iu_subtree_inheritance -- --nocapture` (pass); `cargo test -p xtask --test c6_spec_report_iu_validator -- --nocapture` (pass); `make preflight` (pass)
 - Blockers: none
+
+## [2026-01-31 13:42 UTC] Code Agent – C1-code – START
+- Checked out `feat/codex-wrapper-iu-subtree-inheritance`, `git pull --ff-only` (ok)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C1-code → `in_progress`)
+- Worktree pending (`iu4-c1-iu-roots-code` / `wt/iu4-c1-iu-roots-code` to be added after docs commit)
+- Plan: add IU subtree roots for `completion`, `cloud`, `mcp` in wrapper coverage source-of-truth; run required commands; commit via worktree; update docs/tasks/log at end
+- Blockers: none
