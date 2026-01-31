@@ -58,3 +58,10 @@ START/END entries only. Do not edit from worktrees.
   - `crates/xtask/tests/c6_spec_report_iu_validator.rs`
 - Commands: `cargo fmt` (ok); `cargo test -p xtask --test c5_spec_iu_subtree_inheritance -- --nocapture` (fail; expected until C0-code report changes land); `cargo test -p xtask --test c6_spec_report_iu_validator -- --nocapture` (fail; validator currently permits missing_* IU entries)
 - Results: tests/fixtures-only changes committed; failures indicate missing production logic (ADR 0004 report classification + validator invariants)
+
+## [2026-01-31 13:24 UTC] Integration Agent – C0-integ – START
+- Checked out `feat/codex-wrapper-iu-subtree-inheritance`, `git pull --ff-only` (ok)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C0-integ → `in_progress`)
+- Worktree pending (`iu4-c0-report-iu-inheritance-integ` / `wt/iu4-c0-report-iu-inheritance-integ` to be added after docs commit)
+- Plan: merge `iu4-c0-report-iu-inheritance-code` + `iu4-c0-report-iu-inheritance-test`, reconcile to C0-spec, run required commands, commit in worktree, fast-forward merge back to `feat/codex-wrapper-iu-subtree-inheritance`, then close docs
+- Blockers: none
