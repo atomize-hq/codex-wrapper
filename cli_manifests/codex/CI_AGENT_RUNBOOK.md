@@ -56,6 +56,16 @@ The report is a deterministic diff between:
 - upstream union snapshot surfaces, and
 - wrapper coverage declarations.
 
+### Inheritance and normalization rules (important)
+
+Two rules can make “missing” look surprising if you don’t know they exist:
+
+1) **IU subtree inheritance (ADR 0004)**  
+If the wrapper explicitly marks a command path as `intentionally_unsupported`, then all descendant commands/flags/args are classified as `intentionally_unsupported` by inheritance unless an exact wrapper coverage entry overrides them. These inherited IU units must show up under `deltas.intentionally_unsupported` (audit-only) and must not show up under `missing_*`.
+
+2) **Global/effective flags model (`RULES.json.globals.effective_flags_model`)**  
+Some flags are treated as global (root) flags that are effectively available across subcommands. To avoid repeated noise, reports are allowed to summarize global-flag deltas at `path=[]`. When in doubt, consult the union snapshot for the specific version and check whether the flag is present on the root command vs only on a subcommand.
+
 Work the report fields in this order:
 
 1) `deltas.missing_commands`

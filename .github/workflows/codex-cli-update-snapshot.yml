@@ -389,7 +389,11 @@ jobs:
           fi
 
           missing_commands="$(jq '.deltas.missing_commands // [] | length' "$REPORT_REQUIRED")"
+          missing_commands_help="$(jq '[.deltas.missing_commands // [] | .[] | select((.path | length > 0) and (.path[-1] == "help"))] | length' "$REPORT_REQUIRED")"
+          missing_commands_non_help="$(jq '[.deltas.missing_commands // [] | .[] | select((.path | length == 0) or (.path[-1] != "help"))] | length' "$REPORT_REQUIRED")"
           missing_flags="$(jq '.deltas.missing_flags // [] | length' "$REPORT_REQUIRED")"
+          missing_flags_root="$(jq '[.deltas.missing_flags // [] | .[] | select(.path | length == 0)] | length' "$REPORT_REQUIRED")"
+          missing_flags_non_root="$(jq '[.deltas.missing_flags // [] | .[] | select(.path | length != 0)] | length' "$REPORT_REQUIRED")"
           missing_args="$(jq '.deltas.missing_args // [] | length' "$REPORT_REQUIRED")"
           unsupported="$(jq '.deltas.unsupported // [] | length' "$REPORT_REQUIRED")"
           iu="$(jq '.deltas.intentionally_unsupported // [] | length' "$REPORT_REQUIRED")"
@@ -408,12 +412,17 @@ jobs:
             echo ""
             echo "### Counts (required target)"
             echo ""
-            echo "- missing_commands: ${missing_commands}"
-            echo "- missing_flags: ${missing_flags}"
+            echo "- missing_commands: ${missing_commands} (non-help: ${missing_commands_non_help}, help-only: ${missing_commands_help})"
+            echo "- missing_flags: ${missing_flags} (root: ${missing_flags_root}, non-root: ${missing_flags_non_root})"
             echo "- missing_args: ${missing_args}"
             echo "- unsupported: ${unsupported}"
             echo "- intentionally_unsupported (audit-only): ${iu}"
             echo "- excluded_commands/flags/args (audit-only): ${excluded_commands}/${excluded_flags}/${excluded_args}"
+            echo ""
+            echo "### Notes on inheritance / reporting"
+            echo ""
+            echo "- **IU subtree inheritance (ADR 0004):** if the wrapper marks a command path as \`intentionally_unsupported\`, all descendant commands/flags/args are treated as IU and appear under \`deltas.intentionally_unsupported\` (not \`missing_*\`). Override by adding an exact wrapper coverage entry."
+            echo "- **Global flags model:** some flags are treated as global (root) and are reported at \`path=[]\` to avoid per-command noise; fix root coverage for global flags. If you see the same flag reported missing under many subcommands, confirm whether it is truly global for that version by inspecting \`snapshots/${VERSION}/union.json\`."
             echo ""
             echo "### New/Removed Commands vs Baseline"
             echo ""
@@ -429,9 +438,9 @@ jobs:
 
             {
               echo "- Only in baseline (\`${BASELINE}\`):"
-              comm -23 /tmp/codex_cmds.baseline.txt /tmp/codex_cmds.new.txt | head -n 25 | sed 's/^/  - /'
+              comm -23 /tmp/codex_cmds.baseline.txt /tmp/codex_cmds.new.txt | head -n 25 | sed -e 's/^[[:space:]]*//' -e 's/^/  - /'
               echo "- Only in new (\`${VERSION}\`):"
-              comm -13 /tmp/codex_cmds.baseline.txt /tmp/codex_cmds.new.txt | head -n 25 | sed 's/^/  - /'
+              comm -13 /tmp/codex_cmds.baseline.txt /tmp/codex_cmds.new.txt | head -n 25 | sed -e 's/^[[:space:]]*//' -e 's/^/  - /'
               echo ""
             } >> _codex_cli_work_queue.md
           else
@@ -442,14 +451,24 @@ jobs:
           fi
 
           {
-            echo "### First Missing Commands"
+            echo "### First Missing Commands (non-help)"
             echo ""
-            jq -r '.deltas.missing_commands // [] | .[] | (.path | if length==0 then "<root>" else join(" ") end)' \
+            jq -r '[.deltas.missing_commands // [] | .[] | select((.path | length == 0) or (.path[-1] != "help"))] | .[] | (.path | if length==0 then "<root>" else join(" ") end)' \
               "$REPORT_REQUIRED" | head -n 25 | sed 's/^/- /'
             echo ""
-            echo "### First Missing Flags"
+            echo "### First Missing Commands (help-only)"
             echo ""
-            jq -r '.deltas.missing_flags // [] | .[] | ((.path | if length==0 then "<root>" else join(" ") end) as $p | "- [" + $p + "] " + .key)' \
+            jq -r '[.deltas.missing_commands // [] | .[] | select((.path | length > 0) and (.path[-1] == "help"))] | .[] | (.path | if length==0 then "<root>" else join(" ") end)' \
+              "$REPORT_REQUIRED" | head -n 25 | sed 's/^/- /'
+            echo ""
+            echo "### First Missing Flags (root)"
+            echo ""
+            jq -r '[.deltas.missing_flags // [] | .[] | select(.path | length == 0)] | .[] | ((.path | if length==0 then "<root>" else join(" ") end) as $p | "- [" + $p + "] " + .key)' \
+              "$REPORT_REQUIRED" | head -n 40
+            echo ""
+            echo "### First Missing Flags (non-root)"
+            echo ""
+            jq -r '[.deltas.missing_flags // [] | .[] | select(.path | length != 0)] | .[] | ((.path | if length==0 then "<root>" else join(" ") end) as $p | "- [" + $p + "] " + .key)' \
               "$REPORT_REQUIRED" | head -n 40
             echo ""
             echo "### First Missing Args"
