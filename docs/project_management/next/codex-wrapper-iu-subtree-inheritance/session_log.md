@@ -78,3 +78,10 @@ START/END entries only. Do not edit from worktrees.
 - Worktree pending (`iu4-c1-iu-roots-code` / `wt/iu4-c1-iu-roots-code` to be added after docs commit)
 - Plan: add IU subtree roots for `completion`, `cloud`, `mcp` in wrapper coverage source-of-truth; run required commands; commit via worktree; update docs/tasks/log at end
 - Blockers: none
+
+## [2026-01-31 13:44 UTC] Test Agent – C1-test – START
+- Checked out `feat/codex-wrapper-iu-subtree-inheritance`, `git pull --ff-only` (ok)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C1-test → `in_progress`)
+- Worktree pending (`iu4-c1-iu-roots-test` / `wt/iu4-c1-iu-roots-test` to be added after docs commit)
+- Plan: add `crates/xtask/tests/c7_spec_iu_roots_adoption.rs` + fixtures per C1-spec; run required commands; commit via worktree; update docs/tasks/log at end
+- Blockers: C1-code branch exists (`iu4-c1-iu-roots-code`), but IU roots may not be implemented yet; test may fail until C1-code lands
