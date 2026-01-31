@@ -40,8 +40,8 @@ Preferred path: run the GitHub Actions workflow:
 Required input:
 - `version`: the exact upstream version to validate (example: `0.77.0`)
 
-Optional inputs (only if you intend to change policy):
-- “update min supported” toggle (if present): update `min_supported.txt` as part of the run
+Optional inputs:
+- “update min supported” toggle (if present): **deprecated**. `min_supported.txt` is a maintainer-only policy decision and must be updated in a separate PR (the workflow rejects automated updates).
 
 Notes:
 - The workflow is responsible for downloading/extracting the upstream release artifact(s) and updating `cli_manifests/codex/artifacts.lock.json`.
