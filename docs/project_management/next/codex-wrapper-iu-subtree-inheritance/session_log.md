@@ -39,6 +39,12 @@ START/END entries only. Do not edit from worktrees.
 - Plan: implement IU subtree inheritance + IU deltas sorting + RULES sorting parsing/validation + validator invariants; run required commands; commit via worktree; update docs/tasks/log at end
 - Blockers: none
 
+## [2026-01-31 13:18 UTC] Code Agent – C0-code – END
+- Worktree `wt/iu4-c0-report-iu-inheritance-code` on branch `iu4-c0-report-iu-inheritance-code` (commit 9b158b1) implemented ADR 0004 IU subtree inheritance in `xtask codex-report` and added report IU invariants to `xtask codex-validate`
+- Commands: `cargo fmt` (pass); `cargo clippy --workspace --all-targets -- -D warnings` (pass)
+- Result: IU descendants are emitted under `deltas.intentionally_unsupported` (commands/flags/args), absent from `missing_*`, and IU deltas are deterministic-sorted per spec; RULES sorting keys are parsed/validated
+- Blockers: none
+
 ## [2026-01-31 13:07 UTC] Test Agent – C0-test – START
 - Checked out `feat/codex-wrapper-iu-subtree-inheritance`, `git pull --ff-only` (ok)
 - Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C0-test → `in_progress`)
