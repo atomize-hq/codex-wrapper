@@ -51,3 +51,10 @@ START/END entries only. Do not edit from worktrees.
 - Worktree pending (`iu4-c0-report-iu-inheritance-test` / `wt/iu4-c0-report-iu-inheritance-test` to be added after docs commit)
 - Plan: add `c5_spec_iu_subtree_inheritance` + `c6_spec_report_iu_validator` integration-style tests and fixtures per C0-spec; run required commands; commit via worktree; update docs/tasks/log at end
 - Blockers: none
+
+## [2026-01-31 13:22 UTC] Test Agent – C0-test – END
+- Worktree `wt/iu4-c0-report-iu-inheritance-test` on branch `iu4-c0-report-iu-inheritance-test` (commit c7fd2cf) added new integration tests:
+  - `crates/xtask/tests/c5_spec_iu_subtree_inheritance.rs`
+  - `crates/xtask/tests/c6_spec_report_iu_validator.rs`
+- Commands: `cargo fmt` (ok); `cargo test -p xtask --test c5_spec_iu_subtree_inheritance -- --nocapture` (fail; expected until C0-code report changes land); `cargo test -p xtask --test c6_spec_report_iu_validator -- --nocapture` (fail; validator currently permits missing_* IU entries)
+- Results: tests/fixtures-only changes committed; failures indicate missing production logic (ADR 0004 report classification + validator invariants)
