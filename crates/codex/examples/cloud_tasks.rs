@@ -5,6 +5,8 @@
 //! - Codex Cloud access and any required auth/config for your org.
 //!
 //! Usage:
+//! - Overview/help:
+//!   `cargo run -p codex --example cloud_tasks -- overview`
 //! - List tasks (JSON):
 //!   `cargo run -p codex --example cloud_tasks -- list --env <ENV_ID> --json --limit 10`
 //! - Show status:
@@ -14,13 +16,19 @@
 //!   `cargo run -p codex --example cloud_tasks -- apply <TASK_ID> [--attempt N]`
 //! - Execute a task:
 //!   `cargo run -p codex --example cloud_tasks -- exec --env <ENV_ID> [--attempts N] [--branch BRANCH] -- <QUERY>`
+//!
+//! Isolation:
+//! - `--isolated-home` uses a fresh `CODEX_HOME` under `target/` (avoids mutating your real home).
+//! - `--seed-auth` copies `auth.json` / `.credentials.json` from your current `CODEX_HOME` (or `~/.codex`).
 
 use std::{env, error::Error};
 
 use codex::{
     CloudApplyRequest, CloudDiffRequest, CloudExecRequest, CloudListRequest, CloudStatusRequest,
-    CodexClient,
 };
+
+#[path = "support/real_cli.rs"]
+mod real_cli;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -30,13 +38,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    let use_isolated_home = args.iter().any(|arg| arg == "--isolated-home");
+    let seed_auth = args.iter().any(|arg| arg == "--seed-auth");
+    args.retain(|arg| arg != "--isolated-home" && arg != "--seed-auth");
+
     let subcommand = args.remove(0);
-    let client = CodexClient::builder()
-        .mirror_stdout(false)
-        .quiet(true)
-        .build();
+    let client = if use_isolated_home || real_cli::wants_isolated_home() {
+        let home = real_cli::isolated_home_root("cloud_tasks");
+        if seed_auth || real_cli::wants_seed_auth() {
+            let seed = env::var_os(real_cli::ENV_HOME)
+                .map(std::path::PathBuf::from)
+                .or_else(|| {
+                    env::var_os("HOME").map(|home| std::path::PathBuf::from(home).join(".codex"))
+                })
+                .unwrap_or_else(|| std::path::PathBuf::from(".codex"));
+            let _ = real_cli::maybe_seed_auth(&home, &seed);
+        }
+        real_cli::build_client_with_home(&home)
+    } else {
+        real_cli::default_client()
+    };
 
     match subcommand.as_str() {
+        "overview" => {
+            let output = client.cloud_overview(Default::default()).await?;
+            print!("{}", output.stdout);
+        }
         "list" => {
             let mut env_id: Option<String> = None;
             let mut limit: Option<u32> = None;
@@ -194,7 +221,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             print!("{}", output.stdout);
         }
         other => {
-            eprintln!("unknown subcommand: {other} (expected list/status/diff/apply/exec)");
+            eprintln!("unknown subcommand: {other} (expected overview/list/status/diff/apply/exec)");
         }
     }
 

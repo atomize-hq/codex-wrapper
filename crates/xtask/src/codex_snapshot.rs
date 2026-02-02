@@ -1124,7 +1124,10 @@ fn infer_args_from_usage(
                     continue;
                 }
 
-                if tok.starts_with('-') {
+                // Some clap usage lines embed flags inside grouping tokens (e.g.
+                // `<COMMAND|--url <URL>>`). Treat any token that contains a flag marker as a flag
+                // so its value name is not mis-inferred as a positional argument.
+                if tok.starts_with('-') || tok.contains("--") {
                     prev_was_flag = true;
                     continue;
                 }

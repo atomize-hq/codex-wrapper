@@ -127,26 +127,6 @@
       "usage": "codex [OPTIONS] [PROMPT]\ncodex [OPTIONS] <COMMAND> [ARGS]",
       "args": [
         {
-          "name": "ARGS",
-          "required": false,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "name": "COMMAND",
-          "required": true,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "name": "PROMPT",
           "required": false,
           "variadic": false,
@@ -323,58 +303,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex app-server [OPTIONS] [COMMAND]",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": false,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex app-server [OPTIONS] [COMMAND]"
     },
     {
       "path": [
@@ -386,43 +315,6 @@
       ],
       "usage": "codex app-server generate-json-schema [OPTIONS] --out <DIR>",
       "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
         {
           "key": "--out",
           "long": "--out",
@@ -445,43 +337,6 @@
       ],
       "usage": "codex app-server generate-ts [OPTIONS] --out <DIR>",
       "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
         {
           "key": "--out",
           "long": "--out",
@@ -544,45 +399,6 @@
             "x86_64-unknown-linux-musl"
           ]
         }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
       ]
     },
     {
@@ -592,67 +408,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex cloud [OPTIONS] [COMMAND]",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": false,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--version",
-          "long": "--version",
-          "short": "-V",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex cloud [OPTIONS] [COMMAND]"
     },
     {
       "path": [
@@ -685,47 +441,10 @@
           ]
         },
         {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--env",
           "long": "--env",
           "takes_value": true,
           "value_name": "ENV_ID",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"
           ]
@@ -771,45 +490,6 @@
             "x86_64-unknown-linux-musl"
           ]
         }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
       ]
     },
     {
@@ -822,16 +502,6 @@
       "usage": "codex exec [OPTIONS] [PROMPT] [COMMAND]",
       "args": [
         {
-          "name": "COMMAND",
-          "required": false,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "name": "PROMPT",
           "required": false,
           "variadic": false,
@@ -843,25 +513,6 @@
       ],
       "flags": [
         {
-          "key": "--add-dir",
-          "long": "--add-dir",
-          "takes_value": true,
-          "value_name": "DIR",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--cd",
-          "long": "--cd",
-          "short": "-C",
-          "takes_value": true,
-          "value_name": "DIR",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--color",
           "long": "--color",
           "takes_value": true,
@@ -871,99 +522,8 @@
           ]
         },
         {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--dangerously-bypass-approvals-and-sandbox",
-          "long": "--dangerously-bypass-approvals-and-sandbox",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--full-auto",
-          "long": "--full-auto",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--image",
-          "long": "--image",
-          "short": "-i",
-          "takes_value": true,
-          "value_name": "FILE",
-          "repeatable": true,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--json",
           "long": "--json",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--local-provider",
-          "long": "--local-provider",
-          "takes_value": true,
-          "value_name": "OSS_PROVIDER",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--model",
-          "long": "--model",
-          "short": "-m",
-          "takes_value": true,
-          "value_name": "MODEL",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--oss",
-          "long": "--oss",
           "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"
@@ -989,37 +549,8 @@
           ]
         },
         {
-          "key": "--profile",
-          "long": "--profile",
-          "short": "-p",
-          "takes_value": true,
-          "value_name": "CONFIG_PROFILE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--sandbox",
-          "long": "--sandbox",
-          "short": "-s",
-          "takes_value": true,
-          "value_name": "SANDBOX_MODE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--skip-git-repo-check",
           "long": "--skip-git-repo-check",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--version",
-          "long": "--version",
-          "short": "-V",
           "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"
@@ -1079,43 +610,6 @@
       ],
       "flags": [
         {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--last",
           "long": "--last",
           "takes_value": false,
@@ -1132,58 +626,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex features [OPTIONS] <COMMAND>",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": true,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex features [OPTIONS] <COMMAND>"
     },
     {
       "path": [
@@ -1214,46 +657,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex features list [OPTIONS]",
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex features list [OPTIONS]"
     },
     {
       "path": [
@@ -1283,59 +687,10 @@
         "x86_64-unknown-linux-musl"
       ],
       "usage": "codex login [OPTIONS] [COMMAND]",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": false,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ],
       "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
         {
           "key": "--device-auth",
           "long": "--device-auth",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
           "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"
@@ -1380,46 +735,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex login status [OPTIONS]",
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex login status [OPTIONS]"
     },
     {
       "path": [
@@ -1428,46 +744,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex logout [OPTIONS]",
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex logout [OPTIONS]"
     },
     {
       "path": [
@@ -1476,58 +753,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex mcp [OPTIONS] <COMMAND>",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": true,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex mcp [OPTIONS] <COMMAND>"
     },
     {
       "path": [
@@ -1556,16 +782,6 @@
           "available_on": [
             "x86_64-unknown-linux-musl"
           ]
-        },
-        {
-          "name": "URL",
-          "required": true,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
         }
       ],
       "flags": [
@@ -1579,47 +795,10 @@
           ]
         },
         {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--env",
           "long": "--env",
           "takes_value": true,
           "value_name": "KEY=VALUE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"
           ]
@@ -1656,43 +835,6 @@
         }
       ],
       "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
         {
           "key": "--json",
           "long": "--json",
@@ -1735,43 +877,6 @@
       "usage": "codex mcp list [OPTIONS]",
       "flags": [
         {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--json",
           "long": "--json",
           "takes_value": false,
@@ -1804,43 +909,6 @@
       ],
       "flags": [
         {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--scopes",
           "long": "--scopes",
           "takes_value": true,
@@ -1871,45 +939,6 @@
             "x86_64-unknown-linux-musl"
           ]
         }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
       ]
     },
     {
@@ -1931,45 +960,6 @@
             "x86_64-unknown-linux-musl"
           ]
         }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
       ]
     },
     {
@@ -1979,46 +969,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex mcp-server [OPTIONS]",
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex mcp-server [OPTIONS]"
     },
     {
       "path": [
@@ -2050,15 +1001,6 @@
       ],
       "flags": [
         {
-          "key": "--add-dir",
-          "long": "--add-dir",
-          "takes_value": true,
-          "value_name": "DIR",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--all",
           "long": "--all",
           "takes_value": false,
@@ -2067,156 +1009,8 @@
           ]
         },
         {
-          "key": "--ask-for-approval",
-          "long": "--ask-for-approval",
-          "short": "-a",
-          "takes_value": true,
-          "value_name": "APPROVAL_POLICY",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--cd",
-          "long": "--cd",
-          "short": "-C",
-          "takes_value": true,
-          "value_name": "DIR",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--dangerously-bypass-approvals-and-sandbox",
-          "long": "--dangerously-bypass-approvals-and-sandbox",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--full-auto",
-          "long": "--full-auto",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--image",
-          "long": "--image",
-          "short": "-i",
-          "takes_value": true,
-          "value_name": "FILE",
-          "repeatable": true,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
           "key": "--last",
           "long": "--last",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--local-provider",
-          "long": "--local-provider",
-          "takes_value": true,
-          "value_name": "OSS_PROVIDER",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--model",
-          "long": "--model",
-          "short": "-m",
-          "takes_value": true,
-          "value_name": "MODEL",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--oss",
-          "long": "--oss",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--profile",
-          "long": "--profile",
-          "short": "-p",
-          "takes_value": true,
-          "value_name": "CONFIG_PROFILE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--sandbox",
-          "long": "--sandbox",
-          "short": "-s",
-          "takes_value": true,
-          "value_name": "SANDBOX_MODE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--search",
-          "long": "--search",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--version",
-          "long": "--version",
-          "short": "-V",
           "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"
@@ -2231,58 +1025,7 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex sandbox [OPTIONS] <COMMAND>",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": true,
-          "variadic": false,
-          "inferred_from_usage": true,
-          "note": "inferred from usage",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ]
+      "usage": "codex sandbox [OPTIONS] <COMMAND>"
     },
     {
       "path": [
@@ -2324,53 +1067,6 @@
             "x86_64-unknown-linux-musl"
           ]
         }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--full-auto",
-          "long": "--full-auto",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
       ]
     },
     {
@@ -2394,51 +1090,6 @@
         }
       ],
       "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--full-auto",
-          "long": "--full-auto",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
         {
           "key": "--log-denials",
           "long": "--log-denials",
@@ -2464,53 +1115,6 @@
           "required": false,
           "variadic": true,
           "note": "Full command args to run under Windows restricted token sandbox",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        }
-      ],
-      "flags": [
-        {
-          "key": "--config",
-          "long": "--config",
-          "short": "-c",
-          "takes_value": true,
-          "value_name": "key=value",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--disable",
-          "long": "--disable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--enable",
-          "long": "--enable",
-          "takes_value": true,
-          "value_name": "FEATURE",
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--full-auto",
-          "long": "--full-auto",
-          "takes_value": false,
-          "available_on": [
-            "x86_64-unknown-linux-musl"
-          ]
-        },
-        {
-          "key": "--help",
-          "long": "--help",
-          "short": "-h",
-          "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"
           ]

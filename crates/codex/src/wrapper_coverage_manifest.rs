@@ -98,6 +98,15 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
         }
     }
 
+    fn arg_note(name: &str, level: CoverageLevel, note: &str) -> WrapperArgCoverageV1 {
+        WrapperArgCoverageV1 {
+            name: name.to_string(),
+            level,
+            note: Some(note.to_string()),
+            scope: None,
+        }
+    }
+
     fn command(
         path: &[&str],
         level: CoverageLevel,
@@ -526,7 +535,11 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 ),
                 scope: None,
                 flags: None,
-                args: None,
+                args: Some(vec![arg_note(
+                    "SHELL",
+                    CoverageLevel::IntentionallyUnsupported,
+                    "Shell completion generation is out of scope for the wrapper.",
+                )]),
             },
         ],
     }

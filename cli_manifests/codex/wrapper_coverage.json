@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-02-01T15:00:23Z",
+  "generated_at": "2026-02-02T03:24:47Z",
   "wrapper_version": "0.2.0",
   "coverage": [
     {
@@ -272,7 +272,14 @@
         "completion"
       ],
       "level": "intentionally_unsupported",
-      "note": "Shell completion generation is out of scope for the wrapper."
+      "note": "Shell completion generation is out of scope for the wrapper.",
+      "args": [
+        {
+          "name": "SHELL",
+          "level": "intentionally_unsupported",
+          "note": "Shell completion generation is out of scope for the wrapper."
+        }
+      ]
     },
     {
       "path": [

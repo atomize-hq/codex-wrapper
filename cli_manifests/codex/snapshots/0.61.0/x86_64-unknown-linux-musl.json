@@ -21,18 +21,6 @@
       "usage": "codex [OPTIONS] [PROMPT]\ncodex [OPTIONS] <COMMAND> [ARGS]",
       "args": [
         {
-          "name": "ARGS",
-          "required": false,
-          "variadic": false,
-          "note": "inferred from usage"
-        },
-        {
-          "name": "COMMAND",
-          "required": true,
-          "variadic": false,
-          "note": "inferred from usage"
-        },
-        {
           "name": "PROMPT",
           "required": false,
           "variadic": false,
@@ -136,14 +124,6 @@
         "app-server"
       ],
       "usage": "codex app-server [OPTIONS] [COMMAND]",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": false,
-          "variadic": false,
-          "note": "inferred from usage"
-        }
-      ],
       "flags": [
         {
           "long": "--config",
@@ -303,14 +283,6 @@
         "cloud"
       ],
       "usage": "codex cloud [OPTIONS] [COMMAND]",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": false,
-          "variadic": false,
-          "note": "inferred from usage"
-        }
-      ],
       "flags": [
         {
           "long": "--config",
@@ -446,12 +418,6 @@
       ],
       "usage": "codex exec [OPTIONS] [PROMPT] [COMMAND]",
       "args": [
-        {
-          "name": "COMMAND",
-          "required": false,
-          "variadic": false,
-          "note": "inferred from usage"
-        },
         {
           "name": "PROMPT",
           "required": false,
@@ -633,14 +599,6 @@
         "features"
       ],
       "usage": "codex features [OPTIONS] <COMMAND>",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": true,
-          "variadic": false,
-          "note": "inferred from usage"
-        }
-      ],
       "flags": [
         {
           "long": "--config",
@@ -729,14 +687,6 @@
         "login"
       ],
       "usage": "codex login [OPTIONS] [COMMAND]",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": false,
-          "variadic": false,
-          "note": "inferred from usage"
-        }
-      ],
       "flags": [
         {
           "long": "--config",
@@ -848,14 +798,6 @@
         "mcp"
       ],
       "usage": "codex mcp [OPTIONS] <COMMAND>",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": true,
-          "variadic": false,
-          "note": "inferred from usage"
-        }
-      ],
       "flags": [
         {
           "long": "--config",
@@ -898,12 +840,6 @@
           "required": true,
           "variadic": false,
           "note": "Name for the MCP server configuration"
-        },
-        {
-          "name": "URL",
-          "required": true,
-          "variadic": false,
-          "note": "inferred from usage"
         }
       ],
       "flags": [
@@ -1310,14 +1246,6 @@
         "sandbox"
       ],
       "usage": "codex sandbox [OPTIONS] <COMMAND>",
-      "args": [
-        {
-          "name": "COMMAND",
-          "required": true,
-          "variadic": false,
-          "note": "inferred from usage"
-        }
-      ],
       "flags": [
         {
           "long": "--config",

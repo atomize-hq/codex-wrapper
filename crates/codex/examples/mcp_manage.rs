@@ -13,6 +13,8 @@
 //!     `cargo run -p codex --example mcp_manage -- add <NAME> --url <URL> [--bearer-token-env-var ENV_VAR]`
 //!   - Stdio:
 //!     `cargo run -p codex --example mcp_manage -- add <NAME> [--env KEY=VALUE ...] -- <COMMAND>...`
+//! - Roundtrip (isolated home): add -> list -> get -> remove
+//!   `cargo run -p codex --example mcp_manage -- roundtrip [NAME] [URL]`
 //! - (Legacy aliases)
 //!   - `add-http <NAME> <URL> [BEARER_TOKEN_ENV_VAR]`
 //!   - `add-stdio <NAME> -- <COMMAND>...`
@@ -22,13 +24,18 @@
 //!   `cargo run -p codex --example mcp_manage -- logout <NAME>`
 //! - OAuth login (spawns process; stdout/stderr are inherited by the wrapper):
 //!   `cargo run -p codex --example mcp_manage -- login <NAME> [scope1 scope2 ...]`
+//!
+//! Isolation:
+//! - `--isolated-home` uses a fresh `CODEX_HOME` under `target/` (avoids mutating your real home).
 
 use std::{env, error::Error, ffi::OsString};
 
 use codex::{
-    CodexClient, McpAddRequest, McpGetRequest, McpListRequest, McpLogoutRequest, McpOauthLoginRequest,
-    McpRemoveRequest,
+    McpAddRequest, McpGetRequest, McpListRequest, McpLogoutRequest, McpOauthLoginRequest, McpRemoveRequest,
 };
+
+#[path = "support/real_cli.rs"]
+mod real_cli;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -38,13 +45,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    let use_isolated_home = args.iter().any(|arg| arg == "--isolated-home");
+    args.retain(|arg| arg != "--isolated-home");
+
     let subcommand = args.remove(0);
-    let client = CodexClient::builder()
-        .mirror_stdout(false)
-        .quiet(true)
-        .build();
+    let client = if use_isolated_home || real_cli::wants_isolated_home() {
+        let home = real_cli::isolated_home_root("mcp_manage");
+        real_cli::build_client_with_home(&home)
+    } else {
+        real_cli::default_client()
+    };
 
     match subcommand.as_str() {
+        "overview" => {
+            let output = client.mcp_overview(Default::default()).await?;
+            print!("{}", output.stdout);
+        }
         "list" => {
             let json = args.first().is_some_and(|v| v == "--json");
             let output = client.mcp_list(McpListRequest::new().json(json)).await?;
@@ -71,6 +87,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
             } else {
                 print!("{}", output.stdout);
             }
+        }
+        "roundtrip" => {
+            // Exercises add -> list -> get -> remove using an isolated CODEX_HOME to avoid mutating
+            // the user's real MCP config.
+            let home = real_cli::isolated_home_root("mcp_manage_roundtrip");
+            let client = real_cli::build_client_with_home(&home);
+
+            let name = args.get(0).cloned().unwrap_or_else(|| "example".to_string());
+            let url = args
+                .get(1)
+                .cloned()
+                .unwrap_or_else(|| "https://mcp.deepwiki.com/mcp".to_string());
+
+            client
+                .mcp_add(McpAddRequest::streamable_http(name.clone(), url))
+                .await?;
+
+            let _ = client.mcp_list(McpListRequest::new().json(false)).await?;
+            let _ = client.mcp_get(McpGetRequest::new(name.clone()).json(false)).await?;
+            let _ = client
+                .mcp_remove(McpRemoveRequest::new(name.clone()))
+                .await?;
         }
         "add" => {
             let name = args
