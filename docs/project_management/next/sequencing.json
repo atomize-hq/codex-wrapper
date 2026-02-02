@@ -154,6 +154,18 @@
       ]
     },
     {
+      "id": "codex_jsonl_log_parser_api",
+      "name": "CODEX_JSONL_LOG_PARSER_API",
+      "source": "docs/adr/0005-codex-jsonl-log-parser-api.md",
+      "phases": [
+        {
+          "id": "C0",
+          "name": "Offline JSONL parsing API",
+          "spec": "docs/project_management/next/codex-jsonl-log-parser-api/C0-spec.md"
+        }
+      ]
+    },
+    {
       "id": "codex_wrapper_iu_subtree_inheritance",
       "name": "CODEX_WRAPPER_IU_SUBTREE_INHERITANCE",
       "source": "docs/adr/0004-wrapper-coverage-iu-subtree-inheritance.md",
@@ -331,6 +343,14 @@
       "id": "codex_wrapper_iu_subtree_inheritance:C1",
       "title": "Adopt IU subtree roots",
       "depends_on": ["codex_wrapper_iu_subtree_inheritance:C0"],
+      "blocks": []
+    }
+    ,
+    {
+      "order": 320,
+      "id": "codex_jsonl_log_parser_api:C0",
+      "title": "Offline JSONL parsing API",
+      "depends_on": ["codex_wrapper_iu_subtree_inheritance:C1"],
       "blocks": []
     }
   ]
