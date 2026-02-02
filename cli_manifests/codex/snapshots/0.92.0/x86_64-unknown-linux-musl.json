@@ -1,17 +1,17 @@
 {
   "snapshot_schema_version": 1,
   "tool": "codex-cli",
-  "collected_at": "2025-11-20T16:14:58Z",
+  "collected_at": "2026-02-02T00:00:00Z",
   "binary": {
-    "sha256": "8e497996175913d10b188e15cc6dec328cc355cd937200c98f06fa568f598914",
-    "size_bytes": 57961248,
+    "sha256": "285b8121885d4bb3c35a59047761e010a67ef779ebedf0c9b703c84744eeafc7",
+    "size_bytes": 64419240,
     "platform": {
       "os": "linux",
       "arch": "x86_64"
     },
     "target_triple": "x86_64-unknown-linux-musl",
-    "version_output": "codex-cli 0.61.0",
-    "semantic_version": "0.61.0",
+    "version_output": "codex-cli 0.92.0",
+    "semantic_version": "0.92.0",
     "channel": "stable"
   },
   "commands": [
@@ -93,6 +93,10 @@
           "value_name": "MODEL"
         },
         {
+          "long": "--no-alt-screen",
+          "takes_value": false
+        },
+        {
           "long": "--oss",
           "takes_value": false
         },
@@ -125,6 +129,10 @@
       ],
       "usage": "codex app-server [OPTIONS] [COMMAND]",
       "flags": [
+        {
+          "long": "--analytics-default-enabled",
+          "takes_value": false
+        },
         {
           "long": "--config",
           "short": "-c",
@@ -315,6 +323,92 @@
     {
       "path": [
         "cloud",
+        "apply"
+      ],
+      "usage": "codex cloud apply [OPTIONS] <TASK_ID>",
+      "args": [
+        {
+          "name": "TASK_ID",
+          "required": true,
+          "variadic": false,
+          "note": "Codex Cloud task identifier to apply"
+        }
+      ],
+      "flags": [
+        {
+          "long": "--attempt",
+          "takes_value": true,
+          "value_name": "N"
+        },
+        {
+          "long": "--config",
+          "short": "-c",
+          "takes_value": true,
+          "value_name": "key=value"
+        },
+        {
+          "long": "--disable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--enable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--help",
+          "short": "-h",
+          "takes_value": false
+        }
+      ]
+    },
+    {
+      "path": [
+        "cloud",
+        "diff"
+      ],
+      "usage": "codex cloud diff [OPTIONS] <TASK_ID>",
+      "args": [
+        {
+          "name": "TASK_ID",
+          "required": true,
+          "variadic": false,
+          "note": "Codex Cloud task identifier to display"
+        }
+      ],
+      "flags": [
+        {
+          "long": "--attempt",
+          "takes_value": true,
+          "value_name": "N"
+        },
+        {
+          "long": "--config",
+          "short": "-c",
+          "takes_value": true,
+          "value_name": "key=value"
+        },
+        {
+          "long": "--disable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--enable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--help",
+          "short": "-h",
+          "takes_value": false
+        }
+      ]
+    },
+    {
+      "path": [
+        "cloud",
         "exec"
       ],
       "usage": "codex cloud exec [OPTIONS] --env <ENV_ID> [QUERY]",
@@ -331,6 +425,11 @@
           "long": "--attempts",
           "takes_value": true,
           "value_name": "ATTEMPTS"
+        },
+        {
+          "long": "--branch",
+          "takes_value": true,
+          "value_name": "BRANCH"
         },
         {
           "long": "--config",
@@ -372,6 +471,93 @@
           "required": false,
           "variadic": true,
           "note": "Print help for the subcommand(s)"
+        }
+      ]
+    },
+    {
+      "path": [
+        "cloud",
+        "list"
+      ],
+      "usage": "codex cloud list [OPTIONS]",
+      "flags": [
+        {
+          "long": "--config",
+          "short": "-c",
+          "takes_value": true,
+          "value_name": "key=value"
+        },
+        {
+          "long": "--cursor",
+          "takes_value": true,
+          "value_name": "CURSOR"
+        },
+        {
+          "long": "--disable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--enable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--env",
+          "takes_value": true,
+          "value_name": "ENV_ID"
+        },
+        {
+          "long": "--help",
+          "short": "-h",
+          "takes_value": false
+        },
+        {
+          "long": "--json",
+          "takes_value": false
+        },
+        {
+          "long": "--limit",
+          "takes_value": true,
+          "value_name": "N"
+        }
+      ]
+    },
+    {
+      "path": [
+        "cloud",
+        "status"
+      ],
+      "usage": "codex cloud status [OPTIONS] <TASK_ID>",
+      "args": [
+        {
+          "name": "TASK_ID",
+          "required": true,
+          "variadic": false,
+          "note": "Codex Cloud task identifier to inspect"
+        }
+      ],
+      "flags": [
+        {
+          "long": "--config",
+          "short": "-c",
+          "takes_value": true,
+          "value_name": "key=value"
+        },
+        {
+          "long": "--disable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--enable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--help",
+          "short": "-h",
+          "takes_value": false
         }
       ]
     },
@@ -568,10 +754,18 @@
       ],
       "flags": [
         {
+          "long": "--all",
+          "takes_value": false
+        },
+        {
           "long": "--config",
           "short": "-c",
           "takes_value": true,
           "value_name": "key=value"
+        },
+        {
+          "long": "--dangerously-bypass-approvals-and-sandbox",
+          "takes_value": false
         },
         {
           "long": "--disable",
@@ -584,12 +778,115 @@
           "value_name": "FEATURE"
         },
         {
+          "long": "--full-auto",
+          "takes_value": false
+        },
+        {
           "long": "--help",
           "short": "-h",
           "takes_value": false
         },
         {
+          "long": "--image",
+          "short": "-i",
+          "takes_value": true,
+          "value_name": "FILE"
+        },
+        {
+          "long": "--json",
+          "takes_value": false
+        },
+        {
           "long": "--last",
+          "takes_value": false
+        },
+        {
+          "long": "--model",
+          "short": "-m",
+          "takes_value": true,
+          "value_name": "MODEL"
+        },
+        {
+          "long": "--skip-git-repo-check",
+          "takes_value": false
+        }
+      ]
+    },
+    {
+      "path": [
+        "exec",
+        "review"
+      ],
+      "usage": "codex exec review [OPTIONS] [PROMPT]",
+      "args": [
+        {
+          "name": "PROMPT",
+          "required": false,
+          "variadic": false,
+          "note": "Custom review instructions. If `-` is used, read from stdin"
+        }
+      ],
+      "flags": [
+        {
+          "long": "--base",
+          "takes_value": true,
+          "value_name": "BRANCH"
+        },
+        {
+          "long": "--commit",
+          "takes_value": true,
+          "value_name": "SHA"
+        },
+        {
+          "long": "--config",
+          "short": "-c",
+          "takes_value": true,
+          "value_name": "key=value"
+        },
+        {
+          "long": "--dangerously-bypass-approvals-and-sandbox",
+          "takes_value": false
+        },
+        {
+          "long": "--disable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--enable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--full-auto",
+          "takes_value": false
+        },
+        {
+          "long": "--help",
+          "short": "-h",
+          "takes_value": false
+        },
+        {
+          "long": "--json",
+          "takes_value": false
+        },
+        {
+          "long": "--model",
+          "short": "-m",
+          "takes_value": true,
+          "value_name": "MODEL"
+        },
+        {
+          "long": "--skip-git-repo-check",
+          "takes_value": false
+        },
+        {
+          "long": "--title",
+          "takes_value": true,
+          "value_name": "TITLE"
+        },
+        {
+          "long": "--uncommitted",
           "takes_value": false
         }
       ]
@@ -664,6 +961,129 @@
         {
           "long": "--help",
           "short": "-h",
+          "takes_value": false
+        }
+      ]
+    },
+    {
+      "path": [
+        "fork"
+      ],
+      "usage": "codex fork [OPTIONS] [SESSION_ID] [PROMPT]",
+      "args": [
+        {
+          "name": "PROMPT",
+          "required": false,
+          "variadic": false,
+          "note": "Optional user prompt to start the session"
+        },
+        {
+          "name": "SESSION_ID",
+          "required": false,
+          "variadic": false,
+          "note": "Conversation/session id (UUID). When provided, forks this session. If omitted, use --last\nto pick the most recent recorded session"
+        }
+      ],
+      "flags": [
+        {
+          "long": "--add-dir",
+          "takes_value": true,
+          "value_name": "DIR"
+        },
+        {
+          "long": "--all",
+          "takes_value": false
+        },
+        {
+          "long": "--ask-for-approval",
+          "short": "-a",
+          "takes_value": true,
+          "value_name": "APPROVAL_POLICY"
+        },
+        {
+          "long": "--cd",
+          "short": "-C",
+          "takes_value": true,
+          "value_name": "DIR"
+        },
+        {
+          "long": "--config",
+          "short": "-c",
+          "takes_value": true,
+          "value_name": "key=value"
+        },
+        {
+          "long": "--dangerously-bypass-approvals-and-sandbox",
+          "takes_value": false
+        },
+        {
+          "long": "--disable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--enable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--full-auto",
+          "takes_value": false
+        },
+        {
+          "long": "--help",
+          "short": "-h",
+          "takes_value": false
+        },
+        {
+          "long": "--image",
+          "short": "-i",
+          "takes_value": true,
+          "value_name": "FILE",
+          "repeatable": true
+        },
+        {
+          "long": "--last",
+          "takes_value": false
+        },
+        {
+          "long": "--local-provider",
+          "takes_value": true,
+          "value_name": "OSS_PROVIDER"
+        },
+        {
+          "long": "--model",
+          "short": "-m",
+          "takes_value": true,
+          "value_name": "MODEL"
+        },
+        {
+          "long": "--no-alt-screen",
+          "takes_value": false
+        },
+        {
+          "long": "--oss",
+          "takes_value": false
+        },
+        {
+          "long": "--profile",
+          "short": "-p",
+          "takes_value": true,
+          "value_name": "CONFIG_PROFILE"
+        },
+        {
+          "long": "--sandbox",
+          "short": "-s",
+          "takes_value": true,
+          "value_name": "SANDBOX_MODE"
+        },
+        {
+          "long": "--search",
+          "takes_value": false
+        },
+        {
+          "long": "--version",
+          "short": "-V",
           "takes_value": false
         }
       ]
@@ -827,11 +1247,11 @@
         "mcp",
         "add"
       ],
-      "usage": "codex mcp add [OPTIONS] <COMMAND|--url <URL>> <NAME>",
+      "usage": "codex mcp add [OPTIONS] <NAME> (--url <URL> | -- <COMMAND>...)",
       "args": [
         {
           "name": "COMMAND",
-          "required": false,
+          "required": true,
           "variadic": true,
           "note": "Command to launch the MCP server. Use --url for a streamable HTTP server"
         },
@@ -977,7 +1397,6 @@
         "mcp",
         "login"
       ],
-      "about": "experimental_use_rmcp_client = true in config.toml",
       "usage": "codex mcp login [OPTIONS] <NAME>",
       "args": [
         {
@@ -1021,7 +1440,6 @@
         "mcp",
         "logout"
       ],
-      "about": "true in config.toml",
       "usage": "codex mcp logout [OPTIONS] <NAME>",
       "args": [
         {
@@ -1215,6 +1633,10 @@
           "value_name": "MODEL"
         },
         {
+          "long": "--no-alt-screen",
+          "takes_value": false
+        },
+        {
           "long": "--oss",
           "takes_value": false
         },
@@ -1237,6 +1659,62 @@
         {
           "long": "--version",
           "short": "-V",
+          "takes_value": false
+        }
+      ]
+    },
+    {
+      "path": [
+        "review"
+      ],
+      "usage": "codex review [OPTIONS] [PROMPT]",
+      "args": [
+        {
+          "name": "PROMPT",
+          "required": false,
+          "variadic": false,
+          "note": "Custom review instructions. If `-` is used, read from stdin"
+        }
+      ],
+      "flags": [
+        {
+          "long": "--base",
+          "takes_value": true,
+          "value_name": "BRANCH"
+        },
+        {
+          "long": "--commit",
+          "takes_value": true,
+          "value_name": "SHA"
+        },
+        {
+          "long": "--config",
+          "short": "-c",
+          "takes_value": true,
+          "value_name": "key=value"
+        },
+        {
+          "long": "--disable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--enable",
+          "takes_value": true,
+          "value_name": "FEATURE"
+        },
+        {
+          "long": "--help",
+          "short": "-h",
+          "takes_value": false
+        },
+        {
+          "long": "--title",
+          "takes_value": true,
+          "value_name": "TITLE"
+        },
+        {
+          "long": "--uncommitted",
           "takes_value": false
         }
       ]
@@ -1419,59 +1897,17 @@
   "features": {
     "commands_added_when_all_enabled": [],
     "enabled_for_snapshot": [
-      "apply_patch_freeform",
-      "enable_experimental_windows_sandbox",
-      "exec_policy",
-      "experimental_sandbox_command_assessment",
-      "parallel",
-      "remote_compaction",
-      "rmcp_client",
-      "shell_command_tool",
+      "shell_snapshot",
       "shell_tool",
+      "steer",
       "undo",
       "unified_exec",
-      "view_image_tool",
       "web_search_request"
     ],
     "listed": [
       {
         "effective": false,
-        "name": "apply_patch_freeform",
-        "stage": "beta"
-      },
-      {
-        "effective": false,
-        "name": "enable_experimental_windows_sandbox",
-        "stage": "experimental"
-      },
-      {
-        "effective": true,
-        "name": "exec_policy",
-        "stage": "experimental"
-      },
-      {
-        "effective": false,
-        "name": "experimental_sandbox_command_assessment",
-        "stage": "experimental"
-      },
-      {
-        "effective": false,
-        "name": "parallel",
-        "stage": "experimental"
-      },
-      {
-        "effective": true,
-        "name": "remote_compaction",
-        "stage": "experimental"
-      },
-      {
-        "effective": true,
-        "name": "rmcp_client",
-        "stage": "experimental"
-      },
-      {
-        "effective": false,
-        "name": "shell_command_tool",
+        "name": "shell_snapshot",
         "stage": "experimental"
       },
       {
@@ -1480,7 +1916,12 @@
         "stage": "stable"
       },
       {
-        "effective": true,
+        "effective": false,
+        "name": "steer",
+        "stage": "experimental"
+      },
+      {
+        "effective": false,
         "name": "undo",
         "stage": "stable"
       },
@@ -1488,11 +1929,6 @@
         "effective": false,
         "name": "unified_exec",
         "stage": "experimental"
-      },
-      {
-        "effective": true,
-        "name": "view_image_tool",
-        "stage": "stable"
       },
       {
         "effective": false,

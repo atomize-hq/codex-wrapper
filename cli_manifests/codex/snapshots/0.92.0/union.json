@@ -2,7 +2,7 @@
   "snapshot_schema_version": 2,
   "tool": "codex-cli",
   "mode": "union",
-  "collected_at": "2025-11-20T16:14:58Z",
+  "collected_at": "2026-02-02T01:18:50.31420169Z",
   "expected_targets": [
     "x86_64-unknown-linux-musl",
     "aarch64-apple-darwin",
@@ -16,75 +16,33 @@
   "inputs": [
     {
       "target_triple": "x86_64-unknown-linux-musl",
-      "collected_at": "2025-11-20T16:14:58Z",
+      "collected_at": "2026-02-02T00:00:00Z",
       "binary": {
-        "sha256": "8e497996175913d10b188e15cc6dec328cc355cd937200c98f06fa568f598914",
-        "size_bytes": 57961248,
+        "sha256": "285b8121885d4bb3c35a59047761e010a67ef779ebedf0c9b703c84744eeafc7",
+        "size_bytes": 64419240,
         "platform": {
           "os": "linux",
           "arch": "x86_64"
         },
         "target_triple": "x86_64-unknown-linux-musl",
-        "version_output": "codex-cli 0.61.0",
-        "semantic_version": "0.61.0",
+        "version_output": "codex-cli 0.92.0",
+        "semantic_version": "0.92.0",
         "channel": "stable"
       },
       "features": {
         "commands_added_when_all_enabled": [],
         "enabled_for_snapshot": [
-          "apply_patch_freeform",
-          "enable_experimental_windows_sandbox",
-          "exec_policy",
-          "experimental_sandbox_command_assessment",
-          "parallel",
-          "remote_compaction",
-          "rmcp_client",
-          "shell_command_tool",
+          "shell_snapshot",
           "shell_tool",
+          "steer",
           "undo",
           "unified_exec",
-          "view_image_tool",
           "web_search_request"
         ],
         "listed": [
           {
             "effective": false,
-            "name": "apply_patch_freeform",
-            "stage": "beta"
-          },
-          {
-            "effective": false,
-            "name": "enable_experimental_windows_sandbox",
-            "stage": "experimental"
-          },
-          {
-            "effective": true,
-            "name": "exec_policy",
-            "stage": "experimental"
-          },
-          {
-            "effective": false,
-            "name": "experimental_sandbox_command_assessment",
-            "stage": "experimental"
-          },
-          {
-            "effective": false,
-            "name": "parallel",
-            "stage": "experimental"
-          },
-          {
-            "effective": true,
-            "name": "remote_compaction",
-            "stage": "experimental"
-          },
-          {
-            "effective": true,
-            "name": "rmcp_client",
-            "stage": "experimental"
-          },
-          {
-            "effective": false,
-            "name": "shell_command_tool",
+            "name": "shell_snapshot",
             "stage": "experimental"
           },
           {
@@ -93,7 +51,12 @@
             "stage": "stable"
           },
           {
-            "effective": true,
+            "effective": false,
+            "name": "steer",
+            "stage": "experimental"
+          },
+          {
+            "effective": false,
             "name": "undo",
             "stage": "stable"
           },
@@ -101,11 +64,6 @@
             "effective": false,
             "name": "unified_exec",
             "stage": "experimental"
-          },
-          {
-            "effective": true,
-            "name": "view_image_tool",
-            "stage": "stable"
           },
           {
             "effective": false,
@@ -250,6 +208,14 @@
           ]
         },
         {
+          "key": "--no-alt-screen",
+          "long": "--no-alt-screen",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
           "key": "--oss",
           "long": "--oss",
           "takes_value": false,
@@ -303,7 +269,17 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex app-server [OPTIONS] [COMMAND]"
+      "usage": "codex app-server [OPTIONS] [COMMAND]",
+      "flags": [
+        {
+          "key": "--analytics-default-enabled",
+          "long": "--analytics-default-enabled",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
     },
     {
       "path": [
@@ -413,6 +389,70 @@
     {
       "path": [
         "cloud",
+        "apply"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex cloud apply [OPTIONS] <TASK_ID>",
+      "args": [
+        {
+          "name": "TASK_ID",
+          "required": true,
+          "variadic": false,
+          "note": "Codex Cloud task identifier to apply",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ],
+      "flags": [
+        {
+          "key": "--attempt",
+          "long": "--attempt",
+          "takes_value": true,
+          "value_name": "N",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "cloud",
+        "diff"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex cloud diff [OPTIONS] <TASK_ID>",
+      "args": [
+        {
+          "name": "TASK_ID",
+          "required": true,
+          "variadic": false,
+          "note": "Codex Cloud task identifier to display",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ],
+      "flags": [
+        {
+          "key": "--attempt",
+          "long": "--attempt",
+          "takes_value": true,
+          "value_name": "N",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "cloud",
         "exec"
       ],
       "available_on": [
@@ -436,6 +476,15 @@
           "long": "--attempts",
           "takes_value": true,
           "value_name": "ATTEMPTS",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--branch",
+          "long": "--branch",
+          "takes_value": true,
+          "value_name": "BRANCH",
           "available_on": [
             "x86_64-unknown-linux-musl"
           ]
@@ -466,6 +515,74 @@
           "required": false,
           "variadic": true,
           "note": "Print help for the subcommand(s)",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "cloud",
+        "list"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex cloud list [OPTIONS]",
+      "flags": [
+        {
+          "key": "--cursor",
+          "long": "--cursor",
+          "takes_value": true,
+          "value_name": "CURSOR",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--env",
+          "long": "--env",
+          "takes_value": true,
+          "value_name": "ENV_ID",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--json",
+          "long": "--json",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--limit",
+          "long": "--limit",
+          "takes_value": true,
+          "value_name": "N",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "cloud",
+        "status"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex cloud status [OPTIONS] <TASK_ID>",
+      "args": [
+        {
+          "name": "TASK_ID",
+          "required": true,
+          "variadic": false,
+          "note": "Codex Cloud task identifier to inspect",
           "available_on": [
             "x86_64-unknown-linux-musl"
           ]
@@ -610,8 +727,106 @@
       ],
       "flags": [
         {
+          "key": "--all",
+          "long": "--all",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--json",
+          "long": "--json",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
           "key": "--last",
           "long": "--last",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--skip-git-repo-check",
+          "long": "--skip-git-repo-check",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "exec",
+        "review"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex exec review [OPTIONS] [PROMPT]",
+      "args": [
+        {
+          "name": "PROMPT",
+          "required": false,
+          "variadic": false,
+          "note": "Custom review instructions. If `-` is used, read from stdin",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ],
+      "flags": [
+        {
+          "key": "--base",
+          "long": "--base",
+          "takes_value": true,
+          "value_name": "BRANCH",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--commit",
+          "long": "--commit",
+          "takes_value": true,
+          "value_name": "SHA",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--json",
+          "long": "--json",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--skip-git-repo-check",
+          "long": "--skip-git-repo-check",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--title",
+          "long": "--title",
+          "takes_value": true,
+          "value_name": "TITLE",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--uncommitted",
+          "long": "--uncommitted",
           "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"
@@ -658,6 +873,53 @@
         "x86_64-unknown-linux-musl"
       ],
       "usage": "codex features list [OPTIONS]"
+    },
+    {
+      "path": [
+        "fork"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex fork [OPTIONS] [SESSION_ID] [PROMPT]",
+      "args": [
+        {
+          "name": "PROMPT",
+          "required": false,
+          "variadic": false,
+          "note": "Optional user prompt to start the session",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "name": "SESSION_ID",
+          "required": false,
+          "variadic": false,
+          "note": "Conversation/session id (UUID). When provided, forks this session. If omitted, use --last\nto pick the most recent recorded session",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ],
+      "flags": [
+        {
+          "key": "--all",
+          "long": "--all",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--last",
+          "long": "--last",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
     },
     {
       "path": [
@@ -763,11 +1025,11 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "usage": "codex mcp add [OPTIONS] <COMMAND|--url <URL>> <NAME>",
+      "usage": "codex mcp add [OPTIONS] <NAME> (--url <URL> | -- <COMMAND>...)",
       "args": [
         {
           "name": "COMMAND",
-          "required": false,
+          "required": true,
           "variadic": true,
           "note": "Command to launch the MCP server. Use --url for a streamable HTTP server",
           "available_on": [
@@ -894,7 +1156,6 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "about": "experimental_use_rmcp_client = true in config.toml",
       "usage": "codex mcp login [OPTIONS] <NAME>",
       "args": [
         {
@@ -927,7 +1188,6 @@
       "available_on": [
         "x86_64-unknown-linux-musl"
       ],
-      "about": "true in config.toml",
       "usage": "codex mcp logout [OPTIONS] <NAME>",
       "args": [
         {
@@ -1011,6 +1271,63 @@
         {
           "key": "--last",
           "long": "--last",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "review"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex review [OPTIONS] [PROMPT]",
+      "args": [
+        {
+          "name": "PROMPT",
+          "required": false,
+          "variadic": false,
+          "note": "Custom review instructions. If `-` is used, read from stdin",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ],
+      "flags": [
+        {
+          "key": "--base",
+          "long": "--base",
+          "takes_value": true,
+          "value_name": "BRANCH",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--commit",
+          "long": "--commit",
+          "takes_value": true,
+          "value_name": "SHA",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--title",
+          "long": "--title",
+          "takes_value": true,
+          "value_name": "TITLE",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
+          "key": "--uncommitted",
+          "long": "--uncommitted",
           "takes_value": false,
           "available_on": [
             "x86_64-unknown-linux-musl"

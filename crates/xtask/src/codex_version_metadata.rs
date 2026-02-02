@@ -62,6 +62,8 @@ pub enum VersionMetadataError {
 struct RulesFile {
     union: RulesUnion,
     version_metadata: RulesVersionMetadata,
+    #[serde(default)]
+    parity_exclusions: Option<RulesParityExclusions>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,6 +91,52 @@ struct RulesCoverageRequirement {
     allowed_levels: Vec<String>,
     disallowed_levels: Vec<String>,
     treat_missing_as: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct RulesParityExclusions {
+    schema_version: u32,
+    units: Vec<ParityExclusionUnit>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ParityExclusionUnit {
+    unit: String,
+    path: Vec<String>,
+    #[serde(default)]
+    key: Option<String>,
+    #[serde(default)]
+    name: Option<String>,
+}
+
+#[derive(Debug, Default)]
+struct ParityExclusionsIndex {
+    commands: BTreeSet<Vec<String>>,
+    flags: BTreeSet<(Vec<String>, String)>,
+    args: BTreeSet<(Vec<String>, String)>,
+}
+
+fn build_parity_exclusions_index(exclusions: &RulesParityExclusions) -> ParityExclusionsIndex {
+    let mut index = ParityExclusionsIndex::default();
+    for unit in &exclusions.units {
+        match unit.unit.as_str() {
+            "command" => {
+                index.commands.insert(unit.path.clone());
+            }
+            "flag" => {
+                if let Some(key) = unit.key.as_ref() {
+                    index.flags.insert((unit.path.clone(), key.clone()));
+                }
+            }
+            "arg" => {
+                if let Some(name) = unit.name.as_ref() {
+                    index.args.insert((unit.path.clone(), name.clone()));
+                }
+            }
+            _ => {}
+        }
+    }
+    index
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -466,6 +514,13 @@ fn compute_coverage(
         .treat_missing_as
         .as_str();
 
+    let parity_exclusions = rules
+        .parity_exclusions
+        .as_ref()
+        .filter(|ex| ex.schema_version == 1)
+        .map(build_parity_exclusions_index)
+        .unwrap_or_default();
+
     let mut supported_targets = Vec::new();
 
     for target in &rules.union.expected_targets {
@@ -481,6 +536,7 @@ fn compute_coverage(
             &allowed,
             &disallowed,
             treat_missing_as,
+            &parity_exclusions,
         ) {
             supported_targets.push(target.clone());
         }
@@ -504,9 +560,14 @@ fn is_supported_on_target(
     allowed: &BTreeSet<&str>,
     disallowed: &BTreeSet<&str>,
     treat_missing_as: &str,
+    parity_exclusions: &ParityExclusionsIndex,
 ) -> bool {
     for cmd in &union.commands {
         if !cmd.available_on.iter().any(|t| t == target) {
+            continue;
+        }
+
+        if parity_exclusions.commands.contains(&cmd.path) {
             continue;
         }
 
@@ -547,6 +608,12 @@ fn is_supported_on_target(
             if !flag.available_on.iter().any(|t| t == target) {
                 continue;
             }
+            if parity_exclusions
+                .flags
+                .contains(&(cmd.path.clone(), flag.key.clone()))
+            {
+                continue;
+            }
             let key = (cmd.path.clone(), flag.key.clone());
             let flag_level = resolve_level_for_target(
                 wrapper_index
@@ -584,6 +651,12 @@ fn is_supported_on_target(
 
         for arg in &cmd.args {
             if !arg.available_on.iter().any(|t| t == target) {
+                continue;
+            }
+            if parity_exclusions
+                .args
+                .contains(&(cmd.path.clone(), arg.name.clone()))
+            {
                 continue;
             }
             let key = (cmd.path.clone(), arg.name.clone());
