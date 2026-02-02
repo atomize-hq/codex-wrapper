@@ -221,3 +221,7 @@ If `RUST_LOG` is unset, the wrapper injects `RUST_LOG=error` for spawned command
 - `examples/stdio_to_uds_live.rs`: Unix-only live bridge that spins up a temp Unix socket listener, runs `codex stdio-to-uds <socket>`, sends `ping`, and prints the echoed `pong`.
 - `cargo test -p codex` exercises env merging and non-destructive behavior (`runtime_api_*`, `app_runtime_*`, `app_runtime_pool_*` cover listing/prepare/start/stop without writing config or altering metadata).
 - See `crates/codex/EXAMPLES.md` for one-to-one CLI parity examples, including `bundled_binary_home` to run Codex from an embedded binary with isolated state.
+
+## Integration notes
+
+- For a practical integration pattern in an async shell/orchestrator (Substrate), see `docs/integrations/substrate.md`.

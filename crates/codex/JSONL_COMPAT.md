@@ -1,8 +1,20 @@
 # JSONL Compatibility (Codex CLI parity)
 
+Status: **Normative**  
+Scope: normalization semantics for `ThreadEvent` JSONL parsing (streaming + offline)
+
 This crate consumes Codex CLI `--json` output as a JSONL stream (one JSON object per stdout line).
 The streaming APIs `CodexClient::stream_exec` and `CodexClient::stream_resume` yield a stream of
 `Result<ThreadEvent, ExecStreamError>`.
+
+This document is the single source of truth for **normalization behavior**. It applies to:
+
+- Live streaming parsing (`stream_exec`, `stream_resume`)
+- Offline JSONL log parsing APIs (ADR 0005)
+
+## Normative language
+
+This document uses RFC 2119-style requirement keywords (`MUST`, `MUST NOT`).
 
 ## Goals
 - Prefer typed `ThreadEvent` parsing for ergonomics.
@@ -10,6 +22,14 @@ The streaming APIs `CodexClient::stream_exec` and `CodexClient::stream_resume` y
   unknown-field capture.
 - Do not terminate the entire stream on the first malformed/unrecognized line when it is possible
   to continue.
+
+## Line handling (normative)
+
+- Parsers MUST ignore empty / whitespace-only lines (no events emitted for them).
+- Parsers MUST tolerate Windows CRLF JSONL logs by trimming a single trailing `\r` from each line
+  prior to JSON parsing (i.e., parse the logical line content, not the line ending).
+- Parsers MUST NOT apply a full `.trim()` before JSON parsing. JSON parsing already tolerates
+  leading/trailing whitespace, and preserving the original bytes improves debugging/audit fidelity.
 
 ## Normalization (what + when)
 
@@ -30,6 +50,14 @@ The stream maintains the most recently observed `thread_id` and `turn_id`:
 - If an `item.*` event is missing `turn_id` and a prior `turn.started` established context, the
   missing `turn_id` is filled from context.
 - If `turn.started` is missing `turn_id`, a synthetic id `synthetic-turn-N` is generated.
+
+Additional context rules (normative):
+- When a `thread.started` or `thread.resumed` event is observed, parsers MUST:
+  - set the current thread context to that `thread_id`, and
+  - clear any existing current turn context (a new `turn.started` establishes the next one).
+- Synthetic `turn_id` generation MUST use a monotonic counter scoped to the parser instance and MUST
+  NOT reset on `thread.started` / `thread.resumed`. The counter resets only when the parser itself
+  is reset (e.g., a fresh parser instance).
 
 ### Item envelope normalization
 For `item.*` events, older Codex CLI versions may nest item fields under `{"item": {...}}`. The
@@ -60,9 +88,11 @@ with `#[serde(flatten)]`. Any fields not understood by the typed schema are pres
 than dropped silently) so callers can inspect or forward them.
 
 ## Error surfacing and stream behavior
-- Each JSONL line produces exactly one stream item:
-  - `Ok(ThreadEvent)` when the line normalizes and deserializes successfully.
-  - `Err(ExecStreamError)` when JSON parsing, normalization, or typed deserialization fails.
+- Each non-empty JSONL line produces exactly one parse outcome:
+  - Success: a `ThreadEvent` when the line normalizes and deserializes successfully.
+  - Failure: an `ExecStreamError` when JSON parsing, normalization, or typed deserialization fails.
+- Unknown or unrecognized `type` values MUST surface as per-line parse failures (e.g.
+  `ExecStreamError::Parse`) and MUST NOT stop consumption of subsequent lines.
 - Malformed/unrecognized lines do not stop the stream; subsequent lines are still read and emitted
   when possible.
 - The stream can still terminate early for transport-level issues (e.g., stdout read failures or the
