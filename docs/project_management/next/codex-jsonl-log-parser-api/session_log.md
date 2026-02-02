@@ -39,6 +39,13 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Plan: implement `codex::jsonl` offline parser + crate-root reexports reusing streaming normalization; run required commands; commit via worktree; update docs/log at end
 - Blockers: none
 
+## [2026-02-02 21:45 UTC] Code Agent – C0-code – END
+- Worktree `wt/jp5-c0-jsonl-parser-api-code` on branch `jp5-c0-jsonl-parser-api-code` (commit 909ee29) added `codex::jsonl` offline JSONL parsing API + crate-root reexports; reused streaming normalization via `normalize_thread_event` and shared context.
+- Commands: `cargo fmt` (pass); `cargo clippy --workspace --all-targets -- -D warnings` (fail)
+- Clippy blockers (pre-existing in repo, not introduced by this change): `crates/codex/examples/exec_resume_apply_wrapper.rs` (clippy::if_same_then_else), `crates/codex/examples/session_commands.rs` + `crates/codex/examples/mcp_manage.rs` (clippy::get_first / clippy::redundant_closure), `crates/codex/tests/examples_manifest.rs` (clippy::unnecessary_get_then_check), `crates/xtask/src/codex_version_metadata.rs` (clippy::too_many_arguments).
+- Result: C0-code implementation is complete and committed; integration will need to resolve clippy failures before the global clippy gate can pass.
+- Blockers: workspace clippy failures listed above
+
 ## [2026-02-02 21:33 UTC] Test Agent – C0-test – START
 - Checked out `feat/codex-jsonl-log-parser-api`, `git pull --ff-only` (up to date)
 - Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C0-test → `in_progress`)
