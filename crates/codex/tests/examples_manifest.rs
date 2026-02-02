@@ -82,4 +82,3 @@ fn examples_manifest_covers_all_explicit_wrapper_commands() {
         }
     }
 }
-

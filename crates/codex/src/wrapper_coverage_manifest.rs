@@ -158,7 +158,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 ],
                 vec![],
             ),
-
             // Scenario 1+2: `codex exec` (single-response + streaming).
             command(
                 &["exec"],
@@ -177,7 +176,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 ],
                 vec![arg("PROMPT", CoverageLevel::Explicit)],
             ),
-
             // Scenario 3: `codex exec resume` (streaming resume).
             command(
                 &["exec", "resume"],
@@ -194,7 +192,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                     arg("SESSION_ID", CoverageLevel::Explicit),
                 ],
             ),
-
             // Scenario 4: `codex apply <TASK_ID>`.
             command(
                 &["apply"],
@@ -203,7 +200,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![],
                 vec![arg("TASK_ID", CoverageLevel::Explicit)],
             ),
-
             // Scenario 4: `codex cloud diff <TASK_ID>`.
             command(
                 &["cloud", "diff"],
@@ -249,7 +245,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 ],
                 vec![arg("QUERY", CoverageLevel::Explicit)],
             ),
-
             // Scenario 5: login/logout.
             command(
                 &["login"],
@@ -263,9 +258,14 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 ],
                 vec![],
             ),
-            command(&["login", "status"], CoverageLevel::Explicit, None, vec![], vec![]),
+            command(
+                &["login", "status"],
+                CoverageLevel::Explicit,
+                None,
+                vec![],
+                vec![],
+            ),
             command(&["logout"], CoverageLevel::Explicit, None, vec![], vec![]),
-
             // Scenario 6: `codex features list`.
             command(
                 &["features", "list"],
@@ -274,7 +274,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![],
                 vec![],
             ),
-
             // Scenario 7: `codex app-server generate-*`.
             command(
                 &["app-server", "generate-ts"],
@@ -293,7 +292,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![flag("--out", CoverageLevel::Explicit)],
                 vec![],
             ),
-
             // Scenario 8: `codex responses-api-proxy`.
             command(
                 &["responses-api-proxy"],
@@ -307,7 +305,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 ],
                 vec![],
             ),
-
             // Scenario 9: `codex stdio-to-uds`.
             command(
                 &["stdio-to-uds"],
@@ -316,7 +313,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![],
                 vec![arg("SOCKET_PATH", CoverageLevel::Explicit)],
             ),
-
             // Scenario 10: `codex sandbox <platform>`.
             command(&["sandbox"], CoverageLevel::Explicit, None, vec![], vec![]),
             command(
@@ -340,7 +336,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![],
                 vec![arg("COMMAND", CoverageLevel::Explicit)],
             ),
-
             // Scenario 11: `codex execpolicy check`.
             command(
                 &["execpolicy", "check"],
@@ -352,9 +347,14 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 ],
                 vec![arg("COMMAND", CoverageLevel::Explicit)],
             ),
-
             // Scenario 12: stdio servers.
-            command(&["mcp-server"], CoverageLevel::Explicit, None, vec![], vec![]),
+            command(
+                &["mcp-server"],
+                CoverageLevel::Explicit,
+                None,
+                vec![],
+                vec![],
+            ),
             command(
                 &["app-server"],
                 CoverageLevel::Explicit,
@@ -413,7 +413,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![flag("--scopes", CoverageLevel::Explicit)],
                 vec![arg("NAME", CoverageLevel::Explicit)],
             ),
-
             // `codex help` command family (variadic COMMAND).
             command(
                 &["help"],
@@ -471,7 +470,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![],
                 vec![arg("COMMAND", CoverageLevel::Explicit)],
             ),
-
             // New 0.92.0 command surfaces.
             command(&["features"], CoverageLevel::Explicit, None, vec![], vec![]),
             command(
@@ -526,7 +524,6 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                     arg("SESSION_ID", CoverageLevel::Explicit),
                 ],
             ),
-
             WrapperCommandCoverageV1 {
                 path: vec!["completion".to_string()],
                 level: CoverageLevel::IntentionallyUnsupported,

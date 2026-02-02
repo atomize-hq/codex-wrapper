@@ -31,7 +31,8 @@
 use std::{env, error::Error, ffi::OsString};
 
 use codex::{
-    McpAddRequest, McpGetRequest, McpListRequest, McpLogoutRequest, McpOauthLoginRequest, McpRemoveRequest,
+    McpAddRequest, McpGetRequest, McpListRequest, McpLogoutRequest, McpOauthLoginRequest,
+    McpRemoveRequest,
 };
 
 #[path = "support/real_cli.rs"]
@@ -94,7 +95,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let home = real_cli::isolated_home_root("mcp_manage_roundtrip");
             let client = real_cli::build_client_with_home(&home);
 
-            let name = args.get(0).cloned().unwrap_or_else(|| "example".to_string());
+            let name = args
+                .get(0)
+                .cloned()
+                .unwrap_or_else(|| "example".to_string());
             let url = args
                 .get(1)
                 .cloned()
@@ -105,7 +109,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .await?;
 
             let _ = client.mcp_list(McpListRequest::new().json(false)).await?;
-            let _ = client.mcp_get(McpGetRequest::new(name.clone()).json(false)).await?;
+            let _ = client
+                .mcp_get(McpGetRequest::new(name.clone()).json(false))
+                .await?;
             let _ = client
                 .mcp_remove(McpRemoveRequest::new(name.clone()))
                 .await?;
@@ -180,8 +186,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
             print!("{}", output.stdout);
         }
         "add-http" => {
-            let name = args.get(0).ok_or("usage: mcp_manage add-http <NAME> <URL> [TOKEN_ENV]")?;
-            let url = args.get(1).ok_or("usage: mcp_manage add-http <NAME> <URL> [TOKEN_ENV]")?;
+            let name = args
+                .get(0)
+                .ok_or("usage: mcp_manage add-http <NAME> <URL> [TOKEN_ENV]")?;
+            let url = args
+                .get(1)
+                .ok_or("usage: mcp_manage add-http <NAME> <URL> [TOKEN_ENV]")?;
             let token_env = args.get(2).cloned();
 
             let mut request = McpAddRequest::streamable_http(name.to_string(), url.to_string());
@@ -193,7 +203,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             print!("{}", output.stdout);
         }
         "add-stdio" => {
-            let name = args.get(0).ok_or("usage: mcp_manage add-stdio <NAME> -- <COMMAND>...")?;
+            let name = args
+                .get(0)
+                .ok_or("usage: mcp_manage add-stdio <NAME> -- <COMMAND>...")?;
             let delimiter = args
                 .iter()
                 .position(|v| v == "--")
@@ -223,7 +235,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             print!("{}", output.stdout);
         }
         "login" => {
-            let name = args.get(0).ok_or("usage: mcp_manage login <NAME> [scopes...]")?;
+            let name = args
+                .get(0)
+                .ok_or("usage: mcp_manage login <NAME> [scopes...]")?;
             let scopes = args.iter().skip(1).cloned().collect::<Vec<_>>();
             let mut request = McpOauthLoginRequest::new(name.to_string());
             if !scopes.is_empty() {

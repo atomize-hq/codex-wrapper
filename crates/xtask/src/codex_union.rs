@@ -209,10 +209,7 @@ pub fn run(args: Args) -> Result<(), Error> {
         &present_targets,
         &snapshots_by_target,
     );
-    normalize_union_commands(
-        &mut commands,
-        &rules.globals.effective_flags_model,
-    );
+    normalize_union_commands(&mut commands, &rules.globals.effective_flags_model);
 
     let union = SnapshotUnionV2 {
         snapshot_schema_version: 2,
@@ -239,8 +236,15 @@ pub fn run(args: Args) -> Result<(), Error> {
     Ok(())
 }
 
-fn normalize_union_commands(commands: &mut [UnionCommandSnapshotV2], model: &RulesEffectiveFlagsModel) {
-    if !model.enabled || !model.union_normalization.dedupe_per_command_flags_against_root {
+fn normalize_union_commands(
+    commands: &mut [UnionCommandSnapshotV2],
+    model: &RulesEffectiveFlagsModel,
+) {
+    if !model.enabled
+        || !model
+            .union_normalization
+            .dedupe_per_command_flags_against_root
+    {
         return;
     }
 
@@ -322,7 +326,11 @@ fn assert_supported_sorting(sorting: &RulesSorting) -> Result<(), Error> {
 
 fn assert_supported_globals(globals: &RulesGlobals) -> Result<(), Error> {
     let model = &globals.effective_flags_model;
-    if !model.enabled || !model.union_normalization.dedupe_per_command_flags_against_root {
+    if !model.enabled
+        || !model
+            .union_normalization
+            .dedupe_per_command_flags_against_root
+    {
         return Ok(());
     }
 

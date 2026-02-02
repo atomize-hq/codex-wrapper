@@ -67,8 +67,11 @@ fn write_snapshot_json(codex_root: &Path, version: &str, target_triple: &str, sn
     let dst_dir = codex_root.join("snapshots").join(version);
     fs::create_dir_all(&dst_dir).expect("create snapshots/<version> dir");
     let dst = dst_dir.join(format!("{target_triple}.json"));
-    fs::write(&dst, format!("{}\n", serde_json::to_string_pretty(snapshot).unwrap()))
-        .expect("write snapshot json");
+    fs::write(
+        &dst,
+        format!("{}\n", serde_json::to_string_pretty(snapshot).unwrap()),
+    )
+    .expect("write snapshot json");
 }
 
 fn run_xtask_union(codex_root: &Path, version: &str) -> std::process::Output {

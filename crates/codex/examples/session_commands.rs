@@ -15,7 +15,7 @@
 
 use std::env;
 
-use codex::{HelpCommandRequest, HelpScope, ForkSessionRequest, ResumeSessionRequest};
+use codex::{ForkSessionRequest, HelpCommandRequest, HelpScope, ResumeSessionRequest};
 
 #[path = "support/real_cli.rs"]
 mod real_cli;

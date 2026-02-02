@@ -14,9 +14,7 @@
 
 use std::env;
 
-use codex::{
-    ExecReviewCommandRequest, HelpCommandRequest, HelpScope, ReviewCommandRequest,
-};
+use codex::{ExecReviewCommandRequest, HelpCommandRequest, HelpScope, ReviewCommandRequest};
 
 #[path = "support/real_cli.rs"]
 mod real_cli;
@@ -38,7 +36,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match subcommand {
         "run" => {
             if !env_truthy("CODEX_EXAMPLE_LIVE") {
-                eprintln!("Set CODEX_EXAMPLE_LIVE=1 to run review commands (they may have side effects).");
+                eprintln!(
+                    "Set CODEX_EXAMPLE_LIVE=1 to run review commands (they may have side effects)."
+                );
                 return Ok(());
             }
 

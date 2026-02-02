@@ -128,7 +128,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .get(0)
                 .ok_or("usage: cloud_tasks status <TASK_ID>")?
                 .to_string();
-            let output = client.cloud_status(CloudStatusRequest::new(task_id)).await?;
+            let output = client
+                .cloud_status(CloudStatusRequest::new(task_id))
+                .await?;
             print!("{}", output.stdout);
         }
         "diff" => {
@@ -221,7 +223,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             print!("{}", output.stdout);
         }
         other => {
-            eprintln!("unknown subcommand: {other} (expected overview/list/status/diff/apply/exec)");
+            eprintln!(
+                "unknown subcommand: {other} (expected overview/list/status/diff/apply/exec)"
+            );
         }
     }
 

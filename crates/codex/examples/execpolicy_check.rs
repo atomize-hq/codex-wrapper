@@ -33,7 +33,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("decision: {:?}", result.decision());
             println!("{}", result.stdout);
         }
-        Err(CodexError::NonZeroExit { stderr, .. }) if stderr.to_lowercase().contains("unknown") => {
+        Err(CodexError::NonZeroExit { stderr, .. })
+            if stderr.to_lowercase().contains("unknown") =>
+        {
             eprintln!("execpolicy check not available in this Codex binary; skipping.");
         }
         Err(err) => return Err(err.into()),

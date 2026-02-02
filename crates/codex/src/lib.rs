@@ -2327,11 +2327,8 @@ impl CodexClient {
         &self,
         request: FeaturesCommandRequest,
     ) -> Result<ApplyDiffArtifacts, CodexError> {
-        self.run_simple_command_with_overrides(
-            vec![OsString::from("features")],
-            request.overrides,
-        )
-        .await
+        self.run_simple_command_with_overrides(vec![OsString::from("features")], request.overrides)
+            .await
     }
 
     /// Runs `codex <scope> help [COMMAND]...` and returns captured output.
@@ -2346,7 +2343,8 @@ impl CodexClient {
             .map(|value| OsString::from(*value))
             .collect();
         args.extend(request.command.into_iter().map(OsString::from));
-        self.run_simple_command_with_overrides(args, request.overrides).await
+        self.run_simple_command_with_overrides(args, request.overrides)
+            .await
     }
 
     /// Runs `codex review [OPTIONS] [PROMPT]` and returns captured output.
@@ -2386,7 +2384,8 @@ impl CodexClient {
             }
         }
 
-        self.run_simple_command_with_overrides(args, request.overrides).await
+        self.run_simple_command_with_overrides(args, request.overrides)
+            .await
     }
 
     /// Runs `codex exec review [OPTIONS] [PROMPT]` and returns captured output.
@@ -2432,7 +2431,8 @@ impl CodexClient {
             }
         }
 
-        self.run_simple_command_with_overrides(args, request.overrides).await
+        self.run_simple_command_with_overrides(args, request.overrides)
+            .await
     }
 
     /// Runs `codex resume [OPTIONS] [SESSION_ID] [PROMPT]` and returns captured output.
@@ -2462,7 +2462,8 @@ impl CodexClient {
             }
         }
 
-        self.run_simple_command_with_overrides(args, request.overrides).await
+        self.run_simple_command_with_overrides(args, request.overrides)
+            .await
     }
 
     /// Runs `codex fork [OPTIONS] [SESSION_ID] [PROMPT]` and returns captured output.
@@ -2492,7 +2493,8 @@ impl CodexClient {
             }
         }
 
-        self.run_simple_command_with_overrides(args, request.overrides).await
+        self.run_simple_command_with_overrides(args, request.overrides)
+            .await
     }
 
     /// Runs `codex cloud --help` and returns captured output.
@@ -2537,12 +2539,16 @@ impl CodexClient {
             args.push(OsString::from("--json"));
         }
 
-        let artifacts = self.run_simple_command_with_overrides(args, overrides).await?;
+        let artifacts = self
+            .run_simple_command_with_overrides(args, overrides)
+            .await?;
         let parsed = if json {
-            Some(serde_json::from_str(&artifacts.stdout).map_err(|source| CodexError::JsonParse {
-                context: "cloud list",
-                stdout: artifacts.stdout.clone(),
-                source,
+            Some(serde_json::from_str(&artifacts.stdout).map_err(|source| {
+                CodexError::JsonParse {
+                    context: "cloud list",
+                    stdout: artifacts.stdout.clone(),
+                    source,
+                }
             })?)
         } else {
             None
@@ -2666,12 +2672,16 @@ impl CodexClient {
             args.push(OsString::from("--json"));
         }
 
-        let artifacts = self.run_simple_command_with_overrides(args, overrides).await?;
+        let artifacts = self
+            .run_simple_command_with_overrides(args, overrides)
+            .await?;
         let parsed = if json {
-            Some(serde_json::from_str(&artifacts.stdout).map_err(|source| CodexError::JsonParse {
-                context: "mcp list",
-                stdout: artifacts.stdout.clone(),
-                source,
+            Some(serde_json::from_str(&artifacts.stdout).map_err(|source| {
+                CodexError::JsonParse {
+                    context: "mcp list",
+                    stdout: artifacts.stdout.clone(),
+                    source,
+                }
             })?)
         } else {
             None
@@ -2702,10 +2712,12 @@ impl CodexClient {
             .run_simple_command_with_overrides(args, request.overrides)
             .await?;
         let parsed = if request.json {
-            Some(serde_json::from_str(&artifacts.stdout).map_err(|source| CodexError::JsonParse {
-                context: "mcp get",
-                stdout: artifacts.stdout.clone(),
-                source,
+            Some(serde_json::from_str(&artifacts.stdout).map_err(|source| {
+                CodexError::JsonParse {
+                    context: "mcp get",
+                    stdout: artifacts.stdout.clone(),
+                    source,
+                }
             })?)
         } else {
             None
@@ -2726,7 +2738,11 @@ impl CodexClient {
             return Err(CodexError::EmptyMcpServerName);
         }
 
-        let mut args = vec![OsString::from("mcp"), OsString::from("add"), OsString::from(name)];
+        let mut args = vec![
+            OsString::from("mcp"),
+            OsString::from("add"),
+            OsString::from(name),
+        ];
         match request.transport {
             McpAddTransport::StreamableHttp {
                 url,
@@ -2818,8 +2834,11 @@ impl CodexClient {
             return Err(CodexError::EmptyMcpServerName);
         }
 
-        let resolved_overrides =
-            resolve_cli_overrides(&self.cli_overrides, &request.overrides, self.model.as_deref());
+        let resolved_overrides = resolve_cli_overrides(
+            &self.cli_overrides,
+            &request.overrides,
+            self.model.as_deref(),
+        );
 
         let mut command = Command::new(self.command_env.binary_path());
         command
@@ -6822,8 +6841,12 @@ impl McpOauthLoginRequest {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.scopes
-            .extend(scopes.into_iter().map(|s| s.into()).filter(|s| !s.trim().is_empty()));
+        self.scopes.extend(
+            scopes
+                .into_iter()
+                .map(|s| s.into())
+                .filter(|s| !s.trim().is_empty()),
+        );
         self
     }
 
@@ -8981,7 +9004,10 @@ printf "%s\n" "$@"
             .features(FeaturesCommandRequest::new())
             .await
             .unwrap();
-        assert_eq!(features.stdout.lines().collect::<Vec<_>>(), vec!["features"]);
+        assert_eq!(
+            features.stdout.lines().collect::<Vec<_>>(),
+            vec!["features"]
+        );
 
         let help = client
             .help(HelpCommandRequest::new(HelpScope::Root).command(["exec", "review"]))
@@ -9113,17 +9139,7 @@ JSON
         assert_eq!(output.json, Some(json!({"tasks": [], "cursor": null})));
         assert_eq!(
             output.stderr.lines().collect::<Vec<_>>(),
-            vec![
-                "cloud",
-                "list",
-                "--env",
-                "env-1",
-                "--limit",
-                "3",
-                "--cursor",
-                "cur-1",
-                "--json"
-            ]
+            vec!["cloud", "list", "--env", "env-1", "--limit", "3", "--cursor", "cur-1", "--json"]
         );
     }
 
@@ -9168,7 +9184,10 @@ printf "%s\n" "$@"
             ]
         );
 
-        let err = client.cloud_exec(CloudExecRequest::new("  ")).await.unwrap_err();
+        let err = client
+            .cloud_exec(CloudExecRequest::new("  "))
+            .await
+            .unwrap_err();
         assert!(matches!(err, CodexError::EmptyEnvId));
     }
 

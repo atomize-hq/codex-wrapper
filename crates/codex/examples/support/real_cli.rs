@@ -71,7 +71,10 @@ pub fn build_client_with_home(home: &Path) -> CodexClient {
         .build()
 }
 
-pub fn maybe_seed_auth(target_home: &Path, seed_home: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub fn maybe_seed_auth(
+    target_home: &Path,
+    seed_home: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
     let layout = CodexHomeLayout::new(target_home.to_path_buf());
     layout.materialize(true)?;
     layout

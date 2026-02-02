@@ -23,7 +23,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("{}", features.stderr);
     }
 
-    let list = client.list_features(FeaturesListRequest::new().json(false)).await?;
+    let list = client
+        .list_features(FeaturesListRequest::new().json(false))
+        .await?;
     println!("--- codex features list ({:?}) ---", list.format);
     println!("features: {}", list.features.len());
     if matches!(list.format, FeaturesListFormat::Text) {
