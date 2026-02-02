@@ -67,8 +67,14 @@
 //! - TTL/backoff helper: `capability_cache_ttl_decision` inspects `collected_at` to suggest when to reuse, refresh, or bypass cached snapshots and stretches the recommended policy when metadata is missing.
 //! - Overrides + persistence: `capability_snapshot`, `capability_overrides`, `write_capabilities_snapshot`, `read_capabilities_snapshot`, and `capability_snapshot_matches_binary` let hosts reuse snapshots across processes and fall back to probes when fingerprints diverge.
 
+pub mod jsonl;
 pub mod mcp;
 pub mod wrapper_coverage_manifest;
+
+pub use jsonl::{
+    thread_event_jsonl_file, thread_event_jsonl_reader, JsonlThreadEventParser,
+    ThreadEventJsonlFileReader, ThreadEventJsonlReader, ThreadEventJsonlRecord,
+};
 
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -7407,7 +7413,7 @@ where
     Ok(())
 }
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 struct StreamContext {
     current_thread_id: Option<String>,
     current_turn_id: Option<String>,
