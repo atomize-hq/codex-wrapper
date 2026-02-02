@@ -7450,8 +7450,9 @@ fn normalize_thread_event(
             let turn_id = extract_str_from_keys(&value, &["turn_id", "id"])
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| {
-                    let id = format!("synthetic-turn-{}", context.next_synthetic_turn.max(1));
-                    context.next_synthetic_turn = context.next_synthetic_turn.saturating_add(1);
+                    let next = context.next_synthetic_turn.max(1);
+                    let id = format!("synthetic-turn-{next}");
+                    context.next_synthetic_turn = next.saturating_add(1);
                     id
                 });
             let thread_id = extract_str_from_keys(&value, &["thread_id", "conversation_id"])
