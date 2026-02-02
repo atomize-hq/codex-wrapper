@@ -38,3 +38,10 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`jp5-c0-jsonl-parser-api-code` / `wt/jp5-c0-jsonl-parser-api-code` to be added after docs commit)
 - Plan: implement `codex::jsonl` offline parser + crate-root reexports reusing streaming normalization; run required commands; commit via worktree; update docs/log at end
 - Blockers: none
+
+## [2026-02-02 21:33 UTC] Test Agent – C0-test – START
+- Checked out `feat/codex-jsonl-log-parser-api`, `git pull --ff-only` (up to date)
+- Read plan/tasks/session log/spec/kickoff prompt; updated `tasks.json` (C0-test → `in_progress`)
+- Worktree pending (`jp5-c0-jsonl-parser-api-test` / `wt/jp5-c0-jsonl-parser-api-test` to be added after docs commit)
+- Plan: add integration tests for the offline JSONL parser API covering scenarios A–F; run `cargo fmt` and targeted tests; commit via worktree; update docs/log at end
+- Blockers: offline API appears unimplemented on `feat` (tests will not compile until C0-code lands)
