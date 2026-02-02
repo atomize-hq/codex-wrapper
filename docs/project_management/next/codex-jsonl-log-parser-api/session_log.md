@@ -45,3 +45,89 @@ Use START/END entries only. Include UTC timestamp, agent role, task ID, commands
 - Worktree pending (`jp5-c0-jsonl-parser-api-test` / `wt/jp5-c0-jsonl-parser-api-test` to be added after docs commit)
 - Plan: add integration tests for the offline JSONL parser API covering scenarios A–F; run `cargo fmt` and targeted tests; commit via worktree; update docs/log at end
 - Blockers: offline API appears unimplemented on `feat` (tests will not compile until C0-code lands)
+
+
+## [2026-02-02 21:40 UTC] Test Agent – C0-test – END
+- Worktree `wt/jp5-c0-jsonl-parser-api-test` on branch `jp5-c0-jsonl-parser-api-test` (commit 48198d4) added `crates/codex/tests/jsonl_parser_api.rs` covering scenario catalog A–F against the versioned fixtures.
+- Commands: `cargo fmt` (pass); `cargo test -p codex --test jsonl_compat -- --nocapture` (pass); `cargo test -p codex --test jsonl_parser_api -- --nocapture` (fail)
+- Output (`cargo test -p codex --test jsonl_compat -- --nocapture`):
+```text
+   Compiling proc-macro2 v1.0.103
+   Compiling unicode-ident v1.0.22
+   Compiling quote v1.0.42
+   Compiling serde_core v1.0.228
+   Compiling libc v0.2.177
+   Compiling serde v1.0.228
+   Compiling rustix v1.1.2
+   Compiling equivalent v1.0.2
+   Compiling once_cell v1.21.3
+   Compiling getrandom v0.3.4
+   Compiling hashbrown v0.16.1
+   Compiling pin-project-lite v0.2.16
+   Compiling cfg-if v1.0.4
+   Compiling serde_json v1.0.145
+   Compiling bitflags v2.10.0
+   Compiling thiserror v1.0.69
+   Compiling toml_write v0.1.2
+   Compiling winnow v0.7.13
+   Compiling linux-raw-sys v0.11.0
+   Compiling futures-core v0.3.31
+   Compiling fastrand v2.3.0
+   Compiling memchr v2.7.6
+   Compiling ryu v1.0.20
+   Compiling bytes v1.11.0
+   Compiling itoa v1.0.15
+   Compiling slab v0.4.11
+   Compiling futures-task v0.3.31
+   Compiling pin-utils v0.1.0
+   Compiling tracing-core v0.1.34
+   Compiling indexmap v2.12.1
+   Compiling syn v2.0.111
+   Compiling signal-hook-registry v1.4.7
+   Compiling mio v1.1.0
+   Compiling tempfile v3.23.0
+   Compiling semver v1.0.27
+   Compiling serde_derive v1.0.228
+   Compiling tokio-macros v2.6.0
+   Compiling tracing-attributes v0.1.30
+   Compiling thiserror-impl v1.0.69
+   Compiling futures-macro v0.3.31
+   Compiling tokio v1.48.0
+   Compiling futures-util v0.3.31
+   Compiling tracing v0.1.41
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling toml_edit v0.22.27
+   Compiling toml v0.8.23
+   Compiling codex v0.2.0 (/home/dev/__Active_Code/codex_wrapper_new/wt/jp5-c0-jsonl-parser-api-test/crates/codex)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.80s
+     Running tests/jsonl_compat.rs (target/debug/deps/jsonl_compat-044592abd5767869)
+
+running 5 tests
+test retains_unknown_fields_in_extra_maps ... ok
+test known_good_fixtures_include_text_payloads ... ok
+test parses_versioned_exec_fixtures ... ok
+test malformed_lines_are_non_fatal ... ok
+test parses_versioned_resume_fixtures ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+```
+- Output (`cargo test -p codex --test jsonl_parser_api -- --nocapture`):
+```text
+   Compiling codex v0.2.0 (/home/dev/__Active_Code/codex_wrapper_new/wt/jp5-c0-jsonl-parser-api-test/crates/codex)
+error[E0432]: unresolved imports `codex::thread_event_jsonl_file`, `codex::thread_event_jsonl_reader`, `codex::JsonlThreadEventParser`, `codex::ThreadEventJsonlRecord`
+ --> crates/codex/tests/jsonl_parser_api.rs:2:5
+  |
+2 |     thread_event_jsonl_file, thread_event_jsonl_reader, ExecStreamError, JsonlThreadEventParser,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^                   ^^^^^^^^^^^^^^^^^^^^^^ no `JsonlThreadEventParser` in the root
+  |     |                        |
+  |     |                        no `thread_event_jsonl_reader` in the root
+  |     no `thread_event_jsonl_file` in the root
+3 |     ThreadEvent, ThreadEventJsonlRecord,
+  |                  ^^^^^^^^^^^^^^^^^^^^^^ no `ThreadEventJsonlRecord` in the root
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `codex` (test "jsonl_parser_api") due to 1 previous error
+```
+- Blockers: C0-code not yet landed on `feat`; offline API symbols missing (`thread_event_jsonl_file`, `thread_event_jsonl_reader`, `JsonlThreadEventParser`, `ThreadEventJsonlRecord`).
+- Next: land C0-code (public offline API + crate-root reexports), then re-run the failing `jsonl_parser_api` suite.

@@ -47,7 +47,7 @@
     "name": "C0: Offline JSONL parsing API (test)",
     "type": "test",
     "phase": "C0",
-    "status": "in_progress",
+    "status": "completed",
     "description": "Add tests validating the offline parser scenario catalog (tests only).",
     "references": [
       "docs/specs/codex-thread-event-jsonl-parser-contract.md",
