@@ -138,3 +138,10 @@ error: could not compile `codex` (test "jsonl_parser_api") due to 1 previous err
 ```
 - Blockers: C0-code not yet landed on `feat`; offline API symbols missing (`thread_event_jsonl_file`, `thread_event_jsonl_reader`, `JsonlThreadEventParser`, `ThreadEventJsonlRecord`).
 - Next: land C0-code (public offline API + crate-root reexports), then re-run the failing `jsonl_parser_api` suite.
+
+## [2026-02-02 21:51 UTC] Integration Agent – C0-integ – START
+- Checked out `feat/codex-jsonl-log-parser-api`, `git pull --ff-only` (already up to date; branch ahead of origin by 4 commits)
+- Read plan/tasks/session log/spec/contract/scenarios; updated `tasks.json` (C0-integ → `in_progress`)
+- Worktree pending (`jp5-c0-jsonl-parser-api-integ` / `wt/jp5-c0-jsonl-parser-api-integ` to be added after docs commit)
+- Plan: merge `jp5-c0-jsonl-parser-api-code` + `jp5-c0-jsonl-parser-api-test`, reconcile behavior to `C0-spec.md` + contract/scenarios + `JSONL_COMPAT.md`, fix workspace clippy failures, run required commands, commit integration, fast-forward merge into `feat`, and write END log with outputs
+- Blockers: known workspace clippy failures reported in C0-code END (to be resolved during integration)
