@@ -12,6 +12,13 @@ This repository provides a Rust wrapper around the OpenAI Codex CLI (`codex`) wi
 - Wrapper API docs: `crates/codex/README.md`
 - Examples index: `crates/codex/EXAMPLES.md`
 - Documentation index: `docs/README.md`
+- Contributing: `CONTRIBUTING.md`
+
+## Repo map
+
+- `crates/codex/` — Rust wrapper crate
+- `docs/` — ADRs, specs, integration notes, project management
+- `cli_manifests/codex/` — Codex CLI parity artifacts + ops docs
 
 ## Operations / parity maintenance
 
@@ -19,4 +26,3 @@ This repository provides a Rust wrapper around the OpenAI Codex CLI (`codex`) wi
 - CLI snapshot artifacts: `cli_manifests/codex/README.md`
 - Decisions (ADRs): `docs/adr/`
 - Normative contracts: `docs/specs/`
-

@@ -54,5 +54,9 @@ flightcheck:
 	cargo fmt && cargo clippy --workspace --all-targets -- -D warnings && cargo clean && cargo check --workspace --all-targets && cargo test --workspace --all-targets
 
 .PHONY: preflight
-preflight: flightcheck
+.PHONY: hygiene
+hygiene:
+	./scripts/check_repo_hygiene.sh
 
+.PHONY: preflight
+preflight: hygiene flightcheck

@@ -10,6 +10,7 @@
 
 - `docs/adr/` — architecture decision records (ADRs)
 - `docs/specs/` — **normative** contracts and scenario catalogs
+- `docs/STYLE.md` — documentation conventions used in this repo
 
 ## Operations and maintenance
 
@@ -25,4 +26,3 @@ Codex CLI parity maintenance lives next to the generated artifacts:
 
 - `docs/project_management/task-triads-feature-setup-standard.md`
 - `docs/project_management/next/` (feature directories)
-
