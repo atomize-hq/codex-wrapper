@@ -481,8 +481,8 @@ Last Updated: 2026-02-04
 
 ##### P3.5 — Split xtask module: `codex_validate` (extract model + rules structs) with deterministic output preserved
 
-Status: [ ] Not Started  [ ] In Progress  [ ] Done  
-Last Updated: YYYY-MM-DD
+Status: [ ] Not Started  [ ] In Progress  [x] Done  
+Last Updated: 2026-02-04
 
 - Goal: Reduce `crates/xtask/src/codex_validate.rs` size by extracting leaf model and rules structs into `crates/xtask/src/codex_validate/models.rs` without changing outputs.
 - Expected files touched:
@@ -839,6 +839,23 @@ Add entries as work lands. Format:
 - Diffs/PRs:
   - None
 
+### 2026-02-04 — Phase 3 split: `codex_validate` models extraction
+
+- Scope/step: P3.5
+- Why: Reduce `crates/xtask/src/codex_validate.rs` size by extracting leaf model + rules structs into a `models` module, preserving deterministic output (guarded by xtask spec tests).
+- What changed:
+  - Added `crates/xtask/src/codex_validate/models.rs` and moved validation model structs (`Violation`, `Pointer*`, wrapper coverage models, rules models, and supporting structs) into it.
+  - Updated `crates/xtask/src/codex_validate.rs` to `mod models;` and use the extracted types (no CLI/output changes intended).
+- Validation results:
+  - `cargo fmt --all -- --check`: PASS (`audit_pack/execution/2026-02-04/P3.5_cargo_fmt_check_after.txt`)
+  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`audit_pack/execution/2026-02-04/P3.5_cargo_clippy_final.txt`)
+  - `cargo test --all-targets --all-features`: PASS (`audit_pack/execution/2026-02-04/P3.5_cargo_test.txt`)
+  - `cargo audit`: PASS (`audit_pack/execution/2026-02-04/P3.5_cargo_audit.txt`)
+  - `cargo deny check advisories`: PASS (`audit_pack/execution/2026-02-04/P3.5_cargo_deny_advisories.txt`)
+  - `cargo deny check licenses`: PASS (`audit_pack/execution/2026-02-04/P3.5_cargo_deny_licenses.txt`)
+- Diffs/PRs:
+  - None (no commit; diff captured at `audit_pack/execution/2026-02-04/P3.5_git_diff.txt`)
+
 ---
 
 ## 9) Open Questions / Decisions (lightweight log)
@@ -851,3 +868,4 @@ Use this table for decisions that affect policy, public APIs, or exceptions to s
 | Duplicate versions policy (fix now vs defer) | 2026-02-04 | Accepted | Non-goal: dependency upgrades beyond security/compliance in Phase 0 | `cargo tree -d --target all` shows `getrandom` + `windows-sys` duplicates; `audit_pack/deps/cargo_tree_duplicates.txt` showed none (audit-time command likely ran without `--target all`). Decision: defer consolidation unless a security/compliance gate requires it. |
 | Allowlist license expressions in `deny.toml` | 2026-02-04 | Accepted | `cargo deny` defaults fail without config; policy must be explicit | `deny.toml` establishes allowlist + target scoping + confidence; `cargo deny check licenses` PASS (see §8 “Phase 0 preflight…” entry). |
 | Execution evidence location (`audit_pack/execution/YYYY-MM-DD/...`) | 2026-02-04 | Accepted | Program requires evidence citations via `audit_pack/` paths | Add execution logs as new files under `audit_pack/execution/` while keeping the audit-time baseline evidence files in §2 unchanged. |
+| Post-plan work request: “complete next 5 tasks” vs remaining checklist items | 2026-02-04 | Proposed | Workplan currently had only one remaining unchecked step (P3.5) | Smallest next action: confirm whether to extend the workplan with a new Phase 4 (or additional hardening tasks) before proceeding. |
