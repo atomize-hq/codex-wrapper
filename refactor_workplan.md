@@ -46,7 +46,7 @@ This file is updated as execution progresses; the audit pack is immutable eviden
 - Critical: bytes 1.11.0 vuln RUSTSEC-2026-0007 → fix >= 1.11.1
 - Critical: cargo-deny license check fails without explicit deny.toml policy
 - Medium: duplicate crate versions getrandom/windows-sys
-- High: “god modules” above thresholds; p75=302 p90=746 soft=302 hard=746
+- High: “god modules” above thresholds; Median ≈ 130.5, P75 ≈ 290.75 → soft = 300, P90 ≈ 603.5 → hard = 604, ceiling=1000 (post-refactor; see `audit_pack/post_refactor/post_refactor_tokei.txt`)
 - Phases:
   - Phase 0: supply chain triage (lockfile + deny.toml) with acceptance criteria listed below
   - Phase 1: modularize crates/codex/src/lib.rs (keep façade + re-exports). First seam: home/env → home.rs (API preserved)
@@ -83,6 +83,9 @@ Optional (often useful, still immutable):
 - `audit_pack/supply_chain/cargo_deny_sources.txt` / `audit_pack/supply_chain/cargo_deny_bans.txt` — deny sources/bans checks.
 - `audit_pack/meta/environment.txt` / `audit_pack/meta/versions.txt` — environment and tool versions at audit time.
 - `audit_pack/repo/tree.txt` — shallow repo tree snapshot.
+- `audit_pack/post_refactor/post_refactor_tokei.txt` — post-refactor Rust LOC distribution + top offenders (derived from tokei JSON).
+- `audit_pack/post_refactor/post_refactor_tokei_files_sorted.txt` — post-refactor `tokei` output sorted by lines.
+- `audit_pack/post_refactor/post_refactor_cargo_tree_duplicates.txt` — post-refactor `cargo tree -d --target all` duplicates output.
 
 ---
 
@@ -90,27 +93,27 @@ Optional (often useful, still immutable):
 
 ### 3.1 Maintainability thresholds (from audit)
 
-From `audit_pack/metrics/loc_summary.txt`:
-- Rust files: 70
-- Total Rust LOC: 31,217
-- Median LOC: 121
-- p75 LOC: 302  → **soft threshold = 302**
-- p90 LOC: 746  → **hard threshold = 746**
-- **absolute ceiling (program policy) = 1000**
+Post-refactor distribution from `audit_pack/post_refactor/post_refactor_tokei.txt` (derived from tokei per-file code LOC):
+- Rust files: 86
+- Total Rust LOC: 31,362
+- Median ≈ 130.5
+- P75 ≈ 290.75 → **soft threshold = 300**
+- P90 ≈ 603.5 → **hard threshold = 604**
+- **ceiling (program policy) = 1000**
 
 ### 3.2 Top offenders (largest Rust files)
 
-From `audit_pack/metrics/loc_summary.txt` (Top 20):
-- `crates/codex/src/lib.rs` — 9,850 LOC (>> ceiling)
-- `crates/codex/src/mcp.rs` — 4,278 LOC (>> ceiling)
-- `crates/xtask/src/codex_validate.rs` — 2,543 LOC (>> ceiling)
-- `crates/xtask/src/codex_report.rs` — 1,543 LOC (>> ceiling)
-- `crates/xtask/src/codex_snapshot.rs` — 1,303 LOC (>> ceiling)
-- `crates/xtask/src/codex_union.rs` — 884 LOC (> hard)
-- `crates/xtask/src/codex_version_metadata.rs` — 785 LOC (> hard)
-- `crates/xtask/tests/c3_spec_reports_metadata_retain.rs` — 742 LOC (~ hard boundary)
-- `crates/codex/tests/cli_e2e.rs` — 669 LOC (> soft)
-- `crates/codex/src/wrapper_coverage_manifest.rs` — 511 LOC (> soft)
+Post-refactor top 10 from `audit_pack/post_refactor/post_refactor_tokei_files_sorted.txt` (Rust file code LOC):
+- `crates/codex/src/lib.rs` — 8,904 LOC (>> ceiling)
+- `crates/codex/src/mcp.rs` — 2,713 LOC (>> ceiling)
+- `crates/xtask/src/codex_validate.rs` — 2,362 LOC (>> ceiling)
+- `crates/xtask/src/codex_report.rs` — 1,479 LOC (>> ceiling)
+- `crates/xtask/src/codex_snapshot.rs` — 1,225 LOC (>> ceiling)
+- `crates/xtask/src/codex_union.rs` — 799 LOC (> hard)
+- `crates/xtask/tests/c3_spec_reports_metadata_retain.rs` — 742 LOC (> hard)
+- `crates/xtask/src/codex_version_metadata.rs` — 721 LOC (> hard)
+- `crates/codex/tests/cli_e2e.rs` — 669 LOC (> hard)
+- `crates/codex/src/mcp/config.rs` — 538 LOC (> soft)
 
 ### 3.3 Baseline quality signals (audit time)
 
@@ -307,6 +310,22 @@ Last Updated: 2026-02-04
 - Risk: Medium.
 - Rollback: Revert module move and re-exports.
 
+##### P1.4 — Seam extraction: Execpolicy modeling + parsing (`execpolicy.rs`) (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Extract execpolicy modeling/parsing and related helpers into `crates/codex/src/execpolicy.rs`, preserving existing public API paths via re-exports from `lib.rs`.
+- Expected files touched:
+  - `crates/codex/src/lib.rs`
+  - `crates/codex/src/execpolicy.rs`
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports).
+  - Extracted module meets §7.3 size policy (or has documented exception).
+- Risk: Medium.
+- Rollback: Revert module move and re-exports.
+
 *(Repeat P1.x as needed until `lib.rs` is within the program ceiling or is a thin façade with the bulk in modules.)*
 
 ---
@@ -395,6 +414,22 @@ Last Updated: 2026-02-04
   - New file(s) comply with §7.3 size policy (or have a documented exception in §9).
 - Risk: Medium.
 - Rollback: Revert file move and re-exports; restore original definitions in `mcp.rs`.
+
+##### P2.5 — JSON-RPC transport extraction (stdio transport → `mcp/jsonrpc.rs`) (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Move stdio JSON-RPC transport plumbing (spawn, request/response/notification pump, and stream fan-out) into `crates/codex/src/mcp/jsonrpc.rs` while keeping `codex::mcp::*` public API paths stable via re-exports.
+- Expected files touched:
+  - `crates/codex/src/mcp.rs`
+  - `crates/codex/src/mcp/jsonrpc.rs`
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports maintain compatibility).
+  - New file(s) comply with §7.3 size policy (or have a documented exception in §9).
+- Risk: Medium–High (transport extraction is high-churn and can introduce subtle ordering/timeout regressions).
+- Rollback: Revert transport move; restore original transport code in `mcp.rs`.
 
 ---
 
@@ -495,6 +530,54 @@ Last Updated: 2026-02-04
 - Risk: Medium.
 - Rollback: Revert module move; restore original file content.
 
+##### P3.6 — Split xtask module: `codex_validate` (extract validation passes) with deterministic output preserved
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Further reduce `crates/xtask/src/codex_validate.rs` by extracting cohesive validation passes (pointer validation, schema compilation/validation, wrapper coverage semantics, report invariants) into `crates/xtask/src/codex_validate/*` without changing outputs.
+- Expected files touched:
+  - `crates/xtask/src/codex_validate.rs`
+  - `crates/xtask/src/codex_validate/` (new files)
+- Acceptance criteria (“done when”):
+  - `cargo test --all-targets --all-features` passes (xtask tests are the determinism guard).
+  - `cargo clippy --all-targets --all-features -- -D warnings` passes.
+  - Output determinism preserved (validated by existing snapshot/spec tests; no golden changes unless explicitly approved).
+- Risk: Medium.
+- Rollback: Revert module move; restore original file content.
+
+##### P3.7 — Split xtask module: `codex_report` (extract report domains) with deterministic output preserved
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Further reduce `crates/xtask/src/codex_report.rs` by extracting report domain logic (rules parsing, filtering semantics, output shaping/sorting) into `crates/xtask/src/codex_report/*` without changing outputs.
+- Expected files touched:
+  - `crates/xtask/src/codex_report.rs`
+  - `crates/xtask/src/codex_report/` (new files)
+- Acceptance criteria (“done when”):
+  - `cargo test --all-targets --all-features` passes (xtask tests are the determinism guard).
+  - `cargo clippy --all-targets --all-features -- -D warnings` passes.
+  - Output determinism preserved (validated by existing snapshot/spec tests; no golden changes unless explicitly approved).
+- Risk: Medium.
+- Rollback: Revert module move; restore original file content.
+
+##### P3.8 — Split xtask module: `codex_snapshot` (extract snapshot pipeline domains) with deterministic output preserved
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Further reduce `crates/xtask/src/codex_snapshot.rs` by extracting snapshot pipeline stages (help parsing/discovery, supplements/normalization, output layout/version probing) into `crates/xtask/src/codex_snapshot/*` without changing outputs.
+- Expected files touched:
+  - `crates/xtask/src/codex_snapshot.rs`
+  - `crates/xtask/src/codex_snapshot/` (new files)
+- Acceptance criteria (“done when”):
+  - `cargo test --all-targets --all-features` passes (xtask tests are the determinism guard).
+  - `cargo clippy --all-targets --all-features -- -D warnings` passes.
+  - Output determinism preserved (validated by existing snapshot/spec tests; no golden changes unless explicitly approved).
+- Risk: Medium.
+- Rollback: Revert module move; restore original file content.
+
 ---
 
 ## 6) Dependency Triage (Supply Chain)
@@ -523,12 +606,14 @@ Track policy decisions here:
 
 ### 6.3 Duplicate versions triage
 
-Evidence source: `audit_pack/deps/cargo_tree_duplicates.txt` (audit time).
+Evidence sources:
+- Audit-time: `audit_pack/deps/cargo_tree_duplicates.txt` (`cargo tree -d` without `--target all`; “nothing to print”).
+- Post-refactor/current: `audit_pack/post_refactor/post_refactor_cargo_tree_duplicates.txt` (`cargo tree -d --target all`; duplicates present).
 
 | Crate | Duplicate versions? | Evidence | Decision (fix/defer) | Rationale | Status |
 |---|---:|---|---|---|---|
-| getrandom | Yes (`0.2.17`, `0.3.4`) | Audit-time: `audit_pack/deps/cargo_tree_duplicates.txt` (no duplicates printed). Current (2026-02-04): `cargo tree -d --target all` shows duplicates via `jsonschema`/`ahash` and `tempfile`. | Defer | Resolving likely requires upgrading transitive crates (non-goal in Phase 0 unless required for security/compliance); keep note and revisit if it becomes a policy requirement. | Done |
-| windows-sys | Yes (`0.60.2`, `0.61.2`) | Audit-time: `audit_pack/deps/cargo_tree_duplicates.txt` (no duplicates printed). Current (2026-02-04): `cargo tree -d --target all` shows duplicates via `tokio`/`reqwest`/`socket2` and CLI deps. | Defer | Same rationale as above; no gate currently failing and no security advisory forcing consolidation. | Done |
+| getrandom | Yes (`0.2.17`, `0.3.4`) | Post-refactor: `audit_pack/post_refactor/post_refactor_cargo_tree_duplicates.txt` shows `getrandom 0.2.17` via `jsonschema → xtask` and `getrandom 0.3.4` via `ahash` (through `jsonschema`) and `tempfile → codex → xtask`. | Defer | Resolving likely requires upgrading transitive crates (non-goal in Phase 0 unless required for security/compliance); keep note and revisit if it becomes a policy requirement. | Done |
+| windows-sys | Yes (`0.60.2`, `0.61.2`) | Post-refactor: `audit_pack/post_refactor/post_refactor_cargo_tree_duplicates.txt` shows `windows-sys 0.60.2` via `socket2 → tokio/reqwest` and `windows-sys 0.61.2` via `clap`/`anstream` plus `tempfile`/`tokio`. | Defer | Same rationale as above; no gate currently failing and no security advisory forcing consolidation. | Done |
 
 ---
 
@@ -542,7 +627,7 @@ Seam order (defined in P1.0; extract in PR-sized steps):
 1) Home/env plumbing → `home.rs` (P1.1; already present in working tree).
 2) Capability probing + caching → `capabilities.rs` (P1.2).
 3) Apply/diff request + artifacts → `apply_diff.rs` (P1.3).
-4) Execpolicy modeling + parsing → `execpolicy.rs` (planned; define when scheduled).
+4) Execpolicy modeling + parsing → `execpolicy.rs` (P1.4).
 5) Builder/config/flags surfaces → one or more cohesive modules (planned; define when scheduled).
 
 Notes / dependencies:
@@ -568,7 +653,7 @@ Seam boundaries (defined in P2.0; extract in PR-sized steps; keep `codex::mcp::*
 4) **App runtime lifecycle + pooling** → `crates/codex/src/mcp/app.rs`
    - App runtime modeling + launch config (`AppRuntime*` types)
    - Manager/pool APIs (`AppRuntimeManager`, `AppRuntimeApi`, `AppRuntimePool*`)
-5) **Stdio JSON-RPC transport** → `crates/codex/src/mcp/jsonrpc.rs` (scheduled after the above)
+5) **Stdio JSON-RPC transport** → `crates/codex/src/mcp/jsonrpc.rs` (P2.5; scheduled after the above)
    - `codex mcp-server` / `codex app-server` spawn + request/response plumbing + notification fan-out
    - Keep the higher-level clients (`CodexMcpServer`, `AppServer`) in `mcp.rs` until transport move is complete.
 
@@ -578,14 +663,14 @@ Notes / dependencies:
 
 ### 7.3 File size policy (applies during refactor)
 
-Derived from `audit_pack/metrics/loc_summary.txt`:
-- Soft threshold: 302 LOC (p75)
-- Hard threshold: 746 LOC (p90)
+Derived from post-refactor distribution in `audit_pack/post_refactor/post_refactor_tokei.txt`:
+- Soft threshold: 300 LOC (P75 ≈ 290.75)
+- Hard threshold: 604 LOC (P90 ≈ 603.5)
 - Absolute ceiling: 1000 LOC
 
 Policy:
-- New files should target **≤ 302 LOC**.
-- New files may exceed soft threshold if cohesive, but should stay **≤ 746 LOC**.
+- New files should target **≤ 300 LOC**.
+- New files may exceed soft threshold if cohesive, but should stay **≤ 604 LOC**.
 - Files **must not exceed 1000 LOC** without an explicit §9 decision (exception with rationale and follow-up split task).
 - For “compatibility façades” (`lib.rs`, `mcp.rs` during transition), temporary exceptions may exist but must trend downward each phase.
 
@@ -613,6 +698,9 @@ Boundaries + extraction order (defined in P3.0; keep deterministic outputs):
   3) `codex_snapshot`: move snapshot schema structs into `codex_snapshot/schema.rs` (P3.3).
   4) `codex_report`: move report input schema structs into `codex_report/models.rs` (P3.4).
   5) `codex_validate`: move rules/model structs into `codex_validate/models.rs` (P3.5).
+  6) `codex_validate`: split cohesive validation passes into `codex_validate/*` (P3.6).
+  7) `codex_report`: split report domains into `codex_report/*` (P3.7).
+  8) `codex_snapshot`: split snapshot pipeline domains into `codex_snapshot/*` (P3.8).
 
 ---
 
@@ -868,6 +956,20 @@ Add entries as work lands. Format:
 - Diffs/PRs:
   - Commit: `d4bb1dc`
 
+### 2026-02-04 — Workplan refresh: post-refactor metrics + extend remaining phases
+
+- Scope/step: Planning/metrics refresh (adds follow-on steps P1.4, P2.5, P3.6–P3.8)
+- Why: Post-refactor file-size distribution and top offenders changed after Phase 1–3 extractions; remaining seams (MCP JSON-RPC transport and deeper xtask splits) are still outstanding.
+- What changed:
+  - Updated §3.1 and §7.3 thresholds to post-refactor distribution (soft=300, hard=604, ceiling=1000) based on `audit_pack/post_refactor/post_refactor_tokei.txt`.
+  - Replaced §3.2 “Top offenders” with post-refactor top-10 list from `audit_pack/post_refactor/post_refactor_tokei_files_sorted.txt`.
+  - Updated §6.3 duplicates evidence to `audit_pack/post_refactor/post_refactor_cargo_tree_duplicates.txt` and summarized the two duplicate groups (`getrandom`, `windows-sys`).
+  - Added new not-started checklist items: P1.4, P2.5, P3.6, P3.7, P3.8.
+- Validation results:
+  - N/A (documentation/planning update; no functional changes)
+- Diffs/PRs:
+  - None
+
 ---
 
 ## 9) Open Questions / Decisions (lightweight log)
@@ -880,4 +982,4 @@ Use this table for decisions that affect policy, public APIs, or exceptions to s
 | Duplicate versions policy (fix now vs defer) | 2026-02-04 | Accepted | Non-goal: dependency upgrades beyond security/compliance in Phase 0 | `cargo tree -d --target all` shows `getrandom` + `windows-sys` duplicates; `audit_pack/deps/cargo_tree_duplicates.txt` showed none (audit-time command likely ran without `--target all`). Decision: defer consolidation unless a security/compliance gate requires it. |
 | Allowlist license expressions in `deny.toml` | 2026-02-04 | Accepted | `cargo deny` defaults fail without config; policy must be explicit | `deny.toml` establishes allowlist + target scoping + confidence; `cargo deny check licenses` PASS (see §8 “Phase 0 preflight…” entry). |
 | Execution evidence location (`audit_pack/execution/YYYY-MM-DD/...`) | 2026-02-04 | Accepted | Program requires evidence citations via `audit_pack/` paths | Add execution logs as new files under `audit_pack/execution/` while keeping the audit-time baseline evidence files in §2 unchanged. |
-| Post-plan work request: “complete next 5 tasks” vs remaining checklist items | 2026-02-04 | Proposed | Workplan currently had only one remaining unchecked step (P3.5) | Smallest next action: confirm whether to extend the workplan with a new Phase 4 (or additional hardening tasks) before proceeding. |
+| Post-plan work request: “complete next 5 tasks” vs remaining checklist items | 2026-02-04 | Accepted | Workplan needed additional scope to reflect remaining seams beyond P3.5 | Added P1.4 (execpolicy seam), P2.5 (JSON-RPC transport), and P3.6–P3.8 (deeper xtask splits) as Not Started follow-ons. |
