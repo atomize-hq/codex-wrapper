@@ -317,8 +317,8 @@ Last Updated: 2026-02-04
 
 ##### P2.0 — Define the `mcp.rs` seam map (no code moves yet)
 
-Status: [ ] Not Started  [ ] In Progress  [ ] Done  
-Last Updated: YYYY-MM-DD
+Status: [ ] Not Started  [ ] In Progress  [x] Done  
+Last Updated: 2026-02-04
 
 - Goal: Identify boundaries (config, runtime manager, connectors, auth/token handling, persistence) and extraction order.
 - Expected files touched:
@@ -331,8 +331,8 @@ Last Updated: YYYY-MM-DD
 
 ##### P2.1 — Create `mcp/` module façade and move one internal submodule (smallest-first)
 
-Status: [ ] Not Started  [ ] In Progress  [ ] Done  
-Last Updated: YYYY-MM-DD
+Status: [ ] Not Started  [ ] In Progress  [x] Done  
+Last Updated: 2026-02-04
 
 - Goal: Establish `crates/codex/src/mcp/mod.rs` (or equivalent) with re-exports and move the smallest cohesive section first.
 - Expected files touched:
@@ -347,6 +347,54 @@ Last Updated: YYYY-MM-DD
 - Rollback: Revert move; restore original `mcp.rs` content.
 
 *(Repeat P2.x until `mcp.rs` is reduced to a compatibility façade or removed per policy.)*
+
+##### P2.2 — Move MCP config definitions + persistence into `mcp/config.rs` (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [x] Done  
+Last Updated: 2026-02-04
+
+- Goal: Isolate stored config types (`[mcp_servers]`, `[app_runtimes]`) and `McpConfigManager` read/write helpers into `crates/codex/src/mcp/config.rs`, preserving `codex::mcp::*` public API paths via re-exports.
+- Expected files touched:
+  - `crates/codex/src/mcp.rs` (wire `mod config;` + re-exports; remove moved items)
+  - `crates/codex/src/mcp/config.rs`
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports maintain compatibility).
+  - New file(s) comply with §7.3 size policy (or have a documented exception in §9).
+- Risk: Medium.
+- Rollback: Revert file move and re-exports; restore original definitions in `mcp.rs`.
+
+##### P2.3 — Move runtime resolution + launchers into `mcp/runtime.rs` (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [x] Done  
+Last Updated: 2026-02-04
+
+- Goal: Move runtime-ready types and helpers (`McpRuntimeServer`, launchers/connectors, runtime manager/API) into `crates/codex/src/mcp/runtime.rs`, keeping `codex::mcp::*` paths stable via re-exports.
+- Expected files touched:
+  - `crates/codex/src/mcp.rs` (wire `mod runtime;` + re-exports; remove moved items)
+  - `crates/codex/src/mcp/runtime.rs`
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports maintain compatibility).
+  - New file(s) comply with §7.3 size policy (or have a documented exception in §9).
+- Risk: Medium.
+- Rollback: Revert file move and re-exports; restore original definitions in `mcp.rs`.
+
+##### P2.4 — Move app runtime lifecycle/pool helpers into `mcp/app.rs` (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [x] Done  
+Last Updated: 2026-02-04
+
+- Goal: Move app runtime modeling + lifecycle/pool helpers (`AppRuntime*` types, manager/pool APIs) into `crates/codex/src/mcp/app.rs`, keeping `codex::mcp::*` paths stable via re-exports.
+- Expected files touched:
+  - `crates/codex/src/mcp.rs` (wire `mod app;` + re-exports; remove moved items)
+  - `crates/codex/src/mcp/app.rs`
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports maintain compatibility).
+  - New file(s) comply with §7.3 size policy (or have a documented exception in §9).
+- Risk: Medium.
+- Rollback: Revert file move and re-exports; restore original definitions in `mcp.rs`.
 
 ---
 
@@ -441,12 +489,28 @@ Notes / dependencies:
 
 **Rule:** Public MCP APIs must remain stable via `mcp` façade + re-exports.
 
-Initial boundary candidates (refine in P2.0):
-- Config + persistence (read/write of MCP config)
-- Runtime manager / launcher orchestration
-- HTTP connector(s) + auth header/token handling
-- stdio server config + env injection
-- Tool hints / capability integration points
+Seam boundaries (defined in P2.0; extract in PR-sized steps; keep `codex::mcp::*` paths stable):
+1) **Protocol types** → `crates/codex/src/mcp/protocol.rs`
+   - JSON-RPC method constants (`METHOD_*`), request/response/notification payload structs
+   - Codex/app-server parameter structs and notification enums
+   - Shared types: `RequestId`, `EventStream`, call handle structs
+2) **Stored config + persistence** → `crates/codex/src/mcp/config.rs`
+   - TOML config keys + stored definition structs (`[mcp_servers]`, `[app_runtimes]`)
+   - `McpConfigManager` read/write/update helpers + `McpConfigError`
+3) **Runtime resolution + launchers** → `crates/codex/src/mcp/runtime.rs`
+   - Resolved runtime types (`McpRuntimeServer`, resolved transports) and env/token resolution
+   - Launchers/connectors (`StdioLauncher`, `StreamableHttpConnector`, etc.)
+   - Runtime manager + listing helpers (`McpRuntimeManager`, `McpRuntimeApi`, summaries/handles)
+4) **App runtime lifecycle + pooling** → `crates/codex/src/mcp/app.rs`
+   - App runtime modeling + launch config (`AppRuntime*` types)
+   - Manager/pool APIs (`AppRuntimeManager`, `AppRuntimeApi`, `AppRuntimePool*`)
+5) **Stdio JSON-RPC transport** → `crates/codex/src/mcp/jsonrpc.rs` (scheduled after the above)
+   - `codex mcp-server` / `codex app-server` spawn + request/response plumbing + notification fan-out
+   - Keep the higher-level clients (`CodexMcpServer`, `AppServer`) in `mcp.rs` until transport move is complete.
+
+Notes / dependencies:
+- Phase 2 exists because `crates/codex/src/mcp.rs` is a “god module” at audit time (4,278 LOC). Evidence: `audit_pack/metrics/loc_summary.txt`.
+- Extract in the order above to avoid cycles: protocol is leaf-ish; config is depended on by runtime/app; runtime/app depend on protocol; JSON-RPC transport is used by the high-level clients.
 
 ### 7.3 File size policy (applies during refactor)
 
@@ -591,6 +655,27 @@ Add entries as work lands. Format:
   - `cargo deny check licenses`: PASS
 - Diffs/PRs:
   - None
+
+### 2026-02-04 — Phase 2 MCP split: protocol/config/runtime/app modules (façade preserved)
+
+- Scope/step: P2.0–P2.4
+- Why: Begin reducing `crates/codex/src/mcp.rs` “god module” size while preserving stable `codex::mcp::*` public API paths (audit baseline shows 4,278 LOC; see `audit_pack/metrics/loc_summary.txt`).
+- What changed:
+  - Defined Phase 2 seam map + extraction order in §7.2 and added explicit P2.2–P2.4 checklist steps.
+  - Created `crates/codex/src/mcp/protocol.rs` for JSON-RPC method constants and request/notification payload types; re-exported via `crates/codex/src/mcp.rs`.
+  - Moved stored config types + persistence manager into `crates/codex/src/mcp/config.rs`; re-exported via `crates/codex/src/mcp.rs`.
+  - Moved MCP runtime resolution + launchers + runtime manager API into `crates/codex/src/mcp/runtime.rs`; re-exported via `crates/codex/src/mcp.rs`.
+  - Moved app runtime lifecycle + pooling helpers into `crates/codex/src/mcp/app.rs`; re-exported via `crates/codex/src/mcp.rs`.
+  - Updated MCP tests to avoid reaching into now-internal helpers while preserving behavior.
+- Validation results:
+  - `cargo fmt --all -- --check`: PASS
+  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS
+  - `cargo test --all-targets --all-features`: PASS
+  - `cargo audit`: PASS
+  - `cargo deny check advisories`: PASS
+  - `cargo deny check licenses`: PASS
+- Diffs/PRs:
+  - None (no commit)
 
 ---
 
