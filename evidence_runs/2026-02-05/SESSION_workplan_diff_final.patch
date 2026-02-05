@@ -1,5 +1,5 @@
 diff --git a/refactor_workplan.md b/refactor_workplan.md
-index f9c89ca..d867d3d 100644
+index f9c89ca..97e8a78 100644
 --- a/refactor_workplan.md
 +++ b/refactor_workplan.md
 @@ -358,8 +358,8 @@ Last Updated: 2026-02-04
@@ -28,8 +28,8 @@ index f9c89ca..d867d3d 100644
 +  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_fmt_check_final.txt`)
 +  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_clippy.txt`)
 +  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_test.txt`)
-+  - `cargo audit --no-fetch`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_audit.txt`)
-+  - `cargo deny check advisories --disable-fetch`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_deny_advisories.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_audit.txt`)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_deny_advisories.txt`)
 +  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_deny_licenses.txt`)
 +- Evidence/patches:
 +  - Code diff: `evidence_runs/2026-02-05/SESSION_code_diff_final.patch`

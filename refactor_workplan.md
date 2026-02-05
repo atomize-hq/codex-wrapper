@@ -1246,8 +1246,8 @@ Add entries as work lands. Format:
   - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_fmt_check_final.txt`)
   - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_clippy.txt`)
   - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_test.txt`)
-  - `cargo audit --no-fetch`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_audit.txt`)
-  - `cargo deny check advisories --disable-fetch`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_deny_advisories.txt`)
+  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_audit.txt`)
+  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_deny_advisories.txt`)
   - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.5_cargo_deny_licenses.txt`)
 - Evidence/patches:
   - Code diff: `evidence_runs/2026-02-05/SESSION_code_diff_final.patch`
