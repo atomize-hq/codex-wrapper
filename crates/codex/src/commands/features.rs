@@ -1,12 +1,24 @@
+use std::ffi::OsString;
+
 use tokio::{process::Command, time};
 
 use crate::{
     builder::{apply_cli_overrides, resolve_cli_overrides},
     process::{spawn_with_retry, tee_stream, ConsoleTarget},
-    CodexClient, CodexError, FeaturesListOutput, FeaturesListRequest,
+    ApplyDiffArtifacts, CodexClient, CodexError, FeaturesCommandRequest, FeaturesListOutput,
+    FeaturesListRequest,
 };
 
 impl CodexClient {
+    /// Runs `codex features` and returns captured output.
+    pub async fn features(
+        &self,
+        request: FeaturesCommandRequest,
+    ) -> Result<ApplyDiffArtifacts, CodexError> {
+        self.run_simple_command_with_overrides(vec![OsString::from("features")], request.overrides)
+            .await
+    }
+
     /// Lists CLI features via `codex features list`.
     ///
     /// Requests JSON output when `json(true)` is set and falls back to parsing the text table when
