@@ -13,3 +13,4 @@ cli_manifests/codex/raw_help/
 /codex-stream.log
 /error.log
 audit_pack/target
+kickoff_prompt_min5.md
