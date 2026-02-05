@@ -1,11 +1,3 @@
-commit 4b10b169ba81fa1758c800b0d443e562ceeb0e9e
-Author:     Spenquatch <spmcconnell.totaltele@gmail.com>
-AuthorDate: Wed Feb 4 19:59:16 2026 -0500
-Commit:     Spenquatch <spmcconnell.totaltele@gmail.com>
-CommitDate: Wed Feb 4 19:59:16 2026 -0500
-
-    refactor(P3.8): split codex_snapshot pipeline domains
-
 diff --git a/crates/xtask/src/codex_snapshot.rs b/crates/xtask/src/codex_snapshot.rs
 index 6b6a9d5..09b4bf1 100644
 --- a/crates/xtask/src/codex_snapshot.rs

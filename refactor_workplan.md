@@ -1134,7 +1134,7 @@ Add entries as work lands. Format:
   - Code diff: `evidence_runs/2026-02-04/SESSION_code_diff_final.patch`
   - Workplan diff: `evidence_runs/2026-02-04/SESSION_workplan_diff_final.patch`
 - Commit:
-  - `eae6b5e389669b571ac51037a158aa3e4f5dfc04`
+  - `f447ec5a4cb64c7a0d94cb5ad0bc4f596178dc5a`
 
 ---
 
@@ -1155,8 +1155,8 @@ Use this table for decisions that affect policy, public APIs, or exceptions to s
 
 ## 10) Next 5 Tasks (execution queue; do not start until this workplan is current)
 
-1) P3.6 — Split xtask module: `codex_validate` (extract validation passes) with deterministic output preserved
-2) P3.7 — Split xtask module: `codex_report` (extract report domains) with deterministic output preserved
-3) P3.8 — Split xtask module: `codex_snapshot` (extract snapshot pipeline domains) with deterministic output preserved
-4) TBD — Pick next Phase 1 `lib.rs` seam after reassessing remaining `lib.rs` responsibilities and size offenders.
-5) TBD — Reassess Phase 2 `mcp.rs` test fixtures and decide whether to move large inline scripts into external test assets (proposal only; do not start without explicit workplan step).
+1) TBD — Refresh file-size metrics and update Phase 1/2/3 status reasons if thresholds have changed.
+2) TBD — Pick next Phase 1 `lib.rs` seam after reassessing remaining `lib.rs` responsibilities and size offenders.
+3) TBD — Reassess Phase 2 `mcp.rs` test fixtures and decide whether to move large inline scripts into external test assets (proposal only; do not start without explicit workplan step).
+4) TBD — Decide whether any additional `xtask` modules need a Phase 3 follow-on split (only if size offenders remain).
+5) TBD — Re-run supply-chain gates in a networked environment if CI differs from this sandbox (verification only; no code changes).

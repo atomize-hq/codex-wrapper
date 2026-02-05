@@ -1,13 +1,5 @@
-commit 4b10b169ba81fa1758c800b0d443e562ceeb0e9e
-Author:     Spenquatch <spmcconnell.totaltele@gmail.com>
-AuthorDate: Wed Feb 4 19:59:16 2026 -0500
-Commit:     Spenquatch <spmcconnell.totaltele@gmail.com>
-CommitDate: Wed Feb 4 19:59:16 2026 -0500
-
-    refactor(P3.8): split codex_snapshot pipeline domains
-
 diff --git a/refactor_workplan.md b/refactor_workplan.md
-index 2d03fef..9d60fd3 100644
+index 2d03fef..6a54ea8 100644
 --- a/refactor_workplan.md
 +++ b/refactor_workplan.md
 @@ -594,8 +594,8 @@ Last Updated: 2026-02-04
@@ -44,8 +36,22 @@ index 2d03fef..9d60fd3 100644
 +  - Code diff: `evidence_runs/2026-02-04/SESSION_code_diff_final.patch`
 +  - Workplan diff: `evidence_runs/2026-02-04/SESSION_workplan_diff_final.patch`
 +- Commit:
-+  - `eae6b5e389669b571ac51037a158aa3e4f5dfc04`
++  - `f447ec5a4cb64c7a0d94cb5ad0bc4f596178dc5a`
 +
  ---
  
  ## 9) Open Questions / Decisions (lightweight log)
+@@ -1134,8 +1155,8 @@ Use this table for decisions that affect policy, public APIs, or exceptions to s
+ 
+ ## 10) Next 5 Tasks (execution queue; do not start until this workplan is current)
+ 
+-1) P3.6 — Split xtask module: `codex_validate` (extract validation passes) with deterministic output preserved
+-2) P3.7 — Split xtask module: `codex_report` (extract report domains) with deterministic output preserved
+-3) P3.8 — Split xtask module: `codex_snapshot` (extract snapshot pipeline domains) with deterministic output preserved
+-4) TBD — Pick next Phase 1 `lib.rs` seam after reassessing remaining `lib.rs` responsibilities and size offenders.
+-5) TBD — Reassess Phase 2 `mcp.rs` test fixtures and decide whether to move large inline scripts into external test assets (proposal only; do not start without explicit workplan step).
++1) TBD — Refresh file-size metrics and update Phase 1/2/3 status reasons if thresholds have changed.
++2) TBD — Pick next Phase 1 `lib.rs` seam after reassessing remaining `lib.rs` responsibilities and size offenders.
++3) TBD — Reassess Phase 2 `mcp.rs` test fixtures and decide whether to move large inline scripts into external test assets (proposal only; do not start without explicit workplan step).
++4) TBD — Decide whether any additional `xtask` modules need a Phase 3 follow-on split (only if size offenders remain).
++5) TBD — Re-run supply-chain gates in a networked environment if CI differs from this sandbox (verification only; no code changes).
