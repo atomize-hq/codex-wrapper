@@ -90,12 +90,10 @@ impl CodexClient {
 
         let stdout_string = String::from_utf8(stdout_bytes)?;
         let stderr_string = String::from_utf8(stderr_bytes)?;
-        let (features, format) =
-            crate::version::parse_feature_list_output(&stdout_string, json).map_err(|reason| {
-                CodexError::FeatureListParse {
-                    reason,
-                    stdout: stdout_string.clone(),
-                }
+        let (features, format) = crate::version::parse_feature_list_output(&stdout_string, json)
+            .map_err(|reason| CodexError::FeatureListParse {
+                reason,
+                stdout: stdout_string.clone(),
             })?;
 
         Ok(FeaturesListOutput {
@@ -107,4 +105,3 @@ impl CodexClient {
         })
     }
 }
-
