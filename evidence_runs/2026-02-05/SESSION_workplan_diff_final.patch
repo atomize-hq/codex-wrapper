@@ -1,8 +1,8 @@
 diff --git a/refactor_workplan.md b/refactor_workplan.md
-index 0b9a55b..206eff6 100644
+index 0b9a55b..08380df 100644
 --- a/refactor_workplan.md
 +++ b/refactor_workplan.md
-@@ -390,15 +390,130 @@ Last Updated: 2026-02-05
+@@ -390,15 +390,231 @@ Last Updated: 2026-02-05
  
  *(Repeat P1.x as needed until `lib.rs` is within the program ceiling or is a thin façade with the bulk in modules.)*
  
@@ -40,8 +40,8 @@ index 0b9a55b..206eff6 100644
 +
 +##### P1.9 — Seam extraction: bundled binary resolver (`bundled_binary.rs`) (API preserved)
 +
-+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
-+Last Updated: YYYY-MM-DD
++Status: [ ] Not Started  [ ] In Progress  [x] Done  
++Last Updated: 2026-02-05
 +
 +- Goal: Extract bundled binary resolution types + helpers (`BundledBinarySpec`, `BundledBinary`, `BundledBinaryError`, `resolve_bundled_binary`, `default_bundled_platform_label`) into `crates/codex/src/bundled_binary.rs`, preserving existing public API paths via re-exports from `lib.rs`.
 +- Expected files touched:
@@ -56,8 +56,8 @@ index 0b9a55b..206eff6 100644
 +
 +##### P1.10 — Seam extraction: exec JSONL event models (`events.rs`) (API preserved)
 +
-+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
-+Last Updated: YYYY-MM-DD
++Status: [ ] Not Started  [ ] In Progress  [x] Done  
++Last Updated: 2026-02-05
 +
 +- Goal: Extract JSONL event envelope + payload models emitted by `codex exec --json` into `crates/codex/src/events.rs`, preserving existing public API paths via re-exports from `lib.rs` (e.g., `ThreadEvent`, `ItemEnvelope`, `ItemPayload`, delta/state structs, statuses).
 +- Expected files touched:
@@ -73,8 +73,8 @@ index 0b9a55b..206eff6 100644
 +
 +##### P1.11 — Seam extraction: CLI subcommand request/response models (`cli/*`) (API preserved)
 +
-+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
-+Last Updated: YYYY-MM-DD
++Status: [ ] Not Started  [ ] In Progress  [x] Done  
++Last Updated: 2026-02-05
 +
 +- Goal: Extract request/response model structs for non-streaming CLI subcommands into a cohesive `crates/codex/src/cli/*` module tree (e.g., features/help/review/resume/fork/cloud/app-server and `codex mcp` command request types), preserving existing public API paths via re-exports from `lib.rs`.
 +  - Naming note: keep this distinct from the `mcp/*` runtime module tree; this seam is about *invoking CLI subcommands*, not the internal MCP client/runtime implementation.
@@ -92,8 +92,8 @@ index 0b9a55b..206eff6 100644
 +
 +##### P1.12 — Seam extraction: feature/version parsing + update advisory helpers (`version.rs`) (API preserved)
 +
-+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
-+Last Updated: YYYY-MM-DD
++Status: [ ] Not Started  [ ] In Progress  [x] Done  
++Last Updated: 2026-02-05
 +
 +- Goal: Extract internal parsing/helpers around `codex --version` / `codex help` / `codex features list` probes (semver/channel parsing, commit hash extraction, feature-flag parsing, and update advisory helpers) into `crates/codex/src/version.rs`, preserving existing public API paths for any public helpers (e.g., `update_advisory_from_capabilities`) via re-exports from `lib.rs`.
 +- Expected files touched:
@@ -109,8 +109,8 @@ index 0b9a55b..206eff6 100644
 +
 +##### P1.13 — Plan remaining Phase 1 seams after P1.12 (no code moves)
 +
-+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
-+Last Updated: YYYY-MM-DD
++Status: [ ] Not Started  [ ] In Progress  [x] Done  
++Last Updated: 2026-02-05
 +
 +- Goal: After P1.9–P1.12 land, refresh the Phase 1 seam plan based on the then-current `crates/codex/src/lib.rs` structure and remaining top offenders, keeping extraction steps PR-sized and API-stable.
 +- Expected files touched:
@@ -123,6 +123,107 @@ index 0b9a55b..206eff6 100644
 +
  ---
  
++##### P1.14 — Seam extraction: spawn/process plumbing (`process.rs`) (API preserved)
++
++Status: [ ] Not Started  [ ] In Progress  [x] Done  
++Last Updated: 2026-02-05
++
++- Goal: Extract the internal, cross-cutting subprocess spawning + stdio handling helpers from `crates/codex/src/lib.rs` into `crates/codex/src/process.rs` (or `process/*` if it grows), preserving public APIs by keeping these helpers private to the crate (or re-exporting only if already publicly reachable).
++- Candidate contents (keep cohesive; move mechanically):
++  - `spawn_with_retry` + spawn error classification.
++  - stdout/stderr tee helpers (console mirroring, buffering, “quiet” handling) and shared IO utilities used by exec/apply/diff/sandbox/proxy flows.
++- Expected files touched:
++  - `crates/codex/src/lib.rs` (wire `mod process;`; update internal call sites)
++  - `crates/codex/src/process.rs` (new) or `crates/codex/src/process/*` (new)
++- Acceptance criteria (“done when”):
++  - All §4.1 gates pass.
++  - No public API path changes (helpers remain crate-private unless already exposed).
++  - New file(s) meet §7.3 size policy (target ≤ 300 LOC; must stay ≤ 600 unless intentionally split).
++- Risk: Medium (cross-cutting; many call sites). Keep changes purely mechanical and avoid behavior edits.
++- Rollback: Revert module move; restore helpers in `lib.rs`.
++
++##### P1.15 — Seam extraction: exec streaming + resume types + helpers (`exec/*`) (API preserved)
++
++Status: [ ] Not Started  [ ] In Progress  [ ] Done  
++Last Updated: YYYY-MM-DD
++
++- Goal: Extract remaining exec/streaming surface area still defined in `crates/codex/src/lib.rs` into a cohesive `crates/codex/src/exec/*` module tree (or a single `exec.rs` first), preserving crate-root public API paths via `pub use` re-exports from `lib.rs`.
++- Scope (targeted; avoid bundling unrelated subcommands):
++  - Public types currently in `lib.rs`: `ExecStreamRequest`, `ResumeSelector`, `ResumeRequest`, `ExecStream`, `ExecCompletion`, `ExecStreamError`.
++  - `CodexClient` methods: `send_prompt*`, `stream_exec*`, resume helpers, and any private helpers that are exec-stream specific (JSONL framing already lives in `jsonl.rs`; event models already live in `events.rs`).
++- Expected files touched:
++  - `crates/codex/src/lib.rs` (wire `mod exec;` or `mod exec { ... }` via `mod exec;` + re-exports; remove moved items)
++  - `crates/codex/src/exec.rs` or `crates/codex/src/exec/*` (new)
++- Acceptance criteria (“done when”):
++  - All §4.1 gates pass.
++  - No public API path changes (all moved public types remain available at their existing `codex::*` paths).
++  - Move is mechanical: serde shapes, streaming semantics, and buffering/backpressure behavior unchanged (tests pass).
++  - New files meet §7.3 size policy (split by domain if needed to stay ≤ 600 LOC).
++- Dependencies / ordering:
++  - Do after P1.14 so spawn/stdio helpers can be shared cleanly.
++- Risk: Medium (streaming correctness; move-only mitigates).
++- Rollback: Revert module move; restore original `lib.rs` definitions.
++
++##### P1.16 — Seam extraction: auth/login helpers (`auth.rs`) (API preserved)
++
++Status: [ ] Not Started  [ ] In Progress  [ ] Done  
++Last Updated: YYYY-MM-DD
++
++- Goal: Move authentication state + login flow helpers out of `crates/codex/src/lib.rs` into `crates/codex/src/auth.rs`, preserving existing public API paths via re-exports from `lib.rs`.
++- Scope:
++  - `AuthSessionHelper` + related public enums: `CodexAuthStatus`, `CodexAuthMethod`, `CodexLogoutStatus`.
++  - `CodexClient` login-related helpers (spawn/login status helpers) that are not exec-stream specific.
++- Expected files touched:
++  - `crates/codex/src/lib.rs` (wire `mod auth;` + re-exports; remove moved items)
++  - `crates/codex/src/auth.rs` (new)
++- Acceptance criteria (“done when”):
++  - All §4.1 gates pass.
++  - No public API path changes.
++  - Login process invocation semantics unchanged (pure move; tests pass).
++  - New module meets §7.3 size policy.
++- Dependencies / ordering:
++  - Prefer after P1.14 so any shared spawn/stdio helpers can be referenced from a single internal module.
++- Risk: Low–Medium (process spawn plumbing; keep move mechanical).
++- Rollback: Revert module move + re-exports; restore original definitions in `lib.rs`.
++
++##### P1.17 — Seam extraction: remaining client subcommand wrappers (`commands/*`) (API preserved)
++
++Status: [ ] Not Started  [ ] In Progress  [ ] Done  
++Last Updated: YYYY-MM-DD
++
++- Goal: Extract the remaining `CodexClient` subcommand wrapper methods still implemented in `crates/codex/src/lib.rs` into a cohesive `crates/codex/src/commands/*` module tree while preserving public API paths and avoiding large cross-cutting moves.
++- Scope (PR-sized; split by domain if needed):
++  - `CodexClient::apply` / `CodexClient::diff` method implementations (types already live in `apply_diff.rs`).
++  - `CodexClient::generate_app_server_bindings` (app-server generate helpers).
++  - `CodexClient::list_features` (execution wrapper; parsing is in `version.rs`).
++  - `CodexClient::start_responses_api_proxy`, `CodexClient::stdio_to_uds`, `CodexClient::run_sandbox`.
++- Expected files touched:
++  - `crates/codex/src/lib.rs` (wire `mod commands;` + `mod sandbox;`/`mod responses_api_proxy;` if split; keep façade stable)
++  - `crates/codex/src/commands/` (new file(s))
++- Acceptance criteria (“done when”):
++  - All §4.1 gates pass.
++  - No public API path changes (methods remain on `CodexClient`; any public helper types remain available at existing `codex::*` paths).
++  - Changes are mechanical: command flags/env, stdout/stderr mirroring, and exit-status handling unchanged.
++  - New file(s) meet §7.3 size policy.
++- Dependencies / ordering:
++  - Prefer after P1.14 so shared spawn/stdio helpers live in one place.
++- Risk: Medium (many flows; keep each move small and consider splitting this step into two PRs if it grows).
++- Rollback: Revert module move(s); restore original method bodies in `lib.rs`.
++
++##### P1.18 — Plan next Phase 1 seams after P1.17 (no code moves)
++
++Status: [ ] Not Started  [ ] In Progress  [ ] Done  
++Last Updated: YYYY-MM-DD
++
++- Goal: After P1.14–P1.17 land, refresh §7.1 seam order + §10 queue based on the then-current `lib.rs` contents and remaining top offenders, keeping follow-on extractions PR-sized and reversible.
++- Expected files touched:
++  - `refactor_workplan.md` (this file): update §7.1 and §10 queue.
++- Acceptance criteria (“done when”):
++  - Updated seam list in §7.1 reflects the then-current module layout and identifies the next 2–4 PR-sized extractions.
++  - No behavior changes (planning only).
++- Risk: Low.
++- Rollback: N/A.
++
  #### Phase 2 — Split `crates/codex/src/mcp.rs` into `crates/codex/src/mcp/*` (API stable)
  
  **Phase goal:** Split `mcp.rs` into a module tree while maintaining stable public APIs via re-exports from `mcp` (and/or `lib.rs`).
@@ -135,7 +236,7 @@ index 0b9a55b..206eff6 100644
  
  ##### P2.0 — Define the `mcp.rs` seam map (no code moves yet)
  
-@@ -499,8 +614,8 @@ Last Updated: 2026-02-04
+@@ -499,8 +715,8 @@ Last Updated: 2026-02-04
  
  ##### P2.6 — Move high-level MCP clients into `mcp/client.rs` (API preserved)
  
@@ -146,7 +247,7 @@ index 0b9a55b..206eff6 100644
  
  - Goal: Reduce `crates/codex/src/mcp.rs` by extracting high-level client façade types (e.g., Codex/app-server client wrappers that sit above JSON-RPC transport) into `crates/codex/src/mcp/client.rs`, preserving stable `codex::mcp::*` API paths via re-exports.
  - Expected files touched:
-@@ -515,8 +630,8 @@ Last Updated: YYYY-MM-DD
+@@ -515,8 +731,8 @@ Last Updated: YYYY-MM-DD
  
  ##### P2.7 — Reduce `mcp.rs` below program ceiling (remaining coordinator split) (API preserved)
  
@@ -157,7 +258,7 @@ index 0b9a55b..206eff6 100644
  
  - Goal: Further reduce `crates/codex/src/mcp.rs` by moving remaining cohesive coordinator/state helpers into one or more `crates/codex/src/mcp/*` modules, leaving `mcp.rs` as a thin compatibility façade while preserving stable `codex::mcp::*` public API paths via re-exports.
  - Expected files touched:
-@@ -535,9 +650,9 @@ Last Updated: YYYY-MM-DD
+@@ -535,9 +751,9 @@ Last Updated: YYYY-MM-DD
  
  #### Phase 3 — Split xtask “rule engine” files by domain sections; keep determinism
  
@@ -169,7 +270,7 @@ index 0b9a55b..206eff6 100644
  
  ##### P3.0 — Identify xtask domain boundaries and deterministic contracts
  
-@@ -682,8 +797,8 @@ Last Updated: 2026-02-04
+@@ -682,8 +898,8 @@ Last Updated: 2026-02-04
  
  ##### P3.9 — Reduce `codex_validate.rs` below ceiling (follow-on split) with deterministic output preserved
  
@@ -180,7 +281,7 @@ index 0b9a55b..206eff6 100644
  
  - Goal: Further reduce `crates/xtask/src/codex_validate.rs` below the program ceiling by extracting remaining cohesive validation orchestration/formatting/IO helpers into `crates/xtask/src/codex_validate/*` without changing outputs.
  - Expected files touched:
-@@ -748,10 +863,17 @@ Seam order (defined in P1.0; extract in PR-sized steps):
+@@ -748,10 +964,23 @@ Seam order (defined in P1.0; extract in PR-sized steps):
  4) Execpolicy modeling + parsing → `execpolicy.rs` (P1.4).
  5) Builder/config/flags surfaces → one or more cohesive modules (P1.5; define concrete module(s) when scheduled).
  6) JSONL streaming/framing + process IO → `jsonl.rs` seam (P1.6).
@@ -188,17 +289,23 @@ index 0b9a55b..206eff6 100644
 +8) Exec JSONL event envelope + payload models → `events.rs` (P1.10).
 +9) CLI subcommand request/response models → `cli/*` (P1.11).
 +10) Version/features probe parsing + update advisory helpers → `version.rs` (P1.12).
++11) Spawn/process plumbing → `process.rs` (P1.14).
++12) Exec streaming + resume types + helpers → `exec/*` (P1.15).
++13) Auth/login helpers → `auth.rs` (P1.16).
++14) Remaining client subcommand wrappers → `commands/*` (P1.17).
  
  Notes / dependencies:
  - `capabilities.rs` is used by the builder/client for cache policies, overrides, and probes; extract before apply/diff to reduce cross-cutting churn.
  - `apply_diff.rs` depends on command execution plumbing but should remain API-stable via re-exports from `lib.rs`.
 +- `bundled_binary.rs` is leaf-ish and can move early to reduce `lib.rs` churn (it is used mainly by the builder and docs).
 +- `events.rs` is a dependency of streaming exec/resume types; extract it before moving execution/stream implementation blocks.
-+- `cli/*` request/response models depend on builder override types (`CliOverridesPatch`, `FeatureToggles`, `ConfigOverride`), so schedule after P1.7 stabilized the builder module tree.
++- `cli/*` request/response models depend on builder override types (`CliOverridesPatch`, `FeatureToggles`, `ConfigOverride`), so schedule after P1.7 stabilized the builder module tree (done in P1.11).
++- `process.rs` should land before moving additional `CodexClient` impl blocks so spawn/stdio helpers have a single home and are not duplicated across modules.
++- `exec/*` should focus on `codex exec` streaming + resume surfaces; keep other subcommands (apply/diff, sandbox, app-server generate) out of scope to keep the PR-sized.
  
  ### 7.2 `crates/codex/src/mcp.rs` boundaries and extraction order (Phase 2)
  
-@@ -1276,6 +1398,109 @@ Add entries as work lands. Format:
+@@ -1276,6 +1505,252 @@ Add entries as work lands. Format:
  - Diffs/PRs:
    - Commit: `b4da9b037f4e0fb3c03889b6e8d57853ece11826`
  
@@ -220,7 +327,7 @@ index 0b9a55b..206eff6 100644
 +  - Code diff: `evidence_runs/2026-02-05/P2.6_code_diff_final.patch` (post-commit)
 +  - Workplan diff: `evidence_runs/2026-02-05/P2.6_workplan_diff_final.patch` (post-commit)
 +- Commit:
-+  - TBD_POST_COMMIT
++  - f955b7fdfed037340ec22f190deb050b69452ef4
 +
 +### 2026-02-05 — P2.7 MCP façade: split remaining `mcp.rs` bulk into test modules (API preserved)
 +
@@ -240,7 +347,7 @@ index 0b9a55b..206eff6 100644
 +  - Code diff: `evidence_runs/2026-02-05/P2.7_code_diff_final.patch` (post-commit)
 +  - Workplan diff: `evidence_runs/2026-02-05/P2.7_workplan_diff_final.patch` (post-commit)
 +- Commit:
-+  - TBD_POST_COMMIT
++  - d7d7efb2891251bd47e923ebca2021c1694221a8
 +
 +### 2026-02-05 — P3.9 codex_validate follow-on split (below ceiling; determinism preserved)
 +
@@ -260,7 +367,7 @@ index 0b9a55b..206eff6 100644
 +  - Code diff: `evidence_runs/2026-02-05/P3.9_code_diff_final.patch` (post-commit)
 +  - Workplan diff: `evidence_runs/2026-02-05/P3.9_workplan_diff_final.patch` (post-commit)
 +- Commit:
-+  - TBD_POST_COMMIT
++  - 164111524dfc1cf4a643b0af3d5df0e5cd1da519
 +
 +### 2026-02-05 — Split `builder.rs` into `builder/*` (API preserved)
 +
@@ -281,7 +388,7 @@ index 0b9a55b..206eff6 100644
 +  - Code diff: `evidence_runs/2026-02-05/P1.7_code_diff_final.patch` (post-commit)
 +  - Workplan diff: `evidence_runs/2026-02-05/P1.7_workplan_diff_final.patch` (post-commit)
 +- Commit:
-+  - TBD_POST_COMMIT
++  - b2df25fc4d3b6ce13475541c88531a26438acf69
 +
 +### 2026-02-05 — Plan next Phase 1 seams after `builder/*`
 +
@@ -303,12 +410,155 @@ index 0b9a55b..206eff6 100644
 +  - Code diff: `evidence_runs/2026-02-05/P1.8_code_diff_final.patch` (post-commit)
 +  - Workplan diff: `evidence_runs/2026-02-05/P1.8_workplan_diff_final.patch` (post-commit)
 +- Commit:
++  - 8406ddfb04e7df7b6337422de3510dd42375b10b
++
++### 2026-02-05 — P1.9 Seam extraction: bundled binary resolver (`bundled_binary.rs`) (API preserved)
++
++- Scope/step: P1.9
++- Why: Extract the bundled binary resolver into a cohesive module while preserving crate-root public API paths via façade + re-exports.
++- What changed:
++  - Moved `BundledBinarySpec`, `BundledBinary`, `BundledBinaryError`, `resolve_bundled_binary`, and `default_bundled_platform_label` into `crates/codex/src/bundled_binary.rs`.
++  - Wired `crates/codex/src/lib.rs` with `mod bundled_binary;` + `pub use ...` so existing `codex::{...}` paths continue to compile; kept a test-only shim for `bundled_binary_filename` to avoid churn in existing unit tests.
++- Validation results (§4.1):
++  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.9_cargo_fmt_check_final.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.9_cargo_fmt_check.txt`; applied: `evidence_runs/2026-02-05/P1.9_cargo_fmt_apply.txt`; re-check: `evidence_runs/2026-02-05/P1.9_cargo_fmt_check_after.txt`)
++  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.9_cargo_clippy_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.9_cargo_clippy.txt`)
++  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.9_cargo_test.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.9_cargo_audit_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.9_cargo_audit.txt`; reran offline with copied RustSec DB due to network/sandbox lock constraints)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.9_cargo_deny_advisories.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.9_cargo_deny_advisories_initial_fail.txt`; reran with offline cargo home due to network/sandbox lock constraints)
++  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.9_cargo_deny_licenses.txt`)
++- Evidence/patches:
++  - Code diff: `evidence_runs/2026-02-05/P1.9_code_diff_final.patch` (post-commit)
++  - Workplan diff: `evidence_runs/2026-02-05/P1.9_workplan_diff_final.patch` (post-commit)
++- Commit:
++  - ae99829d9ff91405163fbe797c21588fae186ddb
++
++### 2026-02-05 — P1.10 Seam extraction: exec JSONL event models (`events.rs`) (API preserved)
++
++- Scope/step: P1.10
++- Why: Reduce `lib.rs` bulk by extracting the JSONL event envelope + payload models emitted by `codex exec --json` into a dedicated module, while preserving crate-root public API via re-exports.
++- What changed:
++  - Moved JSONL event models (`ThreadEvent`, `ItemEnvelope`, `ItemPayload`, deltas/states/status enums, and `EventError`) from `crates/codex/src/lib.rs` into `crates/codex/src/events.rs` with identical serde shapes (mechanical move).
++  - Wired `crates/codex/src/lib.rs` with `mod events;` + `pub use events::{...};` so existing `codex::{...}` paths continue to compile.
++- Validation results (§4.1):
++  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.10_cargo_fmt_check_final.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.10_cargo_fmt_check.txt`; applied: `evidence_runs/2026-02-05/P1.10_cargo_fmt_apply.txt`; re-check: `evidence_runs/2026-02-05/P1.10_cargo_fmt_check_after.txt`)
++  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.10_cargo_clippy.txt`)
++  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.10_cargo_test.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.10_cargo_audit_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.10_cargo_audit.txt`; reran with `--no-fetch --stale` + writable `CARGO_HOME` due to sandbox/network constraints; see also `evidence_runs/2026-02-05/P1.10_cargo_audit_after_fetch_fail.txt`)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.10_cargo_deny_advisories_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.10_cargo_deny_advisories.txt`; reran with `--disable-fetch` due to network constraints; help: `evidence_runs/2026-02-05/P1.10_cargo_deny_advisories_help.txt`)
++  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.10_cargo_deny_licenses.txt`)
++- Evidence/patches:
++  - Code diff: `evidence_runs/2026-02-05/P1.10_code_diff_final.patch` (post-commit)
++  - Workplan diff: `evidence_runs/2026-02-05/P1.10_workplan_diff_final.patch` (post-commit)
++- Commit:
++  - ae0ceacacfa1c127eb527a69642563ee7cdbc7d4
++
++### 2026-02-05 — P1.11 Seam extraction: CLI subcommand request/response models (`cli/*`) (API preserved)
++
++- Scope/step: P1.11
++- Why: Extract CLI subcommand request/response models into a dedicated `cli/*` module tree to reduce `lib.rs` bulk while preserving crate-root public API via façade + re-exports.
++- What changed:
++  - Moved non-streaming CLI subcommand models (e.g., features/help/review/resume/fork/cloud/mcp/app-server, plus sandbox/stdio-to-uds/responses-api-proxy request/response types) from `crates/codex/src/lib.rs` into `crates/codex/src/cli/*`.
++  - Wired `crates/codex/src/lib.rs` with `mod cli;` + `pub use cli::{...};` so existing `codex::{...}` paths continue to compile; made a small visibility adjustment (`CodexFeatureStage::parse` → `pub(crate)`) to keep internal parsing helpers compiling.
++- Validation results (§4.1):
++  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.11_cargo_fmt_check_final.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.11_cargo_fmt_check.txt`; applied: `evidence_runs/2026-02-05/P1.11_cargo_fmt_apply.txt`; re-check: `evidence_runs/2026-02-05/P1.11_cargo_fmt_check_after.txt`)
++  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.11_cargo_clippy_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.11_cargo_clippy.txt`)
++  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.11_cargo_test.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.11_cargo_audit_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.11_cargo_audit.txt`; reran with `--no-fetch --stale` due to sandbox lock constraints)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.11_cargo_deny_advisories_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.11_cargo_deny_advisories.txt`; reran with a writable `CARGO_HOME` seeded from `/home/dev/.cargo` + `--offline` due to sandbox lock constraints)
++  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.11_cargo_deny_licenses.txt`)
++- Evidence/patches:
++  - Code diff: `evidence_runs/2026-02-05/P1.11_code_diff_final.patch` (post-commit)
++  - Workplan diff: `evidence_runs/2026-02-05/P1.11_workplan_diff_final.patch` (post-commit)
++- Commit:
++  - 097ecd4060a00301da073a442ef62bb3de4730ac
++
++### 2026-02-05 — P1.12 Seam extraction: feature/version parsing + update advisory helpers (`version.rs`) (API preserved)
++
++- Scope/step: P1.12
++- Why: Extract version/features probe parsing + update advisory helpers into a dedicated `version.rs` module to reduce `lib.rs` bulk while preserving crate-root public API via façade + re-exports.
++- What changed:
++  - Moved `codex --version`, `codex features list` (json/text), and `codex --help` parsing helpers (semver/channel parsing, commit hash extraction, feature-flag parsing, and feature list parsing) from `crates/codex/src/lib.rs` into `crates/codex/src/version.rs`.
++  - Re-exported `update_advisory_from_capabilities` from `crates/codex/src/lib.rs` so the `codex::update_advisory_from_capabilities` public API path remains unchanged.
++- Validation results (§4.1):
++  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_fmt_check.txt`)
++  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_clippy.txt`)
++  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_test.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_audit.txt`)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_deny_advisories.txt`)
++  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_deny_licenses.txt`)
++  - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_fmt_check_final.txt`)
++- Evidence/patches:
++  - Code diff: `evidence_runs/2026-02-05/P1.12_code_diff_final.patch` (post-commit)
++  - Workplan diff: `evidence_runs/2026-02-05/P1.12_workplan_diff_final.patch` (post-commit)
++- Commit:
++  - 47de4019ad7b57c9a3d14204f32a4528bd78f3c2
++
++### 2026-02-05 — P1.12 (correction)
++
++- Scope/step: P1.12
++- Why: Correct failed gates from the initial P1.12 run (rustfmt diffs, E0364 visibility error, and advisory DB read-only lock failures).
++- Fixes applied:
++  - Made `version::update_advisory_from_capabilities` `pub` so the existing crate-root re-export (`codex::update_advisory_from_capabilities`) compiles without changing the public API path.
++  - Re-applied `cargo fmt --all` to eliminate rustfmt diffs.
++  - Reran `cargo audit` / `cargo deny` with a writable `CARGO_HOME` under `/tmp` (seeded from `/home/dev/.cargo`) plus offline/no-fetch flags to avoid read-only advisory DB locks.
++- Validation results (§4.1): PASS (after correction)
++  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_fmt_check_after_fix.txt`) (applied: `evidence_runs/2026-02-05/P1.12_cargo_fmt_apply_after_fix.txt`)
++  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_clippy_after_fix.txt`)
++  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_test_after_fix.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_audit_after_fix.txt`) (workaround: `CARGO_HOME=/tmp/p112_cargo_home`, seeded advisory DBs, `--no-fetch --stale`, `CARGO_NET_OFFLINE=true`)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_deny_advisories_after_fix.txt`) (workaround: writable `CARGO_HOME` + `--disable-fetch` + `CARGO_NET_OFFLINE=true`)
++  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_deny_licenses_after_fix.txt`) (workaround: writable `CARGO_HOME` + `CARGO_NET_OFFLINE=true`)
++  - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_fmt_check_final_after_fix.txt`)
++- Commit:
++  - 47de4019ad7b57c9a3d14204f32a4528bd78f3c2
++
++### 2026-02-05 — P1.13 Plan remaining Phase 1 seams after P1.12 (no code moves)
++
++- Scope/step: P1.13
++- Why: Refresh Phase 1 seam planning after P1.9–P1.12 so the remaining `crates/codex/src/lib.rs` bulk can be extracted in PR-sized, API-stable steps aligned with the current module layout.
++- What changed:
++  - Updated §7.1 seam extraction order to reflect the current module layout after P1.9–P1.12 and to queue the next 2–4 PR-sized extractions (process plumbing, exec streaming, auth/login, and remaining subcommand wrappers).
++  - Added Phase 1 checklist steps P1.14–P1.18 with clear scope boundaries and ordering assumptions.
++  - Updated §10 execution queue to reflect the next Phase 1 seams after P1.13.
++- Validation results (§4.1):
++  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.13_cargo_fmt_check.txt`)
++  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.13_cargo_clippy.txt`)
++  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.13_cargo_test.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.13_cargo_audit_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.13_cargo_audit.txt`; workaround: writable `CARGO_HOME=/tmp/p113_cargo_home` seeded with `/home/dev/.cargo` RustSec DB + registry index, `--no-fetch --stale`, `CARGO_NET_OFFLINE=true`)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.13_cargo_deny_advisories_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.13_cargo_deny_advisories.txt`; workaround: writable `CARGO_HOME=/tmp/p113_deny_cargo_home` seeded from `/home/dev/.cargo`, `--disable-fetch`, `CARGO_NET_OFFLINE=true`)
++  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.13_cargo_deny_licenses.txt`)
++  - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.13_cargo_fmt_check_final.txt`)
++- Evidence/patches:
++  - Code diff: `evidence_runs/2026-02-05/P1.13_code_diff_final.patch` (post-commit)
++  - Workplan diff: `evidence_runs/2026-02-05/P1.13_workplan_diff_final.patch` (post-commit)
++- Commit:
++  - 6fce405c4adcf03ec211655033a1dd4fe2bb1dcd
++
++### 2026-02-05 — P1.14 Seam extraction: spawn/process plumbing (`process.rs`) (API preserved)
++
++- Scope/step: P1.14
++- Why: Reduce `crates/codex/src/lib.rs` bulk by extracting shared subprocess spawn + stdio/capture helpers into a single internal module, keeping public APIs stable.
++- What changed:
++  - Added internal `crates/codex/src/process.rs` and moved `spawn_with_retry`, stdout/stderr tee/capture helpers, and output formatting helpers.
++  - Wired `mod process;` in `crates/codex/src/lib.rs` and updated internal references mechanically (no behavior changes).
++- Validation results (§4.1): PASS (with offline/no-fetch workaround for supply-chain checks due to sandbox networking + advisory DB locks)
++  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.14_cargo_fmt_check_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.14_cargo_fmt_check.txt`; applied: `evidence_runs/2026-02-05/P1.14_cargo_fmt_apply.txt`)
++  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P1.14_cargo_clippy_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.14_cargo_clippy.txt`)
++  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P1.14_cargo_test.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P1.14_cargo_audit_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.14_cargo_audit.txt`; fetch FAIL: `evidence_runs/2026-02-05/P1.14_cargo_audit_after_fetch_fail.txt`; workaround: `CARGO_HOME=/tmp/cargo_home_p1_14` + `--db /home/dev/.cargo/advisory-db --no-fetch --stale`)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P1.14_cargo_deny_advisories_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.14_cargo_deny_advisories.txt`; network FAIL: `evidence_runs/2026-02-05/P1.14_cargo_deny_advisories_after_network_fail.txt`; offline cache miss: `evidence_runs/2026-02-05/P1.14_cargo_deny_advisories_after_offline_cache_miss.txt`; workaround: `CARGO_HOME=/tmp/cargo_home_p1_14` seeded via symlinks to `/home/dev/.cargo` + `--offline --locked --disable-fetch`)
++  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.14_cargo_deny_licenses.txt`)
++  - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.14_cargo_fmt_check_final.txt`) (initial FAIL: `evidence_runs/2026-02-05/P1.14_cargo_fmt_check_final_fail.txt`; applied: `evidence_runs/2026-02-05/P1.14_cargo_fmt_apply_final.txt`)
++- Evidence/patches:
++  - Code diff: `evidence_runs/2026-02-05/P1.14_code_diff_final.patch` (post-commit)
++  - Workplan diff: `evidence_runs/2026-02-05/P1.14_workplan_diff_final.patch` (post-commit)
++- Commit:
 +  - TBD_POST_COMMIT
 +
  ## 9) Open Questions / Decisions (lightweight log)
  
  Use this table for decisions that affect policy, public APIs, or exceptions to size constraints.
-@@ -1297,8 +1522,8 @@ Use this table for decisions that affect policy, public APIs, or exceptions to s
+@@ -1297,8 +1772,8 @@ Use this table for decisions that affect policy, public APIs, or exceptions to s
  
  Selection rule (orchestrator): Execute tasks in the order listed below (top-to-bottom). Reorder this list to change cross-phase priority; do not infer priority from Phase 1/2/3 sections.
  
@@ -317,8 +567,8 @@ index 0b9a55b..206eff6 100644
 -3) P2.7 — Reduce `mcp.rs` below program ceiling (remaining coordinator split) (API preserved)
 -4) P3.9 — Reduce `codex_validate.rs` below ceiling (follow-on split) with deterministic output preserved
 -5) (TBD) Next Phase 1 seam extraction after P1.6
-+1) P1.9 — Seam extraction: bundled binary resolver (`bundled_binary.rs`) (API preserved)
-+2) P1.10 — Seam extraction: exec JSONL event models (`events.rs`) (API preserved)
-+3) P1.11 — Seam extraction: CLI subcommand request/response models (`cli/*`) (API preserved)
-+4) P1.12 — Seam extraction: feature/version parsing + update advisory helpers (`version.rs`) (API preserved)
-+5) P1.13 — Plan remaining Phase 1 seams after P1.12 (no code moves)
++1) P1.15 — Seam extraction: exec streaming + resume types + helpers (`exec/*`) (API preserved)
++2) P1.16 — Seam extraction: auth/login helpers (`auth.rs`) (API preserved)
++3) P1.17 — Seam extraction: remaining client subcommand wrappers (`commands/*`) (API preserved)
++4) P1.18 — Plan next Phase 1 seams after P1.17 (no code moves)
++5) P2.0 — Define the `mcp.rs` seam map (no code moves yet)
