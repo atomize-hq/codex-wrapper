@@ -1,6 +1,6 @@
 # Refactor Workplan / Status (Master)
 
-Last Updated: 2026-02-04  
+Last Updated: 2026-02-05  
 Owner: Refactoring Lead (this file is the single source of truth for status)
 
 ## 0) Planning Summary (Why this exists)
@@ -34,7 +34,8 @@ This file is updated as execution progresses; the audit pack is immutable eviden
 5) Prefer small PR-sized steps. Each step should be independently reviewable and reversible.  
 6) Evidence must be cited via exact file paths (do not hand-wave).
    - Audit-time evidence: `audit_pack/...` (immutable snapshot).
-   - Execution-time evidence (future runs): `evidence_runs/YYYY-MM-DD/...` (see §8.1). Legacy execution evidence may still be under `audit_pack/execution/...` and must not be moved.
+   - Execution-time evidence (preferred for new runs): `evidence_runs/YYYY-MM-DD/...` (see §8.1).
+     - Legacy execution evidence may still be under `audit_pack/execution/YYYY-MM-DD/...`; citing those paths is allowed and those artifacts must not be moved.
 
 ### 1.3 Non-goals (unless explicitly added later)
 
@@ -48,7 +49,7 @@ This file is updated as execution progresses; the audit pack is immutable eviden
 - Critical: bytes 1.11.0 vuln RUSTSEC-2026-0007 → fix >= 1.11.1
 - Critical: cargo-deny license check fails without explicit deny.toml policy
 - Medium: duplicate crate versions getrandom/windows-sys
-- High: “god modules” above thresholds; Median ≈ 130.5, P75 ≈ 290.75 → soft = 300, P90 ≈ 603.5 → hard = 604, ceiling=1000 (post-refactor; see `evidence_runs/2026-02-04/post_refactor_tokei.json`)
+- High: “god modules” above thresholds; Median ≈ 157.0, P75 ≈ 291.0 → soft = 300, P90 ≈ 534.0 → hard = 600, ceiling=1000 (latest post-refactor distribution; see `audit_pack/execution/2026-02-04/post_refactor_tokei_updated.json`)
 - Phases:
   - Phase 0: supply chain triage (lockfile + deny.toml) with acceptance criteria listed below
   - Phase 1: modularize crates/codex/src/lib.rs (keep façade + re-exports). First seam: home/env → home.rs (API preserved)
@@ -71,6 +72,7 @@ These are the required provenance inputs for this program. Do not edit them; ref
   - `audit_pack/` is the audit-time immutable snapshot.
   - **Future execution evidence** (command outputs, diffs, notes) is stored under `evidence_runs/YYYY-MM-DD/`.
   - `audit_pack/execution/*` is **legacy execution evidence already generated**; do not move it (keep referencing it as-is).
+  - As of 2026-02-05, the latest post-refactor `tokei`/duplicates artifacts are stored under `audit_pack/execution/2026-02-04/` (see list below); until they are refreshed into `evidence_runs/`, treat those `audit_pack/execution/...` paths as canonical for §3.1/§3.2/§6.3.
 
 - `audit_pack/README.md` — audit pack entry point, contents, and failure/skip summary.
 - `audit_pack/meta/commands.log` — provenance log of what was executed (timestamp | cwd | command | exit).
@@ -95,10 +97,13 @@ Optional (often useful, still immutable):
 - `audit_pack/post_refactor/post_refactor_cargo_tree_duplicates.txt` — legacy post-refactor `cargo tree -d --target all` duplicates output (kept for provenance; do not update).
 - `audit_pack/execution/2026-02-04/` — legacy execution evidence already generated (kept for provenance; do not move).
 
-Execution evidence (current run; append-only):
-- `evidence_runs/2026-02-04/post_refactor_tokei.json` — post-refactor tokei JSON used for §3.1 thresholds.
-- `evidence_runs/2026-02-04/post_refactor_tokei_files_sorted.txt` — post-refactor tokei sorted output used for §3.2 top offenders.
-- `evidence_runs/2026-02-04/post_refactor_cargo_tree_duplicates_target_all.txt` — post-refactor duplicates output used for §6.3 triage.
+Canonical post-refactor metrics (latest as of 2026-02-05; stored under legacy execution evidence):
+- `audit_pack/execution/2026-02-04/post_refactor_tokei_updated.json` — latest post-refactor tokei JSON used for §3.1 thresholds (post-P2.5/P3.6–P3.8).
+- `audit_pack/execution/2026-02-04/post_refactor_tokei_files_sorted_updated.txt` — latest tokei sorted output used for §3.2 top offenders.
+- `audit_pack/execution/2026-02-04/post_refactor_cargo_tree_duplicates_target_all_updated.txt` — latest duplicates output used for §6.3 triage.
+- `evidence_runs/2026-02-04/post_refactor_tokei.json` — prior post-refactor tokei JSON (superseded by `audit_pack/execution/2026-02-04/post_refactor_tokei_updated.json`).
+- `evidence_runs/2026-02-04/post_refactor_tokei_files_sorted.txt` — prior tokei sorted output (superseded by `audit_pack/execution/2026-02-04/post_refactor_tokei_files_sorted_updated.txt`).
+- `evidence_runs/2026-02-04/post_refactor_cargo_tree_duplicates_target_all.txt` — prior duplicates output (superseded by `audit_pack/execution/2026-02-04/post_refactor_cargo_tree_duplicates_target_all_updated.txt`).
 
 ---
 
@@ -106,31 +111,31 @@ Execution evidence (current run; append-only):
 
 ### 3.1 Maintainability thresholds (post-refactor distribution)
 
-Computed from `evidence_runs/2026-02-04/post_refactor_tokei.json` (Rust per-file code LOC; percentiles use the same linear interpolation as `type=7`):
-- Rust files: 86
-- Median = 130.5
-- P75 = 290.75
-- P90 = 603.5
+Computed from `audit_pack/execution/2026-02-04/post_refactor_tokei_updated.json` (Rust per-file code LOC; percentiles use the same linear interpolation as `type=7`):
+- Rust files: 101
+- Median = 157.0
+- P75 = 291.0
+- P90 = 534.0
 
 Policy application:
 - `soft := max(300, P75)` → **soft = 300**
-- `hard := min(1000, max(600, P90))` → hard = 603.5 → **hard = 604** (rounded up to whole LOC)
+- `hard := min(1000, max(600, P90))` → **hard = 600**
 - `ceiling := 1000` → **ceiling = 1000**
 
-Note: These replace the audit-time thresholds from `audit_pack/metrics/loc_summary.txt` (P75=302, P90=746).
+Note: These replace the audit-time thresholds from `audit_pack/metrics/loc_summary.txt` (P75=302, P90=746). This is the latest distribution (post-P2.5/P3.6–P3.8).
 
 ### 3.2 Top offenders (largest Rust files)
 
-Post-refactor top 10 from `evidence_runs/2026-02-04/post_refactor_tokei_files_sorted.txt` (Rust per-file code LOC):
-- `crates/codex/src/lib.rs` — 8,904 LOC (>> ceiling)
-- `crates/codex/src/mcp.rs` — 2,713 LOC (>> ceiling)
-- `crates/xtask/src/codex_validate.rs` — 2,362 LOC (>> ceiling)
-- `crates/xtask/src/codex_report.rs` — 1,479 LOC (>> ceiling)
-- `crates/xtask/src/codex_snapshot.rs` — 1,225 LOC (>> ceiling)
+Post-refactor top 10 from `audit_pack/execution/2026-02-04/post_refactor_tokei_files_sorted_updated.txt` (Rust per-file code LOC):
+- `crates/codex/src/lib.rs` — 8,677 LOC (>> ceiling)
+- `crates/codex/src/mcp.rs` — 2,191 LOC (>> ceiling)
+- `crates/xtask/src/codex_validate.rs` — 1,148 LOC (>> ceiling)
+- `crates/xtask/src/codex_report/report.rs` — 922 LOC (> hard)
 - `crates/xtask/src/codex_union.rs` — 799 LOC (> hard)
 - `crates/xtask/tests/c3_spec_reports_metadata_retain.rs` — 742 LOC (> hard)
 - `crates/xtask/src/codex_version_metadata.rs` — 721 LOC (> hard)
 - `crates/codex/tests/cli_e2e.rs` — 669 LOC (> hard)
+- `crates/xtask/src/codex_snapshot/discovery.rs` — 607 LOC (> hard)
 - `crates/codex/src/mcp/config.rs` — 538 LOC (> soft)
 
 ### 3.3 Baseline quality signals (audit time)
@@ -156,6 +161,9 @@ From `audit_pack/deps/cargo_tree_duplicates.txt`:
 From `audit_pack/metrics/tokei_files_sorted.txt`:
 - Rust: 70 files, 31,217 code lines (plus comments/blanks as reported by tokei).
 - JSON: 36 files, ~23k lines (many are parity artifacts/snapshots under `cli_manifests/`).
+
+Latest post-refactor snapshot (post-P2.5/P3.6–P3.8) from `audit_pack/execution/2026-02-04/post_refactor_tokei_updated.json`:
+- Rust: 101 files, 31,499 code lines.
 
 ---
 
@@ -267,8 +275,8 @@ Last Updated: 2026-02-04
 **Phase goal:** Reduce `lib.rs` from “god module” size by extracting cohesive modules while preserving existing public API paths through re-exports.
 
 Phase Status: [ ] Not Started  [x] In Progress  [ ] Done  
-Last Updated: 2026-02-04  
-Reason: `crates/codex/src/lib.rs` remains above the program ceiling per §3.2 (evidence: `evidence_runs/2026-02-04/post_refactor_tokei_files_sorted.txt`).
+Last Updated: 2026-02-05  
+Reason: `crates/codex/src/lib.rs` remains above the program ceiling per §3.2 (evidence: `audit_pack/execution/2026-02-04/post_refactor_tokei_files_sorted_updated.txt`).
 
 ##### P1.0 — Define the `lib.rs` seam map (no code moves yet)
 
@@ -348,6 +356,38 @@ Last Updated: 2026-02-04
 - Risk: Medium.
 - Rollback: Revert module move and re-exports.
 
+##### P1.5 — Seam extraction: Builder/config/flags surfaces (`builder.rs`) (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Extract builder/config/flags surface area out of `crates/codex/src/lib.rs` into cohesive module(s) (starting with `crates/codex/src/builder.rs`), preserving existing public API paths via re-exports from `lib.rs`.
+- Expected files touched:
+  - `crates/codex/src/lib.rs`
+  - `crates/codex/src/builder.rs` (new)
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports).
+  - New module(s) meet §7.3 size policy (or have documented exception in §9).
+- Risk: Medium (builder/config is cross-cutting; avoid churn outside the seam).
+- Rollback: Revert module move and re-exports.
+
+##### P1.6 — Seam extraction: JSONL streaming/framing (`jsonl.rs`) (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Extract JSONL streaming/framing + related IO helpers out of `crates/codex/src/lib.rs` into the existing `crates/codex/src/jsonl.rs` module, preserving existing public API paths via re-exports from `lib.rs`.
+- Expected files touched:
+  - `crates/codex/src/lib.rs`
+  - `crates/codex/src/jsonl.rs` (existing)
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports).
+  - Updated module meets §7.3 size policy (or has documented exception in §9).
+- Risk: Medium (streaming ordering/backpressure issues; tests should guard).
+- Rollback: Revert module move and re-exports.
+
 *(Repeat P1.x as needed until `lib.rs` is within the program ceiling or is a thin façade with the bulk in modules.)*
 
 ---
@@ -357,8 +397,8 @@ Last Updated: 2026-02-04
 **Phase goal:** Split `mcp.rs` into a module tree while maintaining stable public APIs via re-exports from `mcp` (and/or `lib.rs`).
 
 Phase Status: [ ] Not Started  [x] In Progress  [ ] Done  
-Last Updated: 2026-02-04  
-Reason: `crates/codex/src/mcp.rs` remains above the program ceiling per §3.2 (evidence: `evidence_runs/2026-02-04/post_refactor_tokei_files_sorted.txt`).
+Last Updated: 2026-02-05  
+Reason: `crates/codex/src/mcp.rs` remains above the program ceiling per §3.2 (evidence: `audit_pack/execution/2026-02-04/post_refactor_tokei_files_sorted_updated.txt`).
 
 ##### P2.0 — Define the `mcp.rs` seam map (no code moves yet)
 
@@ -457,6 +497,38 @@ Last Updated: 2026-02-04
 - Risk: Medium–High (transport extraction is high-churn and can introduce subtle ordering/timeout regressions).
 - Rollback: Revert transport move; restore original transport code in `mcp.rs`.
 
+##### P2.6 — Move high-level MCP clients into `mcp/client.rs` (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Reduce `crates/codex/src/mcp.rs` by extracting high-level client façade types (e.g., Codex/app-server client wrappers that sit above JSON-RPC transport) into `crates/codex/src/mcp/client.rs`, preserving stable `codex::mcp::*` API paths via re-exports.
+- Expected files touched:
+  - `crates/codex/src/mcp.rs`
+  - `crates/codex/src/mcp/client.rs` (new)
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports maintain compatibility).
+  - New file meets §7.3 size policy (or has a documented exception in §9).
+- Risk: Medium (visibility/import churn; preserve API paths via re-exports).
+- Rollback: Revert file move and re-exports; restore original definitions in `mcp.rs`.
+
+##### P2.7 — Reduce `mcp.rs` below program ceiling (remaining coordinator split) (API preserved)
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Further reduce `crates/codex/src/mcp.rs` by moving remaining cohesive coordinator/state helpers into one or more `crates/codex/src/mcp/*` modules, leaving `mcp.rs` as a thin compatibility façade while preserving stable `codex::mcp::*` public API paths via re-exports.
+- Expected files touched:
+  - `crates/codex/src/mcp.rs`
+  - `crates/codex/src/mcp/` (new file(s) as needed)
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - No public API path changes (façade + re-exports maintain compatibility).
+  - New file(s) meet §7.3 size policy (or have documented exception in §9).
+- Risk: Medium–High (large file split; keep changes seam-local).
+- Rollback: Revert module move and re-exports; restore original definitions in `mcp.rs`.
+
 ---
 
 ### Workstream C — `crates/xtask` Maintainability (determinism preserved)
@@ -464,8 +536,8 @@ Last Updated: 2026-02-04
 #### Phase 3 — Split xtask “rule engine” files by domain sections; keep determinism
 
 Phase Status: [ ] Not Started  [x] In Progress  [ ] Done  
-Last Updated: 2026-02-04  
-Reason: `crates/xtask/src/codex_validate.rs`, `crates/xtask/src/codex_report.rs`, and `crates/xtask/src/codex_snapshot.rs` remain above the program ceiling per §3.2 (evidence: `evidence_runs/2026-02-04/post_refactor_tokei_files_sorted.txt`).
+Last Updated: 2026-02-05  
+Reason: `crates/xtask/src/codex_validate.rs` remains above the program ceiling per §3.2 (evidence: `audit_pack/execution/2026-02-04/post_refactor_tokei_files_sorted_updated.txt`).
 
 ##### P3.0 — Identify xtask domain boundaries and deterministic contracts
 
@@ -608,6 +680,22 @@ Last Updated: 2026-02-04
 - Risk: Medium.
 - Rollback: Revert module move; restore original file content.
 
+##### P3.9 — Reduce `codex_validate.rs` below ceiling (follow-on split) with deterministic output preserved
+
+Status: [ ] Not Started  [ ] In Progress  [ ] Done  
+Last Updated: YYYY-MM-DD
+
+- Goal: Further reduce `crates/xtask/src/codex_validate.rs` below the program ceiling by extracting remaining cohesive validation orchestration/formatting/IO helpers into `crates/xtask/src/codex_validate/*` without changing outputs.
+- Expected files touched:
+  - `crates/xtask/src/codex_validate.rs`
+  - `crates/xtask/src/codex_validate/` (new file(s) as needed)
+- Acceptance criteria (“done when”):
+  - All §4.1 gates pass.
+  - Output determinism preserved (validated by existing snapshot/spec tests; no golden changes unless explicitly approved).
+  - `crates/xtask/src/codex_validate.rs` is ≤ 1000 LOC (or a §9 exception is recorded with a follow-up split task).
+- Risk: Medium (validation output semantics; rely on existing tests).
+- Rollback: Revert module move; restore original file content.
+
 ---
 
 ## 6) Dependency Triage (Supply Chain)
@@ -638,12 +726,12 @@ Track policy decisions here:
 
 Evidence sources:
 - Audit-time: `audit_pack/deps/cargo_tree_duplicates.txt` (`cargo tree -d` without `--target all`; “nothing to print”).
-- Post-refactor/current: `evidence_runs/2026-02-04/post_refactor_cargo_tree_duplicates_target_all.txt` (`cargo tree -d --target all`; duplicates present).
+- Post-refactor/current: `audit_pack/execution/2026-02-04/post_refactor_cargo_tree_duplicates_target_all_updated.txt` (`cargo tree -d --target all`; duplicates present).
 
 | Crate | Duplicate versions? | Evidence | Decision (fix/defer) | Rationale | Status |
 |---|---:|---|---|---|---|
-| getrandom | Yes (`0.2.17`, `0.3.4`) | `evidence_runs/2026-02-04/post_refactor_cargo_tree_duplicates_target_all.txt` shows `getrandom 0.2.17` via `jsonschema → xtask` and `getrandom 0.3.4` via `ahash` (through `jsonschema`) and `tempfile → codex → xtask`. | Defer | Resolving likely requires upgrading transitive crates (non-goal in Phase 0 unless required for security/compliance); keep note and revisit if it becomes a policy requirement. | Done |
-| windows-sys | Yes (`0.60.2`, `0.61.2`) | `evidence_runs/2026-02-04/post_refactor_cargo_tree_duplicates_target_all.txt` shows `windows-sys 0.60.2` via `socket2 → tokio/reqwest` and `windows-sys 0.61.2` via `clap`/`anstream` plus `tempfile`/`tokio`. | Defer | Same rationale as above; no gate currently failing and no security advisory forcing consolidation. | Done |
+| getrandom | Yes (`0.2.17`, `0.3.4`) | `audit_pack/execution/2026-02-04/post_refactor_cargo_tree_duplicates_target_all_updated.txt` shows `getrandom 0.2.17` via `jsonschema → xtask` and `getrandom 0.3.4` via `ahash` (through `jsonschema`) and `tempfile → codex → xtask`. | Defer | Resolving likely requires upgrading transitive crates (non-goal in Phase 0 unless required for security/compliance); keep note and revisit if it becomes a policy requirement. | Done |
+| windows-sys | Yes (`0.60.2`, `0.61.2`) | `audit_pack/execution/2026-02-04/post_refactor_cargo_tree_duplicates_target_all_updated.txt` shows `windows-sys 0.60.2` via `socket2 → tokio/reqwest` and `windows-sys 0.61.2` via `clap`/`anstream` plus `tempfile`/`tokio`. | Defer | Same rationale as above; no gate currently failing and no security advisory forcing consolidation. | Done |
 
 ---
 
@@ -658,7 +746,8 @@ Seam order (defined in P1.0; extract in PR-sized steps):
 2) Capability probing + caching → `capabilities.rs` (P1.2).
 3) Apply/diff request + artifacts → `apply_diff.rs` (P1.3).
 4) Execpolicy modeling + parsing → `execpolicy.rs` (P1.4).
-5) Builder/config/flags surfaces → one or more cohesive modules (planned; define when scheduled).
+5) Builder/config/flags surfaces → one or more cohesive modules (P1.5; define concrete module(s) when scheduled).
+6) JSONL streaming/framing + process IO → `jsonl.rs` seam (P1.6).
 
 Notes / dependencies:
 - `capabilities.rs` is used by the builder/client for cache policies, overrides, and probes; extract before apply/diff to reduce cross-cutting churn.
@@ -686,6 +775,10 @@ Seam boundaries (defined in P2.0; extract in PR-sized steps; keep `codex::mcp::*
 5) **Stdio JSON-RPC transport** → `crates/codex/src/mcp/jsonrpc.rs` (P2.5; scheduled after the above)
    - `codex mcp-server` / `codex app-server` spawn + request/response plumbing + notification fan-out
    - Keep the higher-level clients (`CodexMcpServer`, `AppServer`) in `mcp.rs` until transport move is complete.
+6) **High-level clients** → `crates/codex/src/mcp/client.rs` (P2.6; scheduled after transport extraction)
+   - Move high-level client façade types above JSON-RPC transport while keeping `codex::mcp::*` paths stable via re-exports.
+7) **Remaining coordinator split** → additional `crates/codex/src/mcp/*` modules (P2.7)
+   - Reduce `mcp.rs` to a thin compatibility façade; keep extracted modules within §7.3 thresholds.
 
 Notes / dependencies:
 - Phase 2 exists because `crates/codex/src/mcp.rs` is a “god module” at audit time (4,278 LOC). Evidence: `audit_pack/metrics/loc_summary.txt`.
@@ -693,14 +786,14 @@ Notes / dependencies:
 
 ### 7.3 File size policy (applies during refactor)
 
-Derived from post-refactor distribution in `evidence_runs/2026-02-04/post_refactor_tokei.json`:
-- Soft threshold: 300 LOC (P75 ≈ 290.75)
-- Hard threshold: 604 LOC (P90 ≈ 603.5)
+Derived from latest post-refactor distribution in `audit_pack/execution/2026-02-04/post_refactor_tokei_updated.json`:
+- Soft threshold: 300 LOC (P75 ≈ 291.0)
+- Hard threshold: 600 LOC (P90 ≈ 534.0; policy minimum is 600)
 - Absolute ceiling: 1000 LOC
 
 Policy:
 - New files should target **≤ 300 LOC**.
-- New files may exceed soft threshold if cohesive, but should stay **≤ 604 LOC**.
+- New files may exceed soft threshold if cohesive, but should stay **≤ 600 LOC**.
 - Files **must not exceed 1000 LOC** without an explicit §9 decision (exception with rationale and follow-up split task).
 - For “compatibility façades” (`lib.rs`, `mcp.rs` during transition), temporary exceptions may exist but must trend downward each phase.
 
@@ -731,6 +824,7 @@ Boundaries + extraction order (defined in P3.0; keep deterministic outputs):
   6) `codex_validate`: split cohesive validation passes into `codex_validate/*` (P3.6).
   7) `codex_report`: split report domains into `codex_report/*` (P3.7).
   8) `codex_snapshot`: split snapshot pipeline domains into `codex_snapshot/*` (P3.8).
+  9) `codex_validate`: follow-on split to bring `codex_validate.rs` below ceiling (P3.9).
 
 ---
 
@@ -1039,7 +1133,8 @@ Add entries as work lands. Format:
   - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-04/P1.4_cargo_deny_advisories.txt`)
   - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-04/P1.4_cargo_deny_licenses.txt`)
 - Diffs/PRs:
-  - None (no commit; code diff at `evidence_runs/2026-02-04/P1.4_code_diff_final.patch`; workplan diff at `evidence_runs/2026-02-04/P1.4_workplan_diff_final_v2.patch`)
+  - Commit: `2d17281b8d09c7797cd555d4b2fd5951af75b328` (legacy combined commit; includes P1.4/P2.5/P3.6)
+  - Evidence diffs: code diff at `evidence_runs/2026-02-04/P1.4_code_diff_final.patch`; workplan diff at `evidence_runs/2026-02-04/P1.4_workplan_diff_final_v2.patch`
 
 ### 2026-02-04 — P2.5 JSON-RPC transport extraction
 
@@ -1056,7 +1151,8 @@ Add entries as work lands. Format:
   - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-04/P2.5_cargo_deny_advisories.txt`)
   - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-04/P2.5_cargo_deny_licenses.txt`)
 - Diffs/PRs:
-  - None (no commit; code diff at `evidence_runs/2026-02-04/P2.5_code_diff_final.patch`; workplan diff at `evidence_runs/2026-02-04/P2.5_workplan_diff_final.patch`)
+  - Commit: `2d17281b8d09c7797cd555d4b2fd5951af75b328` (legacy combined commit; includes P1.4/P2.5/P3.6)
+  - Evidence diffs: code diff at `evidence_runs/2026-02-04/P2.5_code_diff_final.patch`; workplan diff at `evidence_runs/2026-02-04/P2.5_workplan_diff_final.patch`
 
 ### 2026-02-04 — P3.6 codex_validate pass extraction
 
@@ -1076,7 +1172,8 @@ Add entries as work lands. Format:
   - `cargo deny check advisories`: FAIL (`evidence_runs/2026-02-04/P3.6_cargo_deny_advisories_after.txt`)
   - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-04/P3.6_cargo_deny_licenses.txt`)
 - Diffs/PRs:
-  - None (no commit; code diff at `evidence_runs/2026-02-04/P3.6_code_diff_final.patch`; workplan diff at `evidence_runs/2026-02-04/P3.6_workplan_diff_final.patch`)
+  - Commit: `2d17281b8d09c7797cd555d4b2fd5951af75b328` (legacy combined commit; includes P1.4/P2.5/P3.6)
+  - Evidence diffs: code diff at `evidence_runs/2026-02-04/P3.6_code_diff_final.patch`; workplan diff at `evidence_runs/2026-02-04/P3.6_workplan_diff_final.patch`
 
 ### 2026-02-04 — P3.6 supply-chain gates rerun
 
@@ -1149,14 +1246,17 @@ Use this table for decisions that affect policy, public APIs, or exceptions to s
 | Allowlist license expressions in `deny.toml` | 2026-02-04 | Accepted | `cargo deny` defaults fail without config; policy must be explicit | `deny.toml` establishes allowlist + target scoping + confidence; `cargo deny check licenses` PASS (see §8 “Phase 0 preflight…” entry). |
 | Legacy execution evidence location (`audit_pack/execution/YYYY-MM-DD/...`) | 2026-02-04 | Accepted | Preserve provenance for already-generated evidence | Keep existing execution artifacts under `audit_pack/execution/...` as-is (do not move/delete). New execution evidence goes under `evidence_runs/...` (§8.1). |
 | Post-plan work request: “complete next 5 tasks” vs remaining checklist items | 2026-02-04 | Accepted | Workplan needed additional scope to reflect remaining seams beyond P3.5 | Added P1.4 (execpolicy seam), P2.5 (JSON-RPC transport), and P3.6–P3.8 (deeper xtask splits) as Not Started follow-ons. |
+| Legacy combined commit for multiple steps (P1.4/P2.5/P3.6) | 2026-02-05 | Accepted | These steps landed before the “one step = one commit” orchestrator rule was enforced | Commit `2d17281b8d09c7797cd555d4b2fd5951af75b328` contains P1.4 + P2.5 + P3.6 changes; journal entries cite it for provenance. Future steps must follow per-step commit policy. |
 | Execution evidence storage policy (`evidence_runs/YYYY-MM-DD/`); keep `audit_pack/execution/*` legacy | 2026-02-04 | Accepted | Provenance clarity: separate immutable audit snapshot (`audit_pack/`) from ongoing execution runs | Store new evidence under `evidence_runs/…` with stable filenames (§8.1). Do not move/delete existing `audit_pack/execution/…` evidence; continue citing it where already referenced. |
 
 ---
 
 ## 10) Next 5 Tasks (execution queue; do not start until this workplan is current)
 
-1) TBD — Refresh file-size metrics and update Phase 1/2/3 status reasons if thresholds have changed.
-2) TBD — Pick next Phase 1 `lib.rs` seam after reassessing remaining `lib.rs` responsibilities and size offenders.
-3) TBD — Reassess Phase 2 `mcp.rs` test fixtures and decide whether to move large inline scripts into external test assets (proposal only; do not start without explicit workplan step).
-4) TBD — Decide whether any additional `xtask` modules need a Phase 3 follow-on split (only if size offenders remain).
-5) TBD — Re-run supply-chain gates in a networked environment if CI differs from this sandbox (verification only; no code changes).
+Selection rule (orchestrator): Execute tasks in the order listed below (top-to-bottom). Reorder this list to change cross-phase priority; do not infer priority from Phase 1/2/3 sections.
+
+1) P1.5 — Seam extraction: Builder/config/flags surfaces (`builder.rs`) (API preserved)
+2) P1.6 — Seam extraction: JSONL streaming/framing (`jsonl.rs`) (API preserved)
+3) P2.6 — Move high-level MCP clients into `mcp/client.rs` (API preserved)
+4) P2.7 — Reduce `mcp.rs` below program ceiling (remaining coordinator split) (API preserved)
+5) P3.9 — Reduce `codex_validate.rs` below ceiling (follow-on split) with deterministic output preserved
