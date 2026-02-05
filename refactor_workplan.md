@@ -1626,7 +1626,7 @@ Add entries as work lands. Format:
   - Code diff: `evidence_runs/2026-02-05/P1.9_code_diff_final.patch` (post-commit)
   - Workplan diff: `evidence_runs/2026-02-05/P1.9_workplan_diff_final.patch` (post-commit)
 - Commit:
-  - TBD_POST_COMMIT
+  - ae99829d9ff91405163fbe797c21588fae186ddb
 
 ### 2026-02-05 — P1.10 Seam extraction: exec JSONL event models (`events.rs`) (API preserved)
 
@@ -1646,7 +1646,7 @@ Add entries as work lands. Format:
   - Code diff: `evidence_runs/2026-02-05/P1.10_code_diff_final.patch` (post-commit)
   - Workplan diff: `evidence_runs/2026-02-05/P1.10_workplan_diff_final.patch` (post-commit)
 - Commit:
-  - TBD_POST_COMMIT
+  - ae0ceacacfa1c127eb527a69642563ee7cdbc7d4
 
 ### 2026-02-05 — P1.11 Seam extraction: CLI subcommand request/response models (`cli/*`) (API preserved)
 
@@ -1666,7 +1666,7 @@ Add entries as work lands. Format:
   - Code diff: `evidence_runs/2026-02-05/P1.11_code_diff_final.patch` (post-commit)
   - Workplan diff: `evidence_runs/2026-02-05/P1.11_workplan_diff_final.patch` (post-commit)
 - Commit:
-  - TBD_POST_COMMIT
+  - 097ecd4060a00301da073a442ef62bb3de4730ac
 
 ### 2026-02-05 — P1.12 Seam extraction: feature/version parsing + update advisory helpers (`version.rs`) (API preserved)
 
@@ -1687,7 +1687,7 @@ Add entries as work lands. Format:
   - Code diff: `evidence_runs/2026-02-05/P1.12_code_diff_final.patch` (post-commit)
   - Workplan diff: `evidence_runs/2026-02-05/P1.12_workplan_diff_final.patch` (post-commit)
 - Commit:
-  - TBD_POST_COMMIT
+  - 47de4019ad7b57c9a3d14204f32a4528bd78f3c2
 
 ### 2026-02-05 — P1.12 (correction)
 
@@ -1706,7 +1706,7 @@ Add entries as work lands. Format:
   - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_deny_licenses_after_fix.txt`) (workaround: writable `CARGO_HOME` + `CARGO_NET_OFFLINE=true`)
   - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P1.12_cargo_fmt_check_final_after_fix.txt`)
 - Commit:
-  - TBD_POST_COMMIT
+  - 47de4019ad7b57c9a3d14204f32a4528bd78f3c2
 
 ### 2026-02-05 — P1.13 Plan remaining Phase 1 seams after P1.12 (no code moves)
 
@@ -1728,7 +1728,7 @@ Add entries as work lands. Format:
   - Code diff: `evidence_runs/2026-02-05/P1.13_code_diff_final.patch` (post-commit)
   - Workplan diff: `evidence_runs/2026-02-05/P1.13_workplan_diff_final.patch` (post-commit)
 - Commit:
-  - TBD_POST_COMMIT
+  - 6fce405c4adcf03ec211655033a1dd4fe2bb1dcd
 
 ## 9) Open Questions / Decisions (lightweight log)
 
