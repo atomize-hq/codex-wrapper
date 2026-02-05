@@ -7,7 +7,8 @@ use std::{
 use thiserror::Error;
 use tokio::process::Command;
 
-use super::{default_rust_log_value, CodexError, CODEX_BINARY_ENV, CODEX_HOME_ENV, RUST_LOG_ENV};
+use crate::defaults::{default_rust_log_value, CODEX_BINARY_ENV, CODEX_HOME_ENV, RUST_LOG_ENV};
+use crate::CodexError;
 
 #[derive(Clone, Debug)]
 pub(super) struct CommandEnvironment {

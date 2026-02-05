@@ -443,11 +443,11 @@ impl CodexClientBuilder {
 impl Default for CodexClientBuilder {
     fn default() -> Self {
         Self {
-            binary: super::default_binary_path(),
+            binary: crate::defaults::default_binary_path(),
             codex_home: None,
             create_home_dirs: true,
             model: None,
-            timeout: super::DEFAULT_TIMEOUT,
+            timeout: crate::defaults::DEFAULT_TIMEOUT,
             color_mode: ColorMode::Never,
             working_dir: None,
             add_dirs: Vec::new(),

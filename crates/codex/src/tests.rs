@@ -1,10 +1,15 @@
 use super::*;
 use crate::auth::parse_login_success;
 use crate::builder::ResolvedCliOverrides;
+use crate::defaults::{
+    default_binary_path, default_rust_log_value, CODEX_BINARY_ENV, CODEX_HOME_ENV,
+    DEFAULT_RUST_LOG, DEFAULT_TIMEOUT, RUST_LOG_ENV,
+};
 use futures_util::{pin_mut, StreamExt};
 use semver::Version;
 use serde_json::json;
 use std::collections::HashMap;
+use std::env;
 use std::fs as std_fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
