@@ -2355,7 +2355,7 @@ Add entries as work lands. Format:
   - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P4.5_cargo_deny_licenses.txt`)
   - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P4.5_cargo_fmt_check_final.txt`)
 - Commit:
-  - TBD_POST_COMMIT
+  - 2152b460c23094bcf847a4d444fb74134b75c749
 
 ### 2026-02-05 — P4.6 union modularization (`crates/xtask/src/codex_union.rs` below hard threshold)
 
@@ -2377,7 +2377,7 @@ Add entries as work lands. Format:
 - Evidence/patches:
   - Base commit: `evidence_runs/2026-02-05/P4.6_BASE_STEP.txt`
 - Commit:
-  - TBD_POST_COMMIT
+  - f3b8bcf074585e0f463f49bda210ca564d232ee7
 
 ### 2026-02-05 — P4.7 tests modularization (`crates/xtask/tests/c3_spec_reports_metadata_retain.rs` below hard threshold)
 
@@ -2403,7 +2403,7 @@ Add entries as work lands. Format:
 - Evidence/patches:
   - Base commit: `evidence_runs/2026-02-05/P4.7_BASE_STEP.txt`
 - Commit:
-  - TBD_POST_COMMIT
+  - 7e6caa66ae98d349922e765397c35619632cce15
 
 ### 2026-02-05 — P4.8 version metadata modularization (`crates/xtask/src/codex_version_metadata.rs` below hard threshold)
 
@@ -2425,7 +2425,7 @@ Add entries as work lands. Format:
 - Evidence/patches:
   - Base commit: `evidence_runs/2026-02-05/P4.8_BASE_STEP.txt`
 - Commit:
-  - TBD_POST_COMMIT
+  - f8a7c89cbe6fa92246215662ec36d3418e662a82
 
 ### 2026-02-05 — P4.9 exec streaming helper extraction (`crates/codex/src/exec.rs` below hard threshold)
 
@@ -2448,7 +2448,7 @@ Add entries as work lands. Format:
 - Evidence/patches:
   - Base commit: `evidence_runs/2026-02-05/P4.9_BASE_STEP.txt`
 - Commit:
-  - TBD_POST_COMMIT
+  - ad66f9830be0af5b9df912d225ce16b450ab0751
 
 ## 9) Open Questions / Decisions (lightweight log)
 
