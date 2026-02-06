@@ -27,7 +27,7 @@ mod auth_session;
 mod builder_env_home;
 mod bundled_binary;
 mod capabilities;
-mod cli_commands;
+mod cli;
 mod cli_overrides;
 mod cloud;
 mod jsonl;
