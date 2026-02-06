@@ -2472,8 +2472,8 @@ Use this table for decisions that affect policy, public APIs, or exceptions to s
 
 Selection rule (orchestrator): Execute tasks in the order listed below (top-to-bottom). Reorder this list to change cross-phase priority; do not infer priority from Phase 1/2/3 sections.
 
-1) `P4.5` — Reduce `crates/codex/src/tests/capabilities.rs` below hard threshold
-2) `P4.6` — Reduce `crates/xtask/src/codex_union.rs` below hard threshold
-3) `P4.7` — Reduce `crates/xtask/tests/c3_spec_reports_metadata_retain.rs` below hard threshold
-4) `P4.8` — Reduce `crates/xtask/src/codex_version_metadata.rs` below hard threshold
-5) `P4.9` — Reduce `crates/codex/src/exec.rs` below hard threshold
+1) `TBD` — queue refresh required (stale completed items removed)
+2) `TBD`
+3) `TBD`
+4) `TBD`
+5) `TBD`
