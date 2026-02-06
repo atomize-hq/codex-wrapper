@@ -1,30 +1,30 @@
 diff --git a/refactor_workplan.md b/refactor_workplan.md
-index 044dcee..87d21ee 100644
+index 87d21ee..6b717a7 100644
 --- a/refactor_workplan.md
 +++ b/refactor_workplan.md
-@@ -2493,6 +2493,28 @@ Add entries as work lands. Format:
+@@ -2515,6 +2515,28 @@ Add entries as work lands. Format:
  - Evidence/patches:
    - Code diff: `evidence_runs/2026-02-05/SESSION_code_diff_final.patch` (post-commit)
    - Workplan diff: `evidence_runs/2026-02-05/SESSION_workplan_diff_final.patch` (post-commit)
 +- Commit:
-+  - 0549f5a533fad243dd11c56a926fdb08c9a595e9
++  - f8b259e38853f874c2966650257fbc013dea06be
 +
-+### 2026-02-05 — P4.0.3 tests modularization follow-up (`mcp` domain split 3/5)
++### 2026-02-05 — P4.0.4 tests modularization follow-up (`app_server` domain split 4/5)
 +
-+- Scope/step: P4.0.3
-+- Why: Continue the P4.0 loop by moving one cohesive tests domain into its own module while keeping behavior unchanged.
++- Scope/step: P4.0.4
++- Why: Continue the P4.0 loop by finalizing the interrupted move-only test split and recording full gate evidence.
 +- What changed:
-+  - Moved MCP command tests from `crates/codex/src/tests/cli_commands.rs` into new `crates/codex/src/tests/mcp.rs` with test names/assertions preserved.
-+  - Updated `crates/codex/src/tests/mod.rs` wiring to include `mod mcp;`.
-+  - Kept shared helpers in `crates/codex/src/tests/support.rs`; no helper behavior changes were required.
++  - Moved app-server/response-proxy/stdio-to-uds tests from `crates/codex/src/tests/cli_commands.rs` into new `crates/codex/src/tests/app_server.rs` with test names/assertions preserved.
++  - Updated `crates/codex/src/tests/mod.rs` wiring to include `mod app_server;`.
++  - Kept shared helpers/import style unchanged via `use super::*;` to preserve behavior.
 +- Validation results (§4.1):
-+  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P4.0.3_cargo_fmt_check.txt`)
-+  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P4.0.3_cargo_clippy.txt`)
-+  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P4.0.3_cargo_test.txt`)
-+  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P4.0.3_cargo_audit_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P4.0.3_cargo_audit.txt`; reran with writable temp `CARGO_HOME` + copied advisory DB and `--no-fetch --stale` due read-only advisory DB lock in this sandbox)
-+  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P4.0.3_cargo_deny_advisories_after.txt`) (initial FAIL: `evidence_runs/2026-02-05/P4.0.3_cargo_deny_advisories.txt`; reran with writable temp `CARGO_HOME`, copied registry/advisory DB state, offline mode, and `--disable-fetch` due advisory DB lock/network constraints in this sandbox)
-+  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P4.0.3_cargo_deny_licenses.txt`)
-+  - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P4.0.3_cargo_fmt_check_final.txt`)
++  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_fmt_check.txt`)
++  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_clippy.txt`)
++  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_test.txt`)
++  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_audit.txt`) (initial FAIL: `evidence_runs/2026-02-05/P4.0.4_cargo_audit_initial_fail.txt`; intermediate offline index miss: `evidence_runs/2026-02-05/P4.0.4_cargo_audit_index_miss.txt`; reran with writable temp `CARGO_HOME`, copied advisory DB/registry cache, and `--no-fetch --stale` due advisory DB lock/network constraints in this sandbox)
++  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_deny_advisories.txt`) (initial FAIL: `evidence_runs/2026-02-05/P4.0.4_cargo_deny_advisories_initial_fail.txt`; reran with writable temp `CARGO_HOME`, copied advisory DB/registry cache, offline mode, and `--disable-fetch` due advisory DB lock/network constraints in this sandbox)
++  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_deny_licenses.txt`)
++  - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_fmt_check_final.txt`)
 +- Evidence/patches:
 +  - Code diff: `evidence_runs/2026-02-05/SESSION_code_diff_final.patch` (post-commit)
 +  - Workplan diff: `evidence_runs/2026-02-05/SESSION_workplan_diff_final.patch` (post-commit)

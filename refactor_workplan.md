@@ -2516,6 +2516,28 @@ Add entries as work lands. Format:
   - Code diff: `evidence_runs/2026-02-05/SESSION_code_diff_final.patch` (post-commit)
   - Workplan diff: `evidence_runs/2026-02-05/SESSION_workplan_diff_final.patch` (post-commit)
 - Commit:
+  - f8b259e38853f874c2966650257fbc013dea06be
+
+### 2026-02-05 — P4.0.4 tests modularization follow-up (`app_server` domain split 4/5)
+
+- Scope/step: P4.0.4
+- Why: Continue the P4.0 loop by finalizing the interrupted move-only test split and recording full gate evidence.
+- What changed:
+  - Moved app-server/response-proxy/stdio-to-uds tests from `crates/codex/src/tests/cli_commands.rs` into new `crates/codex/src/tests/app_server.rs` with test names/assertions preserved.
+  - Updated `crates/codex/src/tests/mod.rs` wiring to include `mod app_server;`.
+  - Kept shared helpers/import style unchanged via `use super::*;` to preserve behavior.
+- Validation results (§4.1):
+  - `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_fmt_check.txt`)
+  - `cargo clippy --all-targets --all-features -- -D warnings`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_clippy.txt`)
+  - `cargo test --all-targets --all-features`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_test.txt`)
+  - `cargo audit`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_audit.txt`) (initial FAIL: `evidence_runs/2026-02-05/P4.0.4_cargo_audit_initial_fail.txt`; intermediate offline index miss: `evidence_runs/2026-02-05/P4.0.4_cargo_audit_index_miss.txt`; reran with writable temp `CARGO_HOME`, copied advisory DB/registry cache, and `--no-fetch --stale` due advisory DB lock/network constraints in this sandbox)
+  - `cargo deny check advisories`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_deny_advisories.txt`) (initial FAIL: `evidence_runs/2026-02-05/P4.0.4_cargo_deny_advisories_initial_fail.txt`; reran with writable temp `CARGO_HOME`, copied advisory DB/registry cache, offline mode, and `--disable-fetch` due advisory DB lock/network constraints in this sandbox)
+  - `cargo deny check licenses`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_deny_licenses.txt`)
+  - Final `cargo fmt --all -- --check`: PASS (`evidence_runs/2026-02-05/P4.0.4_cargo_fmt_check_final.txt`)
+- Evidence/patches:
+  - Code diff: `evidence_runs/2026-02-05/SESSION_code_diff_final.patch` (post-commit)
+  - Workplan diff: `evidence_runs/2026-02-05/SESSION_workplan_diff_final.patch` (post-commit)
+- Commit:
   - TBD
 
 ## 9) Open Questions / Decisions (lightweight log)

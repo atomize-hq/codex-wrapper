@@ -22,6 +22,7 @@ use tokio::{
 mod support;
 use support::*;
 
+mod app_server;
 mod auth_session;
 mod builder_env_home;
 mod bundled_binary;
