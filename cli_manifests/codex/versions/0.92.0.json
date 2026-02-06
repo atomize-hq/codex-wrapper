@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "semantic_version": "0.92.0",
-  "status": "reported",
-  "updated_at": "2026-02-02T03:24:47Z",
+  "status": "validated",
+  "updated_at": "2026-02-06T21:09:45.897301432Z",
   "artifacts": {
     "snapshots_dir": "snapshots/0.92.0",
     "reports_dir": "reports/0.92.0",
@@ -14,7 +14,14 @@
     ],
     "supported_required_target": true
   },
+  "validation": {
+    "passed_targets": [
+      "x86_64-unknown-linux-musl"
+    ],
+    "failed_targets": [],
+    "skipped_targets": []
+  },
   "promotion": {
-    "eligible_for_latest_validated": false
+    "eligible_for_latest_validated": true
   }
 }

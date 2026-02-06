@@ -1,0 +1,23 @@
+name: Only allow staging -> main
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate source branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Base: $GITHUB_BASE_REF"
+          echo "Head: $GITHUB_HEAD_REF"
+          if [ "$GITHUB_BASE_REF" = "main" ] && [ "$GITHUB_HEAD_REF" != "staging" ]; then
+            echo "Only PRs from 'staging' may target 'main'."
+            exit 1
+          fi
+          echo "OK: staging -> main"
+
