@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-02-05T05:11:10Z",
+  "generated_at": "2026-02-09T05:15:15Z",
   "inputs": {
     "upstream": {
       "semantic_version": "0.97.0",
@@ -22,148 +22,9 @@
     "target_triple": "x86_64-unknown-linux-musl"
   },
   "deltas": {
-    "missing_commands": [
-      {
-        "path": [
-          "debug"
-        ],
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "debug",
-          "app-server"
-        ],
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "debug",
-          "app-server",
-          "help"
-        ],
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "debug",
-          "app-server",
-          "send-message-v2"
-        ],
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "debug",
-          "help"
-        ],
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "features",
-          "disable"
-        ],
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "features",
-          "enable"
-        ],
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      }
-    ],
-    "missing_flags": [
-      {
-        "path": [
-          "app-server",
-          "generate-json-schema"
-        ],
-        "key": "--experimental",
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "app-server",
-          "generate-ts"
-        ],
-        "key": "--experimental",
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      }
-    ],
-    "missing_args": [
-      {
-        "path": [
-          "debug",
-          "app-server",
-          "help"
-        ],
-        "name": "COMMAND",
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "debug",
-          "app-server",
-          "send-message-v2"
-        ],
-        "name": "USER_MESSAGE",
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "debug",
-          "help"
-        ],
-        "name": "COMMAND",
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "features",
-          "disable"
-        ],
-        "name": "FEATURE",
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      },
-      {
-        "path": [
-          "features",
-          "enable"
-        ],
-        "name": "FEATURE",
-        "upstream_available_on": [
-          "x86_64-unknown-linux-musl"
-        ]
-      }
-    ],
+    "missing_commands": [],
+    "missing_flags": [],
+    "missing_args": [],
     "excluded_flags": [
       {
         "path": [],
