@@ -20,6 +20,8 @@ pub(super) fn discover_commands(
     capture_raw_help: bool,
     help_timeout_ms: u64,
 ) -> Result<DiscoveryOutput, Error> {
+    const MAX_PATH_DEPTH: usize = 12;
+
     let mut out = BTreeMap::<Vec<String>, CommandSnapshot>::new();
     let mut visited = BTreeSet::<Vec<String>>::new();
     let mut known_omissions: Vec<String> = Vec::new();
@@ -154,6 +156,36 @@ pub(super) fn discover_commands(
                 );
 
                 for sub in parsed.subcommands {
+                    if path.len() + 1 > MAX_PATH_DEPTH {
+                        known_omissions.push(format!(
+                            "max command depth exceeded (>{MAX_PATH_DEPTH}): {} {}",
+                            if path.is_empty() {
+                                "<root>".to_string()
+                            } else {
+                                path.join(" ")
+                            },
+                            sub
+                        ));
+                        continue;
+                    }
+
+                    // Guard against accidental self-recursive help trees. We’ve observed cases where
+                    // a command’s help lists itself as a subcommand (e.g. `plugin manifest` listing
+                    // `manifest` again), which would otherwise explode into an infinite unique-path
+                    // traversal (`... manifest manifest manifest ...`).
+                    if path.last().is_some_and(|last| last == &sub) {
+                        known_omissions.push(format!(
+                            "skipped recursive subcommand token: {} {}",
+                            if path.is_empty() {
+                                "<root>".to_string()
+                            } else {
+                                path.join(" ")
+                            },
+                            sub
+                        ));
+                        continue;
+                    }
+
                     let mut next = path.clone();
                     next.push(sub);
                     stack.push(next);
