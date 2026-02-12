@@ -45,7 +45,9 @@ JSON
 
     let mut lines = output.stderr.lines();
     let pwd = lines.next().unwrap();
-    assert_eq!(Path::new(pwd), workdir.as_path());
+    let pwd = std_fs::canonicalize(Path::new(pwd)).unwrap();
+    let workdir = std_fs::canonicalize(&workdir).unwrap();
+    assert_eq!(pwd, workdir);
 
     let args: Vec<_> = lines.map(str::to_string).collect();
     assert_eq!(

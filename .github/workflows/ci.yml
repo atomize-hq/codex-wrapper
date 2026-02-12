@@ -45,6 +45,19 @@ jobs:
           set -euo pipefail
           cargo run -p xtask -- codex-validate --root cli_manifests/codex
 
+  claude-validate-artifacts:
+    name: Validate Claude Code committed artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: xtask codex-validate (claude_code root)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run -p xtask -- codex-validate --root cli_manifests/claude_code
+
   versions:
     name: Read Codex version pointers
     runs-on: ubuntu-latest
@@ -59,6 +72,19 @@ jobs:
           set -euo pipefail
           echo "latest_validated=$(tr -d '\n' < cli_manifests/codex/latest_validated.txt)" >> "$GITHUB_OUTPUT"
           echo "min_supported=$(tr -d '\n' < cli_manifests/codex/min_supported.txt)" >> "$GITHUB_OUTPUT"
+
+  claude-versions:
+    name: Read Claude Code version pointers
+    runs-on: ubuntu-latest
+    outputs:
+      latest_validated: ${{ steps.versions.outputs.latest_validated }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "latest_validated=$(tr -d '\n' < cli_manifests/claude_code/latest_validated.txt)" >> "$GITHUB_OUTPUT"
 
   linux-latest-validated:
     name: Linux (latest validated)
@@ -156,3 +182,40 @@ jobs:
           cargo run -p codex --example feature_detection
           cargo run -p codex --example capability_snapshot -- "$CODEX_BINARY" "$CODEX_E2E_HOME/capabilities.json" auto
           CODEX_E2E_BINARY=./codex-x86_64-unknown-linux-musl cargo test -p codex --test cli_e2e -- --nocapture
+
+  linux-claude-latest-validated:
+    name: Claude Code Linux (latest validated)
+    runs-on: ubuntu-latest
+    needs: claude-versions
+    if: ${{ needs.claude-versions.outputs.latest_validated != 'none' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Acquire Claude Code CLI (required target)
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.claude-versions.outputs.latest_validated }}"
+          TARGET="linux-x64-musl"
+          ASSET="claude"
+
+          URL="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.claude_code_version==$v and .target_triple==$t and .asset_name==$a) | .download_url' cli_manifests/claude_code/artifacts.lock.json)"
+          SHA="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.claude_code_version==$v and .target_triple==$t and .asset_name==$a) | .sha256' cli_manifests/claude_code/artifacts.lock.json)"
+          SIZE="$(jq -r --arg v "$VERSION" --arg t "$TARGET" --arg a "$ASSET" '.artifacts[] | select(.claude_code_version==$v and .target_triple==$t and .asset_name==$a) | .size_bytes' cli_manifests/claude_code/artifacts.lock.json)"
+
+          test -n "$URL" && test "$URL" != "null"
+          test -n "$SHA" && test "$SHA" != "null"
+          test -n "$SIZE" && test "$SIZE" != "null"
+
+          curl -fsSL -o claude.bin "$URL"
+          test "$(wc -c < claude.bin)" = "$SIZE"
+          echo "$SHA  claude.bin" | sha256sum -c -
+          install -m 0755 claude.bin ./claude-linux-x64-musl
+          DISABLE_AUTOUPDATER=1 ./claude-linux-x64-musl --version
+
+      - name: Wrapper unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p claude_code

@@ -38,7 +38,9 @@ printf "%s\n" "$@"
 
     let mut lines = result.stdout.lines();
     let pwd = lines.next().unwrap();
-    assert_eq!(Path::new(pwd), workdir.as_path());
+    let pwd = std_fs::canonicalize(Path::new(pwd)).unwrap();
+    let workdir = std_fs::canonicalize(&workdir).unwrap();
+    assert_eq!(pwd, workdir);
 
     let args: Vec<_> = lines.map(str::to_string).collect();
     assert_eq!(
@@ -154,7 +156,9 @@ fi
     let mut lines = BufReader::new(stdout).lines();
 
     let pwd = lines.next_line().await.unwrap().unwrap();
-    assert_eq!(Path::new(&pwd), workdir.as_path());
+    let pwd = std_fs::canonicalize(Path::new(&pwd)).unwrap();
+    let workdir = std_fs::canonicalize(&workdir).unwrap();
+    assert_eq!(pwd, workdir);
 
     let mut args = Vec::new();
     for _ in 0..8 {
@@ -235,7 +239,9 @@ done
     let mut lines = BufReader::new(stdout).lines();
 
     let pwd = lines.next_line().await.unwrap().unwrap();
-    assert_eq!(Path::new(&pwd), workdir.as_path());
+    let pwd = std_fs::canonicalize(Path::new(&pwd)).unwrap();
+    let workdir = std_fs::canonicalize(&workdir).unwrap();
+    assert_eq!(pwd, workdir);
 
     let arg_one = lines.next_line().await.unwrap().unwrap();
     let arg_two = lines.next_line().await.unwrap().unwrap();

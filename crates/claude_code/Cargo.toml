@@ -1,0 +1,20 @@
+[package]
+name = "claude_code"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.78"
+description = "Async wrapper around the Claude Code CLI for non-interactive prompting"
+license = "MIT OR Apache-2.0"
+keywords = ["claude", "cli", "wrapper", "agent"]
+categories = ["api-bindings", "command-line-interface"]
+readme = "README.md"
+
+[dependencies]
+tokio = { workspace = true, features = ["process", "io-util", "io-std", "macros", "rt", "rt-multi-thread", "time", "sync", "fs"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
