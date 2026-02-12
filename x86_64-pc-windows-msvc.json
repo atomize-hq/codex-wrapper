@@ -1,17 +1,17 @@
 {
   "snapshot_schema_version": 1,
   "tool": "codex-cli",
-  "collected_at": "2026-02-05T05:11:10Z",
+  "collected_at": "2026-02-05T17:00:36Z",
   "binary": {
-    "sha256": "d17252ce4ce0e8b34ba0eb62e88d7f7a9c66608e2c0bc864aa289bdaf29ab1da",
-    "size_bytes": 81063912,
+    "sha256": "6ab270b37c2c5d0d3567f0f3f420286f6efb3fc9d4e3bb749df5bf4452c16502",
+    "size_bytes": 81097192,
     "platform": {
       "os": "windows",
       "arch": "x86_64"
     },
     "target_triple": "x86_64-pc-windows-msvc",
-    "version_output": "codex-cli 0.97.0",
-    "semantic_version": "0.97.0",
+    "version_output": "codex-cli 0.98.0",
+    "semantic_version": "0.98.0",
     "channel": "stable"
   },
   "commands": [
@@ -2178,9 +2178,9 @@
         "stage": "stable"
       },
       {
-        "effective": false,
+        "effective": true,
         "name": "steer",
-        "stage": "experimental"
+        "stage": "stable"
       },
       {
         "effective": false,

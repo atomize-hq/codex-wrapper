@@ -1,17 +1,17 @@
 {
   "snapshot_schema_version": 1,
   "tool": "codex-cli",
-  "collected_at": "2026-02-05T05:11:10Z",
+  "collected_at": "2026-02-05T17:00:36Z",
   "binary": {
-    "sha256": "37abd73bf0fb3603efa392858f9cc5bfe5d47c9bc24bcb465b20b720381ef0a4",
-    "size_bytes": 54329392,
+    "sha256": "4fcf38aff2812f2eb593051b1881ceed2cfd2fac58ea98991549763463d63679",
+    "size_bytes": 54329360,
     "platform": {
       "os": "macos",
       "arch": "aarch64"
     },
     "target_triple": "aarch64-apple-darwin",
-    "version_output": "codex-cli 0.97.0",
-    "semantic_version": "0.97.0",
+    "version_output": "codex-cli 0.98.0",
+    "semantic_version": "0.98.0",
     "channel": "stable"
   },
   "commands": [
@@ -2214,9 +2214,9 @@
         "stage": "stable"
       },
       {
-        "effective": false,
+        "effective": true,
         "name": "steer",
-        "stage": "experimental"
+        "stage": "stable"
       },
       {
         "effective": false,
