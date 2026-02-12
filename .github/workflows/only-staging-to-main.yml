@@ -7,6 +7,7 @@ on:
 
 jobs:
   guard:
+    name: only-staging-to-main
     runs-on: ubuntu-latest
     steps:
       - name: Validate source branch
@@ -20,4 +21,3 @@ jobs:
             exit 1
           fi
           echo "OK: staging -> main"
-
