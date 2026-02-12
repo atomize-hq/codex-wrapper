@@ -1,0 +1,587 @@
+{
+  "rules_schema_version": 1,
+  "scope": "claude-code-cli-parity",
+  "identity": {
+    "command": "path",
+    "flag": "prefer_long_else_short",
+    "arg": "name"
+  },
+  "versioning": {
+    "upstream": {
+      "semantic_version_field": "binary.semantic_version",
+      "semantic_version_pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$",
+        "notes": [
+          "Upstream version comes from the claude binary; we also record binary.version_output for full fidelity.",
+          "Promotion/pointer updates are restricted to stable releases per policy (no prerelease/build)."
+        ]
+    },
+    "wrapper": {
+      "wrapper_version_source": "crate_version",
+      "notes": [
+        "wrapper_version in wrapper_coverage.json refers to this repo's wrapper crate version and is distinct from upstream Claude Code semantic_version."
+      ]
+    },
+    "pointers": {
+      "stable_semver_pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "disallow_prefix_v": true,
+      "disallow_prerelease_or_build": true,
+      "root_pointers_allow_none": true
+    }
+  },
+  "globals": {
+    "root_path": [],
+    "meaning": "The root command entry (path=[]) is the canonical location for global flags/options and any top-level positional args. Global flags must be compared/reported at the root scope and must not be duplicated as per-command missing items.",
+    "effective_flags_model": {
+      "enabled": true,
+      "definition": "A command's effective flag set is the union of root flags and that command's own flags.",
+      "reporting": "Coverage deltas for global flags are reported only under the root path ([]) to avoid repeated noise across commands.",
+      "union_normalization": {
+        "dedupe_per_command_flags_against_root": true,
+        "dedupe_key": "flag_key",
+        "meaning": "If a command help listing repeats a global flag already present in root flags (same canonical key), omit it from that command's flags in the union snapshot. The flag remains globally available via the effective_flags_model."
+      }
+    },
+    "positional_args_model": {
+      "enabled": true,
+      "mode": "root_only",
+      "definition": "Global/top-level positional args are represented only on the root entry (path=[]). No automatic inheritance/\"effective args\" union is performed for subcommands.",
+      "reporting": "Coverage deltas for global positional args are reported only under the root path ([])."
+    }
+  },
+  "scope": {
+    "parity_model": "help_surface_only",
+    "meaning": "This ruleset governs help-surface parity only (commands/flags/positional args from help and usage inference). Deeper runtime parsing semantics (operand forwarding, -- handling, prompt placeholder expansion) are out of scope unless a separate behavioral/probe layer is introduced."
+  },
+  "parity_exclusions": {
+    "schema_version": 1,
+    "meaning": "Explicit, deterministic exclusions from parity work-queue deltas. Excluded units remain visible in reports under excluded_* deltas and never appear under missing_* deltas.",
+    "units": [
+      {
+        "unit": "arg",
+        "path": [],
+        "name": "command",
+        "category": "dispatch",
+        "note": "Root command dispatch pseudo-arg inferred from usage is excluded from wrapper parity."
+      },
+      {
+        "unit": "arg",
+        "path": [],
+        "name": "prompt",
+        "category": "interactive",
+        "note": "Interactive default-mode prompt surface is excluded from wrapper parity (wrapper targets --print)."
+      }
+    ]
+  },
+  "features": {
+    "stage_strings": [
+      "stable",
+      "beta",
+      "experimental",
+      "deprecated",
+      "removed"
+    ],
+    "enable_policy": {
+      "mode": "best_effort_enable_all_except_excluded_stages",
+      "excluded_stages": [
+        "removed"
+      ],
+      "on_enable_failure": "record_and_continue",
+      "snapshot_metadata_fields": [
+        "requested_enable",
+        "enabled_for_snapshot",
+        "enable_failures"
+      ]
+    }
+  },
+  "supplements": {
+    "commands": {
+      "path": "cli_manifests/claude_code/supplement/commands.json",
+      "apply_stage": "per_target_before_union",
+      "platform_filter_field": "platforms",
+      "platform_filter_semantics": {
+        "when_missing": "apply_to_all_targets",
+        "when_present": "apply_to_targets_whose_os_matches"
+      },
+      "platform_mapping_source": "union.platform_mapping",
+      "union_effect": "Supplemented commands appear in the union only on the targets where the supplement applied; availability is expressed via available_on.",
+      "known_omissions_tracking": {
+        "per_target_field": "known_omissions",
+        "union_propagation": "preserve_per_target_in_inputs"
+      }
+    }
+  },
+  "union": {
+    "mode": "union",
+    "platform_granularity": "target_triple",
+    "require_same_tool": true,
+    "require_same_semantic_version": true,
+    "require_semantic_version": true,
+    "required_target": "linux-x64-musl",
+    "expected_targets": [
+      "linux-x64-musl",
+      "darwin-arm64",
+      "win32-x64"
+    ],
+    "platform_mapping": {
+      "linux-x64-musl": "linux",
+      "darwin-arm64": "macos",
+      "win32-x64": "windows"
+    },
+    "partial_union_policy": {
+      "when_required_target_missing": "fail",
+      "when_non_required_targets_missing": "emit_union_complete_false",
+      "union_fields": [
+        "expected_targets",
+        "complete",
+        "missing_targets"
+      ]
+    },
+    "promotion_policy": {
+      "mode": "linux_first_v1",
+      "allow_promote_when_incomplete": true,
+      "requirements_for_latest_validated_and_current": [
+        "required_target_present_in_inputs",
+        "validation_passed_on_required_target",
+        "supported_on_required_target"
+      ],
+      "notes": [
+        "In v1, promotion is allowed even when union complete=false, as long as Linux (required target) passed validation and is supported by coverage.",
+        "macOS/Windows pointers advance independently when their signals are available."
+      ]
+    },
+    "conflict_handling": {
+      "strategy": "record_conflicts_and_preserve_availability",
+      "on_conflict": "never_fail",
+      "conflict_payload_location": "commands[].conflicts",
+      "conflict_entry_shape": {
+        "unit": "command|flag|arg",
+        "path": "command path tokens",
+        "field": "field name that differs",
+        "values_by_target": "map target_triple -> scalar JSON value",
+        "help_context": "Usage|Options|Arguments|etc (optional)",
+        "evidence": {
+          "help_ref_by_target": "map target_triple -> relative raw help path (optional)",
+          "help_sha256_by_target": "map target_triple -> sha256 of raw help text (optional)"
+        },
+        "key": "required when unit=flag",
+        "name": "required when unit=arg"
+      },
+      "fields_tracked": {
+        "command": [
+          "about",
+          "usage"
+        ],
+        "flag": [
+          "takes_value",
+          "value_name",
+          "repeatable"
+        ],
+        "arg": [
+          "required",
+          "variadic"
+        ]
+      }
+    },
+    "canonical_keys": {
+      "flag_key": "long_or_short",
+      "flag_key_examples": [
+        "--config",
+        "-c"
+      ]
+    },
+    "availability": {
+      "field": "available_on",
+      "meaning": "Set of target triples where this unit appears in help discovery."
+    },
+    "determinism": {
+      "target_order": "as_listed_in_expected_targets",
+      "canonical_target_for_scalar_fields": "required_target_else_first_available",
+      "text_normalization": {
+        "strip_ansi": true,
+        "normalize_newlines": "lf",
+        "trim_trailing_whitespace_per_line": true
+      }
+    }
+  },
+  "comparison": {
+    "unit_types": [
+      "command",
+      "flag",
+      "arg"
+    ],
+    "platform_filter_modes": [
+      "any",
+      "all",
+      "exact_target"
+    ],
+    "surface_deltas": {
+      "commands": "presence_by_path",
+      "flags": "presence_by_flag_key",
+      "args": "presence_by_arg_name"
+    },
+    "semantic_fields": {
+      "flag": [
+        "takes_value",
+        "value_name",
+        "repeatable"
+      ],
+      "arg": [
+        "required",
+        "variadic"
+      ]
+    },
+    "non_semantic_metadata_fields": {
+      "command": [
+        "about",
+        "usage"
+      ]
+    }
+  },
+  "wrapper_coverage": {
+    "scope_semantics": {
+      "defaults": {
+        "no_scope_means": "all_expected_targets"
+      },
+      "platforms_expand_to_expected_targets": true,
+      "platforms_expand_using": "union.platform_mapping",
+      "scope_set_resolution": {
+        "mode": "union",
+        "fields": [
+          "platforms",
+          "target_triples"
+        ]
+      }
+    },
+    "resolution": {
+      "mode": "single_best_match_required",
+      "best_match_order": [
+        "target_triples",
+        "platforms",
+        "no_scope"
+      ],
+      "on_multiple_matches": "error_manifest_invalid",
+      "on_no_match": "treat_as_unknown"
+    },
+    "validation": {
+      "disallow_overlapping_scopes": true,
+      "overlap_units": [
+        "command_path",
+        "command_flag_key",
+        "command_arg_name"
+      ],
+      "error_message_requirements": [
+        "include_path",
+        "include_unit_key",
+        "include_target_triple",
+        "include_matching_entry_indexes"
+      ]
+    }
+  },
+  "report": {
+    "schema_version": 1,
+    "file_naming": {
+      "dir": "cli_manifests/claude_code/reports/<version>/",
+      "any": "coverage.any.json",
+      "all": "coverage.all.json",
+      "per_target": "coverage.<target_triple>.json",
+      "markdown_optional_suffix": ".md"
+    },
+    "required_deltas": [
+      "missing_commands",
+      "missing_flags",
+      "missing_args"
+    ],
+    "optional_deltas": [
+      "excluded_commands",
+      "excluded_flags",
+      "excluded_args",
+      "passthrough_candidates",
+      "unsupported",
+      "intentionally_unsupported",
+      "wrapper_only_commands",
+      "wrapper_only_flags",
+      "wrapper_only_args"
+    ],
+    "platform_filter": {
+      "modes": [
+        "any",
+        "all",
+        "exact_target"
+      ]
+    },
+    "filter_semantics": {
+      "any": "Surface is considered present if it appears on at least one available input target.",
+      "all": "Surface is considered present only if it appears on all expected_targets.",
+      "exact_target": "Surface is considered present only if it appears on the specified target_triple.",
+      "when_union_incomplete": {
+        "all": "error",
+        "any": "allowed",
+        "exact_target": "allowed"
+      }
+    },
+    "wrapper_only_policy": {
+      "mode": "report",
+      "meaning": "Wrapper coverage entries with no corresponding upstream surface (after platform filtering). Treat as stale or wrapper-only and surface for cleanup/review."
+    }
+  },
+  "storage": {
+    "committed": {
+      "snapshots": {
+        "union": "cli_manifests/claude_code/snapshots/<version>/union.json",
+        "per_target": "cli_manifests/claude_code/snapshots/<version>/<target_triple>.json",
+        "current_union_pointer": "cli_manifests/claude_code/current.json"
+      },
+      "reports": {
+        "json": "cli_manifests/claude_code/reports/<version>/coverage.<filter>.json",
+        "markdown_optional": "cli_manifests/claude_code/reports/<version>/coverage.<filter>.md"
+      }
+    },
+    "pointers": {
+      "dir": "cli_manifests/claude_code/pointers/",
+      "latest_validated_by_target": "cli_manifests/claude_code/pointers/latest_validated/<target_triple>.txt",
+      "latest_supported_by_target": "cli_manifests/claude_code/pointers/latest_supported/<target_triple>.txt",
+      "compat": {
+        "latest_validated": "cli_manifests/claude_code/latest_validated.txt",
+        "meaning": "Canonical pointer for the required target (Linux). Must match pointers/latest_validated/x86_64-unknown-linux-musl.txt."
+      },
+      "materialization": {
+        "policy": "always_present",
+        "default_value": "none",
+        "meaning": "Pointer files should always exist for every expected target; use 'none' (single line) until a value is known. Missing pointer files are treated as invalid configuration."
+      },
+      "file_format": {
+        "encoding": "utf-8",
+        "lines": "single_line_plus_trailing_newline",
+        "value_grammar": "semver_or_none",
+        "allowed_values": [
+          "none",
+          "<semver>"
+        ],
+        "notes": [
+          "Pointer files contain exactly one line and must end with a newline.",
+          "When present, <semver> must be a strict semver string (no leading 'v', no whitespace).",
+          "Use 'none' when no version is yet known for that pointer on that target."
+        ]
+      },
+      "invariants": [
+        "latest_validated.txt must equal pointers/latest_validated/x86_64-unknown-linux-musl.txt and must not be 'none'.",
+        "current.json.binary.semantic_version must equal latest_validated.txt (Linux-first v1).",
+        "current.json must be byte-for-byte identical to snapshots/<latest_validated>/union.json."
+      ],
+      "consistency_checks": {
+        "when_pointer_is_semver": [
+          "versions/<version>.json must exist",
+          "snapshots/<version>/union.json must exist",
+          "snapshots/<version>/<target_triple>.json must exist for the referenced target"
+        ],
+        "latest_supported_requires": [
+          "versions/<version>.json.coverage.supported_targets includes target_triple"
+        ],
+        "latest_validated_requires": [
+          "versions/<version>.json.coverage.supported_targets includes target_triple",
+          "versions/<version>.json.validation.passed_targets includes target_triple"
+        ]
+      }
+    },
+    "ci_artifacts": {
+      "provider": "github_actions",
+      "raw_help": "cli_manifests/claude_code/raw_help/<version>/<target_triple>/**",
+      "notes": [
+        "Raw help is uploaded via CI artifact storage (not committed).",
+        "conflicts[].evidence.help_ref_by_target paths are relative to this raw_help bundle."
+      ]
+    },
+    "retention": {
+      "mode": "sliding_window",
+      "keep_last_validated": 3,
+      "always_keep": [
+        "min_supported",
+        "latest_validated"
+      ],
+      "applies_to": [
+        "snapshots",
+        "reports"
+      ],
+      "notes": [
+        "Keep union + per-target snapshots and reports for the last 3 promoted 'validated' versions (passed validation matrix), plus min_supported and latest_validated pointers.",
+        "Raw help retention is governed by CI artifact retention settings."
+      ],
+      "enforcement": {
+        "mode": "mechanical",
+        "actor": "ci",
+        "meaning": "Retention pruning must be performed deterministically by tooling (no LLM decisions). CI computes the keep-set from pointers/versions metadata and deletes everything outside the window.",
+        "recommended_implementation": "A small deterministic script/xtask that computes the keep-set and removes out-of-window snapshots/reports."
+      }
+    }
+  },
+  "version_metadata": {
+    "path": "cli_manifests/claude_code/versions/<version>.json",
+    "schema": "cli_manifests/claude_code/VERSION_METADATA_SCHEMA.json",
+    "statuses": {
+      "snapshotted": "Snapshots generated and schema-valid; no wrapper claims.",
+      "reported": "Coverage report generated; work queue available; no wrapper validation claim.",
+      "validated": "Passed validation matrix (promotion-grade for latest_validated/current.json).",
+      "supported": "Wrapper coverage meets policy requirements for this version (stronger than validated)."
+    },
+    "supported_policy": {
+      "requires_union_complete": true,
+      "requires_semantic_version": true,
+      "coverage_requirement": {
+        "applies_to": "all_upstream_surfaces_on_all_targets_where_available",
+        "allowed_levels": [
+          "explicit",
+          "passthrough",
+          "intentionally_unsupported"
+        ],
+        "disallowed_levels": [
+          "unsupported",
+          "unknown"
+        ],
+        "treat_missing_as": "unknown"
+      },
+      "intentionally_unsupported_requires_note": true,
+      "notes": [
+        "supported means there are no uncovered (missing/unknown/unsupported) upstream surfaces on any expected target; every surfaced command/flag/arg is either supported (explicit/passthrough) or explicitly waived (intentionally_unsupported with rationale).",
+        "supported is a documentation/policy guarantee derived from coverage mapping; it does not replace real-binary validation (validated) for promotion."
+      ]
+    },
+    "validation_contract": {
+      "required_target": "union.required_target",
+      "targets_source": "union.expected_targets",
+      "disjoint_sets_required": true,
+      "require_explicit_outcome_for_required_target": true,
+      "meaning": "versions/<v>.json.validation.{passed_targets,failed_targets,skipped_targets} must be disjoint subsets of expected_targets, and the required target must appear in exactly one of the sets (never implicit)."
+    },
+    "promotion_gate": {
+      "latest_validated_requires": "validated"
+    },
+    "status_gates": {
+      "validated_requires": [
+        "validation_passed_on_required_target",
+        "supported_on_required_target"
+      ],
+      "supported_requires": [
+        "supported_on_all_expected_targets"
+      ]
+    },
+    "pointer_update_policy": {
+      "latest_supported_by_target": {
+        "requires": [
+          "supported_on_target"
+        ]
+      },
+      "latest_validated_by_target": {
+        "requires": [
+          "validation_passed_on_target",
+          "supported_on_target"
+        ]
+      }
+    }
+  },
+  "automation": {
+    "pr_loop": {
+      "enabled": true,
+      "allowed_actions": [
+        "open_pr_with_snapshots_and_reports",
+        "push_commits_back_to_pr_branch",
+        "re_run_ci_until_supported_and_validated"
+      ],
+      "coverage_gap_resolution": [
+        "implement_wrapper_support",
+        "mark_intentionally_unsupported_with_rationale"
+      ],
+      "branch_policy": {
+        "require_dedicated_branch_per_version": true,
+        "disallow_direct_push_to": [
+          "main",
+          "master",
+          "feat/*"
+        ],
+        "notes": [
+          "Automation must only push commits to the dedicated PR branch for the target upstream version.",
+          "Human approval gates can be applied at merge time or via a separate staging branch."
+        ]
+      }
+    }
+  },
+  "ci_validation": {
+    "mode": "hard_fail",
+    "schemas": {
+      "schema_file": "cli_manifests/claude_code/SCHEMA.json",
+      "rules_file": "cli_manifests/claude_code/RULES.json"
+    },
+    "validate_committed_artifacts": [
+      "cli_manifests/claude_code/VERSION_METADATA_SCHEMA.json",
+      "cli_manifests/claude_code/versions/<version>.json",
+      "cli_manifests/claude_code/current.json",
+      "cli_manifests/claude_code/snapshots/<version>/union.json",
+      "cli_manifests/claude_code/snapshots/<version>/<target_triple>.json",
+      "cli_manifests/claude_code/wrapper_coverage.json",
+      "cli_manifests/claude_code/reports/<version>/coverage.any.json",
+      "cli_manifests/claude_code/reports/<version>/coverage.all.json",
+      "cli_manifests/claude_code/reports/<version>/coverage.<target_triple>.json"
+    ],
+    "notes": [
+      "CI must fail if any committed artifact does not validate against SCHEMA.json.",
+      "Raw help artifacts are not committed and are not schema-validated."
+    ]
+  },
+  "timestamps": {
+    "snapshots": {
+      "field": "collected_at",
+      "policy": "deterministic_in_ci",
+      "notes": [
+        "To avoid churn in committed artifacts, CI should set collected_at deterministically (e.g., from SOURCE_DATE_EPOCH)."
+      ]
+    },
+    "reports": {
+      "generated_at_field": "generated_at",
+      "policy": "deterministic_or_omit",
+      "notes": [
+        "Prefer omitting report timestamps from committed reports; if present, make them deterministic in CI."
+      ]
+    },
+    "version_metadata": {
+      "field": "updated_at",
+      "policy": "deterministic_in_ci",
+      "notes": [
+        "updated_at should be deterministic in CI to keep diffs stable across reruns."
+      ]
+    }
+  },
+  "sorting": {
+    "commands": "lexicographic_path",
+    "flags": "by_key_then_long_then_short",
+    "args": "by_name",
+    "expected_targets": "rules_expected_targets_order",
+    "inputs": "rules_expected_targets_order",
+    "available_on": "rules_expected_targets_order",
+    "conflicts": "by_unit_then_path_then_key_or_name_then_field",
+    "report": {
+      "missing_commands": "by_path",
+      "missing_flags": "by_path_then_key",
+      "missing_args": "by_path_then_name",
+      "excluded_commands": "by_path",
+      "excluded_flags": "by_path_then_key",
+      "excluded_args": "by_path_then_name",
+      "passthrough_candidates": "by_path",
+      "unsupported": "by_path",
+      "intentionally_unsupported": "by_kind_then_path_then_key_or_name",
+      "wrapper_only_commands": "by_path",
+      "wrapper_only_flags": "by_path_then_key",
+      "wrapper_only_args": "by_path_then_name"
+    }
+  },
+  "validation": {
+    "require_root_path_entry": true,
+    "require_unique_command_paths": true,
+    "require_unique_flag_keys_per_command": true,
+    "require_unique_arg_names_per_command": true,
+    "uniqueness_scope": {
+      "commands": "path",
+      "flags": "path_plus_flag_key",
+      "args": "path_plus_arg_name",
+      "note": "Collisions across different command paths are expected and allowed; uniqueness is enforced only within a single command scope."
+    }
+  }
+}

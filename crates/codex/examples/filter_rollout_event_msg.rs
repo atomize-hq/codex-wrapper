@@ -288,6 +288,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn process_event(
     out: &mut impl Write,
     event_msg_counts: &mut BTreeMap<String, usize>,
@@ -418,7 +419,7 @@ fn truncate(value: &str, max: usize) -> String {
             out.push(ch);
         }
     }
-    out.push_str("…");
+    out.push('…');
     out
 }
 

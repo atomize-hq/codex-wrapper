@@ -4,6 +4,7 @@
 
 - `crates/codex/README.md` — main wrapper API guide (library consumer view)
 - `crates/codex/EXAMPLES.md` — examples ↔ native CLI mapping
+- `crates/claude_code/README.md` — Claude Code wrapper API guide
 - `docs/integrations/substrate.md` — using this wrapper from Substrate
 
 ## Decisions and specs
@@ -21,6 +22,14 @@ Codex CLI parity maintenance lives next to the generated artifacts:
 - `cli_manifests/codex/CI_AGENT_RUNBOOK.md`
 - `cli_manifests/codex/CI_WORKFLOWS_PLAN.md`
 - `cli_manifests/codex/VALIDATOR_SPEC.md`
+
+Claude Code parity maintenance lives next to the generated artifacts:
+
+- `cli_manifests/claude_code/OPS_PLAYBOOK.md`
+- `cli_manifests/claude_code/README.md`
+- `cli_manifests/claude_code/CI_AGENT_RUNBOOK.md`
+- `cli_manifests/claude_code/CI_WORKFLOWS_PLAN.md`
+- `cli_manifests/claude_code/VALIDATOR_SPEC.md`
 
 ## Project management (triads)
 

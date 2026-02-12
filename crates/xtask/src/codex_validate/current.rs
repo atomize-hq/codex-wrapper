@@ -45,6 +45,10 @@ pub(super) fn validate_current_json(
             if current_path.exists() {
                 return;
             }
+            if latest_validated.is_none() && ctx.root_pointers_allow_none {
+                // Bootstrap mode: allow the parity root to exist without any promoted version yet.
+                return;
+            }
             violations.push(Violation {
                 code: "CURRENT_MISSING",
                 path: rel_path(&ctx.root, &current_path),

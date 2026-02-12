@@ -113,7 +113,9 @@ echo "$PWD"
         .await
         .unwrap();
     let request_pwd = run_request.stdout.lines().next().unwrap();
-    assert_eq!(Path::new(request_pwd), request_dir.as_path());
+    let request_pwd = std_fs::canonicalize(Path::new(request_pwd)).unwrap();
+    let request_dir = std_fs::canonicalize(&request_dir).unwrap();
+    assert_eq!(request_pwd, request_dir);
 
     let run_builder = client
         .run_sandbox(SandboxCommandRequest::new(
@@ -123,7 +125,9 @@ echo "$PWD"
         .await
         .unwrap();
     let builder_pwd = run_builder.stdout.lines().next().unwrap();
-    assert_eq!(Path::new(builder_pwd), builder_dir.as_path());
+    let builder_pwd = std_fs::canonicalize(Path::new(builder_pwd)).unwrap();
+    let builder_dir = std_fs::canonicalize(&builder_dir).unwrap();
+    assert_eq!(builder_pwd, builder_dir);
 
     let client_default = CodexClient::builder()
         .binary(&script_path)
@@ -234,7 +238,9 @@ JSON
 
     let mut lines = result.stderr.lines();
     let pwd = lines.next().unwrap();
-    assert_eq!(Path::new(pwd), workdir.as_path());
+    let pwd = std_fs::canonicalize(Path::new(pwd)).unwrap();
+    let workdir = std_fs::canonicalize(&workdir).unwrap();
+    assert_eq!(pwd, workdir);
 
     let args: Vec<_> = lines.map(str::to_string).collect();
     assert_eq!(

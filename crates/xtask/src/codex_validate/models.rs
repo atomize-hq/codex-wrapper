@@ -85,6 +85,8 @@ pub(super) struct RulesVersioning {
 #[derive(Debug, Deserialize)]
 pub(super) struct RulesPointers {
     pub(super) stable_semver_pattern: String,
+    #[serde(default)]
+    pub(super) root_pointers_allow_none: bool,
 }
 
 #[derive(Debug, Deserialize)]

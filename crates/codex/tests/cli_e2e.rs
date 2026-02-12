@@ -14,7 +14,7 @@ use std::{
 use codex::{
     AppServerCodegenRequest, CliOverridesPatch, CodexClient, CodexError, ExecStreamRequest,
     FeaturesListFormat, FeaturesListRequest, ResponsesApiProxyRequest, ResumeRequest,
-    ResumeSelector, SandboxCommandRequest, SandboxPlatform, StdioToUdsRequest, ThreadEvent,
+    ResumeSelector, StdioToUdsRequest, ThreadEvent,
 };
 use futures_util::StreamExt;
 use std::fs;
@@ -23,6 +23,9 @@ use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader as AsyncBufReader},
     time,
 };
+
+#[cfg(target_os = "linux")]
+use codex::{SandboxCommandRequest, SandboxPlatform};
 
 const BINARY_ENV: &str = "CODEX_E2E_BINARY";
 const HOME_ENV: &str = "CODEX_E2E_HOME";

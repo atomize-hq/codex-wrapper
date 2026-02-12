@@ -3,7 +3,20 @@ CRATES_ALL := $(shell find . -maxdepth 3 -type f -name Cargo.toml -exec dirname 
 CRATES := $(filter ./crates/%,$(CRATES_ALL))
 CRATES := $(patsubst ./%,%,$(CRATES))
 
-CRATE_CMD ?= tokei .
+# ---- Tooling (auto-install to reduce host deps) ----
+TOKEI_ROOT := $(CURDIR)/target/tools/tokei
+TOKEI_BIN := $(TOKEI_ROOT)/bin/tokei
+TOKEI_SYSTEM := $(shell command -v tokei 2>/dev/null)
+ifeq ($(TOKEI_SYSTEM),)
+TOKEI := $(TOKEI_BIN)
+else
+TOKEI := $(TOKEI_SYSTEM)
+endif
+
+CARGO_TOOLS_ROOT := $(CURDIR)/target/tools/cargo-tools
+CARGO_TOOLS_BIN := $(CARGO_TOOLS_ROOT)/bin
+
+CRATE_CMD ?= $(TOKEI) .
 
 LOG_ROOT := target/crate-logs
 DATE_DIR := $(shell date -u +%m-%-d-%y)
@@ -27,7 +40,7 @@ SEC_CARGO_HOME := $(CURDIR)/target/security-cargo-home
 DENY_CHECKS ?= advisories licenses
 
 .PHONY: tokei-all-crates
-tokei-all-crates:
+tokei-all-crates: ensure-tokei
 	@mkdir -p "$(LOG_DIR)"
 	@echo "Date dir (UTC): $(DATE_DIR)"
 	@echo "Run timestamp (UTC): $(RUN_TS)"
@@ -67,9 +80,9 @@ test:
 	cargo test --workspace --all-targets --all-features
 
 .PHONY: loc-check
-loc-check:
+loc-check: ensure-tokei
 	@mkdir -p target
-	@tokei . --files --output json $(TOKEI_EXCLUDE_FLAGS) > $(TOKEI_JSON)
+	@$(TOKEI) . --files --output json $(TOKEI_EXCLUDE_FLAGS) > $(TOKEI_JSON)
 	@printf '%s\n' \
 	  'import json, os, sys' \
 	  'cap = int(os.environ.get("LOC_CAP","700"))' \
@@ -103,24 +116,54 @@ loc-check:
 	  'print(f"loc-check: PASS - no Rust file exceeds {cap} code lines")' \
 	| LOC_CAP="$(LOC_CAP)" TOKEI_JSON="$(TOKEI_JSON)" python3 -
 
+.PHONY: ensure-tokei
+ensure-tokei:
+	@if [ -n "$(TOKEI_SYSTEM)" ]; then \
+	  echo "ensure-tokei: using system tokei ($(TOKEI_SYSTEM))"; \
+	else \
+	  if [ ! -x "$(TOKEI_BIN)" ]; then \
+	    echo "ensure-tokei: installing tokei into $(TOKEI_ROOT)"; \
+	    mkdir -p "$(TOKEI_ROOT)"; \
+	    cargo install tokei --locked --root "$(TOKEI_ROOT)"; \
+	  else \
+	    echo "ensure-tokei: using cached tokei ($(TOKEI_BIN))"; \
+	  fi; \
+	fi
+
+.PHONY: ensure-security-tools
+ensure-security-tools:
+	@mkdir -p "$(CARGO_TOOLS_ROOT)"
+	@if ! command -v cargo-audit >/dev/null 2>&1 && [ ! -x "$(CARGO_TOOLS_BIN)/cargo-audit" ]; then \
+	  echo "ensure-security-tools: installing cargo-audit into $(CARGO_TOOLS_ROOT)"; \
+	  cargo install cargo-audit --locked --root "$(CARGO_TOOLS_ROOT)"; \
+	fi
+	@if ! command -v cargo-deny >/dev/null 2>&1 && [ ! -x "$(CARGO_TOOLS_BIN)/cargo-deny" ]; then \
+	  echo "ensure-security-tools: installing cargo-deny into $(CARGO_TOOLS_ROOT)"; \
+	  cargo install cargo-deny --locked --root "$(CARGO_TOOLS_ROOT)"; \
+	fi
+	@if ! command -v cargo-geiger >/dev/null 2>&1 && [ ! -x "$(CARGO_TOOLS_BIN)/cargo-geiger" ]; then \
+	  echo "ensure-security-tools: installing cargo-geiger into $(CARGO_TOOLS_ROOT)"; \
+	  cargo install cargo-geiger --locked --root "$(CARGO_TOOLS_ROOT)"; \
+	fi
+
 .PHONY: security
-security:
+security: ensure-security-tools
 	@mkdir -p "$(SEC_CARGO_HOME)"
 	@echo "## security checks (CARGO_HOME=$(SEC_CARGO_HOME))"
-	@CARGO_HOME="$(SEC_CARGO_HOME)" cargo audit
+	@PATH="$(CARGO_TOOLS_BIN):$$PATH" CARGO_HOME="$(SEC_CARGO_HOME)" cargo audit
 	@set -e; \
 	for c in $(DENY_CHECKS); do \
 	  echo "cargo deny check $$c"; \
-	  CARGO_HOME="$(SEC_CARGO_HOME)" cargo deny check $$c; \
+	  PATH="$(CARGO_TOOLS_BIN):$$PATH" CARGO_HOME="$(SEC_CARGO_HOME)" cargo deny check $$c; \
 	done
 
 .PHONY: unsafe-report
-unsafe-report:
+unsafe-report: ensure-security-tools
 	@mkdir -p "$(LOG_DIR)"
 	@echo "## unsafe-report (cargo geiger) — informational only"
 	@echo "## NOTE: cargo-geiger currently emits parse warnings for some deps; do not treat as hard gate."
-	@cargo geiger -p codex 2>&1 | tee "$(LOG_DIR)/geiger_codex_$(RUN_TS).log" || true
-	@cargo geiger -p xtask 2>&1 | tee "$(LOG_DIR)/geiger_xtask_$(RUN_TS).log" || true
+	@PATH="$(CARGO_TOOLS_BIN):$$PATH" cargo geiger -p codex 2>&1 | tee "$(LOG_DIR)/geiger_codex_$(RUN_TS).log" || true
+	@PATH="$(CARGO_TOOLS_BIN):$$PATH" cargo geiger -p xtask 2>&1 | tee "$(LOG_DIR)/geiger_xtask_$(RUN_TS).log" || true
 	@echo "Geiger logs: $(LOG_DIR)/geiger_*_$(RUN_TS).log"
 
 .PHONY: flightcheck

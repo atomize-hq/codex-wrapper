@@ -31,7 +31,11 @@ pub(super) fn validate_pointers(
     let mut out = PointerValues::default();
 
     let min_supported_path = ctx.root.join("min_supported.txt");
-    match read_pointer_file(&min_supported_path, &ctx.stable_semver_re, false) {
+    match read_pointer_file(
+        &min_supported_path,
+        &ctx.stable_semver_re,
+        ctx.root_pointers_allow_none,
+    ) {
         Ok(PointerRead::Value(PointerValue::Version(ver))) => {
             out.min_supported = Some(ver.to_string());
         }
@@ -57,12 +61,16 @@ pub(super) fn validate_pointers(
                 "invalid pointer value (got {raw}); expected strict stable semver MAJOR.MINOR.PATCH"
             ),
         )),
-        Ok(PointerRead::Value(PointerValue::None)) => violations.push(pointer_violation(
-            ctx,
-            "POINTER_INVALID_VALUE",
-            &min_supported_path,
-            "invalid pointer value (got none); expected strict stable semver MAJOR.MINOR.PATCH",
-        )),
+        Ok(PointerRead::Value(PointerValue::None)) => {
+            if !ctx.root_pointers_allow_none {
+                violations.push(pointer_violation(
+                    ctx,
+                    "POINTER_INVALID_VALUE",
+                    &min_supported_path,
+                    "invalid pointer value (got none); expected strict stable semver MAJOR.MINOR.PATCH",
+                ));
+            }
+        }
         Err(e) => violations.push(pointer_violation(
             ctx,
             "POINTER_UNREADABLE",
@@ -72,7 +80,11 @@ pub(super) fn validate_pointers(
     }
 
     let latest_validated_path = ctx.root.join("latest_validated.txt");
-    match read_pointer_file(&latest_validated_path, &ctx.stable_semver_re, false) {
+    match read_pointer_file(
+        &latest_validated_path,
+        &ctx.stable_semver_re,
+        ctx.root_pointers_allow_none,
+    ) {
         Ok(PointerRead::Value(PointerValue::Version(ver))) => {
             out.latest_validated = Some(ver.to_string());
         }
@@ -98,12 +110,16 @@ pub(super) fn validate_pointers(
                 "invalid pointer value (got {raw}); expected strict stable semver MAJOR.MINOR.PATCH"
             ),
         )),
-        Ok(PointerRead::Value(PointerValue::None)) => violations.push(pointer_violation(
-            ctx,
-            "POINTER_INVALID_VALUE",
-            &latest_validated_path,
-            "invalid pointer value (got none); expected strict stable semver MAJOR.MINOR.PATCH",
-        )),
+        Ok(PointerRead::Value(PointerValue::None)) => {
+            if !ctx.root_pointers_allow_none {
+                violations.push(pointer_violation(
+                    ctx,
+                    "POINTER_INVALID_VALUE",
+                    &latest_validated_path,
+                    "invalid pointer value (got none); expected strict stable semver MAJOR.MINOR.PATCH",
+                ));
+            }
+        }
         Err(e) => violations.push(pointer_violation(
             ctx,
             "POINTER_UNREADABLE",

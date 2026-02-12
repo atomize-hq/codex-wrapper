@@ -1,5 +1,8 @@
 #![forbid(unsafe_code)]
 
+mod claude_snapshot;
+mod claude_union;
+mod claude_wrapper_coverage;
 mod codex_report;
 mod codex_retain;
 mod codex_snapshot;
@@ -7,6 +10,7 @@ mod codex_union;
 mod codex_validate;
 mod codex_version_metadata;
 mod codex_wrapper_coverage;
+mod parity_triad_scaffold;
 
 use clap::{Parser, Subcommand};
 
@@ -23,8 +27,12 @@ struct Cli {
 enum Command {
     /// Generate a Codex CLI snapshot manifest under `cli_manifests/codex/`.
     CodexSnapshot(codex_snapshot::Args),
+    /// Generate a Claude Code CLI snapshot manifest under `cli_manifests/claude_code/`.
+    ClaudeSnapshot(claude_snapshot::Args),
     /// Merge per-target snapshots into a union snapshot under `cli_manifests/codex/`.
     CodexUnion(codex_union::Args),
+    /// Merge per-target snapshots into a union snapshot under `cli_manifests/claude_code/`.
+    ClaudeUnion(claude_union::Args),
     /// Generate deterministic coverage reports under `cli_manifests/codex/reports/<version>/`.
     CodexReport(codex_report::Args),
     /// Materialize `cli_manifests/codex/versions/<version>.json` deterministically.
@@ -33,8 +41,12 @@ enum Command {
     CodexRetain(codex_retain::Args),
     /// Generate `cli_manifests/codex/wrapper_coverage.json` from wrapper source of truth.
     CodexWrapperCoverage(codex_wrapper_coverage::CliArgs),
+    /// Generate `cli_manifests/claude_code/wrapper_coverage.json` from wrapper source of truth.
+    ClaudeWrapperCoverage(claude_wrapper_coverage::CliArgs),
     /// Validate committed Codex parity artifacts under `cli_manifests/codex/`.
     CodexValidate(codex_validate::Args),
+    /// Generate a triad scaffold directory from a parity coverage report.
+    ParityTriadScaffold(parity_triad_scaffold::Args),
 }
 
 fn main() {
@@ -48,7 +60,21 @@ fn main() {
                 1
             }
         },
+        Command::ClaudeSnapshot(args) => match claude_snapshot::run(args) {
+            Ok(()) => 0,
+            Err(err) => {
+                eprintln!("{err}");
+                1
+            }
+        },
         Command::CodexUnion(args) => match codex_union::run(args) {
+            Ok(()) => 0,
+            Err(err) => {
+                eprintln!("{err}");
+                1
+            }
+        },
+        Command::ClaudeUnion(args) => match claude_union::run(args) {
             Ok(()) => 0,
             Err(err) => {
                 eprintln!("{err}");
@@ -83,7 +109,21 @@ fn main() {
                 1
             }
         },
+        Command::ClaudeWrapperCoverage(args) => match claude_wrapper_coverage::run(args) {
+            Ok(()) => 0,
+            Err(err) => {
+                eprintln!("{err}");
+                1
+            }
+        },
         Command::CodexValidate(args) => codex_validate::run(args),
+        Command::ParityTriadScaffold(args) => match parity_triad_scaffold::run(args) {
+            Ok(()) => 0,
+            Err(err) => {
+                eprintln!("{err}");
+                1
+            }
+        },
     };
 
     std::process::exit(exit_code);

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-02-12T13:28:21.646247Z",
+  "wrapper_version": "0.2.0",
+  "coverage": [
+    {
+      "path": [],
+      "level": "explicit",
+      "flags": [
+        {
+          "key": "--help",
+          "level": "passthrough"
+        },
+        {
+          "key": "--input-format",
+          "level": "explicit"
+        },
+        {
+          "key": "--json-schema",
+          "level": "explicit"
+        },
+        {
+          "key": "--output-format",
+          "level": "explicit"
+        },
+        {
+          "key": "--print",
+          "level": "explicit"
+        },
+        {
+          "key": "--version",
+          "level": "passthrough"
+        }
+      ]
+    },
+    {
+      "path": [
+        "doctor"
+      ],
+      "level": "intentionally_unsupported",
+      "note": "Claude Code updater diagnostics are out of scope for this wrapper."
+    },
+    {
+      "path": [
+        "install"
+      ],
+      "level": "intentionally_unsupported",
+      "note": "Claude Code installation is out of scope for this wrapper."
+    },
+    {
+      "path": [
+        "update"
+      ],
+      "level": "intentionally_unsupported",
+      "note": "Claude Code auto-update is out of scope for this wrapper."
+    }
+  ]
+}
