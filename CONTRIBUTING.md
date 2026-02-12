@@ -51,3 +51,16 @@ Conventions:
 
 See `docs/project_management/task-triads-feature-setup-standard.md`.
 
+## Branch promotion (staging -> main)
+
+This repo uses a promotion flow where changes land in `staging` first, then are promoted to `main`.
+PRs targeting `main` are restricted and must originate from `staging`.
+
+When opening a `staging` -> `main` PR, you must apply **exactly one** purpose label:
+
+- `purpose=codex_release`
+- `purpose=claude_code_release`
+- `purpose=ops`
+
+This is enforced by the GitHub Actions workflow:
+- `.github/workflows/only-staging-to-main.yml`

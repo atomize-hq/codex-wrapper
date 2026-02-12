@@ -37,22 +37,45 @@ jobs:
             exit 0
           fi
 
-          labels="$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH" || true)"
+          mapfile -t labels < <(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH" || true)
+          allowed_count=0
           purpose=""
-          for l in $labels; do
+          unknown_purpose=0
+
+          for l in "${labels[@]}"; do
             case "$l" in
-              purpose=codex_release) purpose="codex_release" ;;
-              purpose=claude_code_release) purpose="claude_code_release" ;;
-              purpose=ops) purpose="ops" ;;
-              *) ;;
+              purpose=codex_release)
+                allowed_count=$((allowed_count+1))
+                purpose="codex_release"
+                ;;
+              purpose=claude_code_release)
+                allowed_count=$((allowed_count+1))
+                purpose="claude_code_release"
+                ;;
+              purpose=ops)
+                allowed_count=$((allowed_count+1))
+                purpose="ops"
+                ;;
+              purpose=*)
+                unknown_purpose=$((unknown_purpose+1))
+                ;;
+              *)
+                ;;
             esac
           done
 
-          if [ -z "$purpose" ]; then
+          if (( unknown_purpose > 0 )); then
             echo "purpose=missing" >> "$GITHUB_OUTPUT"
-            echo "Missing required purpose label (should be enforced by only-staging-to-main.yml)." >&2
+            echo "Unknown purpose=... label present. Allowed: purpose=codex_release | purpose=claude_code_release | purpose=ops" >&2
             exit 1
           fi
+
+          if (( allowed_count != 1 )); then
+            echo "purpose=missing" >> "$GITHUB_OUTPUT"
+            echo "staging -> main PR must have exactly one purpose label." >&2
+            exit 1
+          fi
+
           echo "purpose=$purpose" >> "$GITHUB_OUTPUT"
 
   rust-tests:
