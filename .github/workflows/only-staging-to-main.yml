@@ -7,7 +7,12 @@ on:
 
 jobs:
   guard:
-    name: only-staging-to-main
+    # NOTE: This job name is intentionally `guard` because branch rulesets can require
+    # status checks by their exact context name, which is derived from:
+    #   "<workflow name> / <job name> (<event>)"
+    # Keeping this stable avoids “Expected — Waiting for status to be reported” when the
+    # ruleset requires `... / guard (pull_request)`.
+    name: guard
     runs-on: ubuntu-latest
     steps:
       - name: Validate source branch
@@ -34,12 +39,46 @@ jobs:
           # - purpose=codex_release
           # - purpose=claude_code_release
           # - purpose=ops
-          labels="$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH" | tr '\n' ' ' || true)"
-          echo "Labels: ${labels:-<none>}"
+          mapfile -t labels < <(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH" || true)
+          if ((${#labels[@]} == 0)); then
+            echo "Labels: <none>"
+          else
+            printf 'Labels:\n'
+            printf '  - %s\n' "${labels[@]}"
+          fi
 
-          allowed_re='(^| )purpose=(codex_release|claude_code_release|ops)( |$)'
-          if ! [[ " $labels " =~ $allowed_re ]]; then
-            echo "Missing required purpose label for staging -> main PR."
-            echo "Add one of: purpose=codex_release | purpose=claude_code_release | purpose=ops"
+          allowed_count=0
+          allowed_value=""
+          unknown_purpose=0
+          for l in "${labels[@]}"; do
+            case "$l" in
+              purpose=codex_release|purpose=claude_code_release|purpose=ops)
+                allowed_count=$((allowed_count+1))
+                allowed_value="$l"
+                ;;
+              purpose=*)
+                unknown_purpose=$((unknown_purpose+1))
+                ;;
+              *)
+                ;;
+            esac
+          done
+
+          if (( unknown_purpose > 0 )); then
+            echo "Found unknown purpose=... label(s). Only these are allowed:"
+            echo "  - purpose=codex_release"
+            echo "  - purpose=claude_code_release"
+            echo "  - purpose=ops"
             exit 1
           fi
+
+          if (( allowed_count != 1 )); then
+            echo "staging -> main PRs must have exactly one purpose label."
+            echo "Add exactly one of:"
+            echo "  - purpose=codex_release"
+            echo "  - purpose=claude_code_release"
+            echo "  - purpose=ops"
+            exit 1
+          fi
+
+          echo "OK: purpose label = ${allowed_value}"
