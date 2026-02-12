@@ -5,6 +5,7 @@ on:
     branches:
       - staging
       - main
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
   push:
     branches:
       - main
