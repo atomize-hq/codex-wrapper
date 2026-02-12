@@ -515,6 +515,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.AUTOMATION_TOKEN || github.token }}
+          base: staging
           commit-message: "chore: codex cli artifacts for ${{ inputs.version }}"
           title: "chore: codex cli artifacts for ${{ inputs.version }}"
           body-path: _codex_cli_pr_body.md

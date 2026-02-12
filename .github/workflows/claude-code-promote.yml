@@ -119,6 +119,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
+          base: staging
           commit-message: "chore: promote claude code ${VERSION}"
           title: "chore: promote claude code ${VERSION}"
           body-path: _claude_code_promote_summary.md

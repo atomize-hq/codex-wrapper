@@ -340,6 +340,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
+          base: staging
           commit-message: "chore: snapshot claude code ${VERSION}"
           title: "chore: snapshot claude code ${VERSION}"
           body-path: _claude_code_update_summary.md

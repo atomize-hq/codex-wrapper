@@ -130,9 +130,9 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.AUTOMATION_TOKEN || github.token }}
+          base: staging
           commit-message: "chore: promote codex cli ${VERSION}"
           title: "chore: promote codex cli ${VERSION}"
           body-path: _codex_cli_promote_summary.md
           branch: "automation/codex-cli-promote-${{ inputs.version }}"
           delete-branch: true
-
