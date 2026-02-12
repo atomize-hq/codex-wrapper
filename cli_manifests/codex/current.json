@@ -2,7 +2,7 @@
   "snapshot_schema_version": 2,
   "tool": "codex-cli",
   "mode": "union",
-  "collected_at": "2026-02-02T01:18:50.31420169Z",
+  "collected_at": "2026-02-05T05:11:10Z",
   "expected_targets": [
     "x86_64-unknown-linux-musl",
     "aarch64-apple-darwin",
@@ -16,30 +16,68 @@
   "inputs": [
     {
       "target_triple": "x86_64-unknown-linux-musl",
-      "collected_at": "2026-02-02T00:00:00Z",
+      "collected_at": "2026-02-05T05:11:10Z",
       "binary": {
-        "sha256": "285b8121885d4bb3c35a59047761e010a67ef779ebedf0c9b703c84744eeafc7",
-        "size_bytes": 64419240,
+        "sha256": "1a661731a8ea4bd836b84eaa056ad6f637eacb6dbac887581e2af4304285b1df",
+        "size_bytes": 73049256,
         "platform": {
           "os": "linux",
           "arch": "x86_64"
         },
         "target_triple": "x86_64-unknown-linux-musl",
-        "version_output": "codex-cli 0.92.0",
-        "semantic_version": "0.92.0",
+        "version_output": "codex-cli 0.97.0",
+        "semantic_version": "0.97.0",
         "channel": "stable"
       },
       "features": {
         "commands_added_when_all_enabled": [],
         "enabled_for_snapshot": [
+          "apps",
+          "collab",
+          "collaboration_modes",
+          "enable_request_compression",
+          "personality",
+          "request_rule",
           "shell_snapshot",
           "shell_tool",
+          "skill_mcp_dependency_install",
           "steer",
           "undo",
           "unified_exec",
+          "web_search_cached",
           "web_search_request"
         ],
         "listed": [
+          {
+            "effective": false,
+            "name": "apps",
+            "stage": "experimental"
+          },
+          {
+            "effective": false,
+            "name": "collab",
+            "stage": "experimental"
+          },
+          {
+            "effective": true,
+            "name": "collaboration_modes",
+            "stage": "stable"
+          },
+          {
+            "effective": true,
+            "name": "enable_request_compression",
+            "stage": "stable"
+          },
+          {
+            "effective": true,
+            "name": "personality",
+            "stage": "stable"
+          },
+          {
+            "effective": true,
+            "name": "request_rule",
+            "stage": "stable"
+          },
           {
             "effective": false,
             "name": "shell_snapshot",
@@ -48,6 +86,11 @@
           {
             "effective": true,
             "name": "shell_tool",
+            "stage": "stable"
+          },
+          {
+            "effective": true,
+            "name": "skill_mcp_dependency_install",
             "stage": "stable"
           },
           {
@@ -61,14 +104,19 @@
             "stage": "stable"
           },
           {
-            "effective": false,
+            "effective": true,
             "name": "unified_exec",
-            "stage": "experimental"
+            "stage": "stable"
+          },
+          {
+            "effective": false,
+            "name": "web_search_cached",
+            "stage": "deprecated"
           },
           {
             "effective": false,
             "name": "web_search_request",
-            "stage": "stable"
+            "stage": "deprecated"
           }
         ],
         "mode": "default_plus_all_enabled"
@@ -292,6 +340,14 @@
       "usage": "codex app-server generate-json-schema [OPTIONS] --out <DIR>",
       "flags": [
         {
+          "key": "--experimental",
+          "long": "--experimental",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
+        {
           "key": "--out",
           "long": "--out",
           "short": "-o",
@@ -313,6 +369,14 @@
       ],
       "usage": "codex app-server generate-ts [OPTIONS] --out <DIR>",
       "flags": [
+        {
+          "key": "--experimental",
+          "long": "--experimental",
+          "takes_value": false,
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        },
         {
           "key": "--out",
           "long": "--out",
@@ -611,6 +675,91 @@
     },
     {
       "path": [
+        "debug"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex debug [OPTIONS] <COMMAND>"
+    },
+    {
+      "path": [
+        "debug",
+        "app-server"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex debug app-server [OPTIONS] <COMMAND>"
+    },
+    {
+      "path": [
+        "debug",
+        "app-server",
+        "help"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex debug app-server help [COMMAND]...",
+      "args": [
+        {
+          "name": "COMMAND",
+          "required": false,
+          "variadic": true,
+          "note": "Print help for the subcommand(s)",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "debug",
+        "app-server",
+        "send-message-v2"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex debug app-server send-message-v2 [OPTIONS] <USER_MESSAGE>",
+      "args": [
+        {
+          "name": "USER_MESSAGE",
+          "required": true,
+          "variadic": false,
+          "inferred_from_usage": true,
+          "note": "inferred from usage",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "debug",
+        "help"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex debug help [COMMAND]...",
+      "args": [
+        {
+          "name": "COMMAND",
+          "required": false,
+          "variadic": true,
+          "note": "Print help for the subcommand(s)",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
         "exec"
       ],
       "available_on": [
@@ -719,7 +868,7 @@
           "name": "SESSION_ID",
           "required": false,
           "variadic": false,
-          "note": "Conversation/session id (UUID). When provided, resumes this session. If omitted, use\n--last to pick the most recent recorded session",
+          "note": "Conversation/session id (UUID) or thread name. UUIDs take precedence if it parses. If\nomitted, use --last to pick the most recent recorded session",
           "available_on": [
             "x86_64-unknown-linux-musl"
           ]
@@ -842,6 +991,48 @@
         "x86_64-unknown-linux-musl"
       ],
       "usage": "codex features [OPTIONS] <COMMAND>"
+    },
+    {
+      "path": [
+        "features",
+        "disable"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex features disable [OPTIONS] <FEATURE>",
+      "args": [
+        {
+          "name": "FEATURE",
+          "required": true,
+          "variadic": false,
+          "note": "Feature key to update (for example: unified_exec)",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
+    },
+    {
+      "path": [
+        "features",
+        "enable"
+      ],
+      "available_on": [
+        "x86_64-unknown-linux-musl"
+      ],
+      "usage": "codex features enable [OPTIONS] <FEATURE>",
+      "args": [
+        {
+          "name": "FEATURE",
+          "required": true,
+          "variadic": false,
+          "note": "Feature key to update (for example: unified_exec)",
+          "available_on": [
+            "x86_64-unknown-linux-musl"
+          ]
+        }
+      ]
     },
     {
       "path": [
@@ -1253,7 +1444,7 @@
           "name": "SESSION_ID",
           "required": false,
           "variadic": false,
-          "note": "Conversation/session id (UUID). When provided, resumes this session. If omitted, use\n--last to pick the most recent recorded session",
+          "note": "Conversation/session id (UUID) or thread name. UUIDs take precedence if it parses. If\nomitted, use --last to pick the most recent recorded session",
           "available_on": [
             "x86_64-unknown-linux-musl"
           ]
