@@ -12,7 +12,7 @@ jobs:
     #   "<workflow name> / <job name> (<event>)"
     # Keeping this stable avoids “Expected — Waiting for status to be reported” when the
     # ruleset requires `... / guard (pull_request)`.
-    name: guard
+    name: guard (pull_request)
     runs-on: ubuntu-latest
     steps:
       - name: Validate source branch
