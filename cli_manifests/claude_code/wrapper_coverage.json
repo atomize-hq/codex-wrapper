@@ -193,7 +193,12 @@
         "install"
       ],
       "level": "intentionally_unsupported",
-      "note": "Claude Code installation is out of scope for this wrapper."
+      "note": "Claude Code installation is out of scope for this wrapper.",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      }
     },
     {
       "path": [
@@ -207,6 +212,11 @@
         "add"
       ],
       "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--env",
@@ -243,6 +253,11 @@
       ],
       "level": "passthrough",
       "note": "Supported via run_command; platform-gated upstream.",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--scope",
@@ -256,6 +271,11 @@
         "add-json"
       ],
       "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--scope",
@@ -279,6 +299,11 @@
         "get"
       ],
       "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "args": [
         {
           "name": "name",
@@ -299,6 +324,11 @@
         "remove"
       ],
       "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--scope",
@@ -325,7 +355,12 @@
         "serve"
       ],
       "level": "passthrough",
-      "note": "Supported via run_command; no typed API yet."
+      "note": "Supported via run_command; no typed API yet.",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      }
     },
     {
       "path": [
@@ -340,6 +375,11 @@
         "disable"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--all",
@@ -357,6 +397,11 @@
         "enable"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--scope",
@@ -376,6 +421,11 @@
         "install"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--scope",
@@ -389,6 +439,11 @@
         "list"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--available",
@@ -405,7 +460,13 @@
         "plugin",
         "manifest"
       ],
-      "level": "passthrough"
+      "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "linux-x64",
+          "darwin-arm64"
+        ]
+      }
     },
     {
       "path": [
@@ -413,7 +474,13 @@
         "manifest",
         "marketplace"
       ],
-      "level": "passthrough"
+      "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "linux-x64",
+          "darwin-arm64"
+        ]
+      }
     },
     {
       "path": [
@@ -429,6 +496,11 @@
         "add"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "args": [
         {
           "name": "source",
@@ -443,6 +515,11 @@
         "list"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--json",
@@ -456,7 +533,12 @@
         "marketplace",
         "remove"
       ],
-      "level": "passthrough"
+      "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      }
     },
     {
       "path": [
@@ -464,7 +546,13 @@
         "marketplace",
         "repo"
       ],
-      "level": "passthrough"
+      "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "linux-x64",
+          "darwin-arm64"
+        ]
+      }
     },
     {
       "path": [
@@ -472,7 +560,12 @@
         "marketplace",
         "update"
       ],
-      "level": "passthrough"
+      "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      }
     },
     {
       "path": [
@@ -480,6 +573,11 @@
         "uninstall"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--scope",
@@ -493,6 +591,11 @@
         "update"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--scope",
@@ -512,6 +615,11 @@
         "validate"
       ],
       "level": "passthrough",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "args": [
         {
           "name": "path",
