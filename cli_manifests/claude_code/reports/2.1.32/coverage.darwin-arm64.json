@@ -1,0 +1,744 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-02-05T17:04:47Z",
+  "inputs": {
+    "upstream": {
+      "semantic_version": "2.1.32",
+      "mode": "union",
+      "targets": [
+        "darwin-arm64"
+      ]
+    },
+    "wrapper": {
+      "schema_version": 1,
+      "wrapper_version": "0.2.0"
+    },
+    "rules": {
+      "rules_schema_version": 1
+    }
+  },
+  "platform_filter": {
+    "mode": "exact_target",
+    "target_triple": "darwin-arm64"
+  },
+  "deltas": {
+    "missing_commands": [
+      {
+        "path": [
+          "install"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "disable"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "enable"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "install"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "list"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace",
+          "add"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace",
+          "list"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace",
+          "remove"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace",
+          "update"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "uninstall"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "update"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "validate"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      }
+    ],
+    "missing_flags": [
+      {
+        "path": [
+          "install"
+        ],
+        "key": "--force",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "add"
+        ],
+        "key": "--callback-port",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "add"
+        ],
+        "key": "--client-id",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "add"
+        ],
+        "key": "--client-secret",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "add-from-claude-desktop"
+        ],
+        "key": "--scope",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "add-json"
+        ],
+        "key": "--client-secret",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "disable"
+        ],
+        "key": "--all",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "disable"
+        ],
+        "key": "--scope",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "enable"
+        ],
+        "key": "--scope",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "install"
+        ],
+        "key": "--scope",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "list"
+        ],
+        "key": "--available",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "list"
+        ],
+        "key": "--json",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace",
+          "list"
+        ],
+        "key": "--json",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "uninstall"
+        ],
+        "key": "--scope",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "update"
+        ],
+        "key": "--scope",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      }
+    ],
+    "missing_args": [
+      {
+        "path": [
+          "mcp",
+          "add"
+        ],
+        "name": "commandOrUrl",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "add"
+        ],
+        "name": "name",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "add-json"
+        ],
+        "name": "json",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "add-json"
+        ],
+        "name": "name",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "get"
+        ],
+        "name": "name",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "mcp",
+          "remove"
+        ],
+        "name": "name",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "enable"
+        ],
+        "name": "plugin",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace",
+          "add"
+        ],
+        "name": "source",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "update"
+        ],
+        "name": "plugin",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      },
+      {
+        "path": [
+          "plugin",
+          "validate"
+        ],
+        "name": "path",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ]
+      }
+    ],
+    "passthrough_candidates": [
+      {
+        "path": [
+          "mcp",
+          "add-from-claude-desktop"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough",
+        "note": "Supported via run_command; platform-gated upstream."
+      },
+      {
+        "path": [
+          "mcp",
+          "serve"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough",
+        "note": "Supported via run_command; no typed API yet."
+      },
+      {
+        "path": [
+          "plugin"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough",
+        "note": "Supported via run_command; no typed API yet."
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      }
+    ],
+    "intentionally_unsupported": [
+      {
+        "path": [
+          "doctor"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "intentionally_unsupported",
+        "note": "Claude Code updater diagnostics are out of scope for this wrapper."
+      },
+      {
+        "path": [
+          "setup-token"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "intentionally_unsupported",
+        "note": "Token setup is out of scope for this wrapper (secrets-handling policy)."
+      },
+      {
+        "path": [
+          "update"
+        ],
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "intentionally_unsupported",
+        "note": "Claude Code auto-update is out of scope for this wrapper."
+      }
+    ],
+    "wrapper_only_commands": [
+      {
+        "path": [
+          "plugin",
+          "manifest"
+        ],
+        "upstream_available_on": [
+          "darwin-arm64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "plugin",
+          "manifest",
+          "marketplace"
+        ],
+        "upstream_available_on": [
+          "darwin-arm64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace",
+          "repo"
+        ],
+        "upstream_available_on": [
+          "darwin-arm64"
+        ],
+        "wrapper_level": "passthrough"
+      }
+    ],
+    "wrapper_only_flags": [
+      {
+        "path": [
+          "mcp"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "mcp",
+          "add"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "mcp",
+          "add-from-claude-desktop"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "mcp",
+          "add-json"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "mcp",
+          "get"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "mcp",
+          "remove"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "mcp",
+          "serve"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "plugin"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "plugin",
+          "manifest"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "darwin-arm64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "plugin",
+          "manifest",
+          "marketplace"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "darwin-arm64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "linux-x64",
+          "darwin-arm64",
+          "win32-x64"
+        ],
+        "wrapper_level": "passthrough"
+      },
+      {
+        "path": [
+          "plugin",
+          "marketplace",
+          "repo"
+        ],
+        "key": "--help",
+        "upstream_available_on": [
+          "darwin-arm64"
+        ],
+        "wrapper_level": "passthrough"
+      }
+    ]
+  }
+}
