@@ -26,32 +26,6 @@
     "missing_commands": [],
     "missing_flags": [],
     "missing_args": [],
-    "passthrough_candidates": [
-      {
-        "path": [
-          "plugin"
-        ],
-        "upstream_available_on": [
-          "linux-x64",
-          "darwin-arm64",
-          "win32-x64"
-        ],
-        "wrapper_level": "passthrough",
-        "note": "Supported via run_command; no typed API yet."
-      },
-      {
-        "path": [
-          "plugin",
-          "marketplace"
-        ],
-        "upstream_available_on": [
-          "linux-x64",
-          "darwin-arm64",
-          "win32-x64"
-        ],
-        "wrapper_level": "passthrough"
-      }
-    ],
     "intentionally_unsupported": [
       {
         "path": [

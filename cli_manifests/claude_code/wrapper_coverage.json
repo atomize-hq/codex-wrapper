@@ -365,15 +365,14 @@
       "path": [
         "plugin"
       ],
-      "level": "passthrough",
-      "note": "Supported via run_command; no typed API yet."
+      "level": "explicit"
     },
     {
       "path": [
         "plugin",
         "disable"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -382,11 +381,11 @@
       "flags": [
         {
           "key": "--all",
-          "level": "passthrough"
+          "level": "explicit"
         },
         {
           "key": "--scope",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
@@ -395,7 +394,7 @@
         "plugin",
         "enable"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -404,13 +403,13 @@
       "flags": [
         {
           "key": "--scope",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ],
       "args": [
         {
           "name": "plugin",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
@@ -419,7 +418,7 @@
         "plugin",
         "install"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -428,7 +427,7 @@
       "flags": [
         {
           "key": "--scope",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
@@ -437,7 +436,7 @@
         "plugin",
         "list"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -446,11 +445,11 @@
       "flags": [
         {
           "key": "--available",
-          "level": "passthrough"
+          "level": "explicit"
         },
         {
           "key": "--json",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
@@ -459,7 +458,7 @@
         "plugin",
         "manifest"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "linux-x64",
@@ -473,7 +472,7 @@
         "manifest",
         "marketplace"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "linux-x64",
@@ -486,7 +485,7 @@
         "plugin",
         "marketplace"
       ],
-      "level": "passthrough"
+      "level": "explicit"
     },
     {
       "path": [
@@ -494,7 +493,7 @@
         "marketplace",
         "add"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -503,7 +502,7 @@
       "args": [
         {
           "name": "source",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
@@ -513,7 +512,7 @@
         "marketplace",
         "list"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -522,7 +521,7 @@
       "flags": [
         {
           "key": "--json",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
@@ -532,7 +531,7 @@
         "marketplace",
         "remove"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -545,7 +544,7 @@
         "marketplace",
         "repo"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "linux-x64",
@@ -559,7 +558,7 @@
         "marketplace",
         "update"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -571,7 +570,7 @@
         "plugin",
         "uninstall"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -580,7 +579,7 @@
       "flags": [
         {
           "key": "--scope",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
@@ -589,7 +588,7 @@
         "plugin",
         "update"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -598,13 +597,13 @@
       "flags": [
         {
           "key": "--scope",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ],
       "args": [
         {
           "name": "plugin",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
@@ -613,7 +612,7 @@
         "plugin",
         "validate"
       ],
-      "level": "passthrough",
+      "level": "explicit",
       "scope": {
         "target_triples": [
           "win32-x64"
@@ -622,7 +621,7 @@
       "args": [
         {
           "name": "path",
-          "level": "passthrough"
+          "level": "explicit"
         }
       ]
     },
