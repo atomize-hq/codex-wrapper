@@ -48,18 +48,6 @@
     "intentionally_unsupported": [
       {
         "path": [
-          "setup-token"
-        ],
-        "upstream_available_on": [
-          "linux-x64",
-          "darwin-arm64",
-          "win32-x64"
-        ],
-        "wrapper_level": "intentionally_unsupported",
-        "note": "Token setup is out of scope for this wrapper (secrets-handling policy)."
-      },
-      {
-        "path": [
           "update"
         ],
         "upstream_available_on": [

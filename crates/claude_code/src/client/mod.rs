@@ -18,6 +18,10 @@ use crate::{
     parse_stream_json_lines, process, ClaudeCodeError, CommandOutput, StreamJsonLineOutcome,
 };
 
+mod setup_token;
+
+pub use setup_token::ClaudeSetupTokenSession;
+
 #[derive(Debug, Clone)]
 pub struct ClaudeClient {
     pub(crate) binary: Option<PathBuf>,

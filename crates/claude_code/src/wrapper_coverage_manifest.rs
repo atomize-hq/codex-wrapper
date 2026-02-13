@@ -204,8 +204,8 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
             command(&["doctor"], CoverageLevel::Explicit, None, vec![], vec![]),
             command(
                 &["setup-token"],
-                CoverageLevel::IntentionallyUnsupported,
-                Some("Token setup is out of scope for this wrapper (secrets-handling policy)."),
+                CoverageLevel::Explicit,
+                None,
                 vec![],
                 vec![],
             ),

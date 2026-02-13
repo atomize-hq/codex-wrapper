@@ -636,8 +636,7 @@
       "path": [
         "setup-token"
       ],
-      "level": "intentionally_unsupported",
-      "note": "Token setup is out of scope for this wrapper (secrets-handling policy)."
+      "level": "explicit"
     },
     {
       "path": [
