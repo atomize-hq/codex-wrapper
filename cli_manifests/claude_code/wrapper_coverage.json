@@ -197,7 +197,14 @@
         "target_triples": [
           "win32-x64"
         ]
-      }
+      },
+      "flags": [
+        {
+          "key": "--force",
+          "level": "intentionally_unsupported",
+          "note": "Claude Code installation is out of scope for this wrapper."
+        }
+      ]
     },
     {
       "path": [

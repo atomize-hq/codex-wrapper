@@ -184,7 +184,14 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 CoverageLevel::IntentionallyUnsupported,
                 Some("Claude Code installation is out of scope for this wrapper."),
                 scope_targets(&["win32-x64"]),
-                vec![],
+                vec![WrapperFlagCoverageV1 {
+                    key: "--force".to_string(),
+                    level: CoverageLevel::IntentionallyUnsupported,
+                    note: Some(
+                        "Claude Code installation is out of scope for this wrapper.".to_string(),
+                    ),
+                    scope: None,
+                }],
                 vec![],
             ),
             command(

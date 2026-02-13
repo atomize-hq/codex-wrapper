@@ -1,6 +1,9 @@
 use claude_code::{
-    PluginDisableRequest, PluginEnableRequest, PluginListRequest, PluginMarketplaceListRequest,
-    PluginMarketplaceRequest, PluginRequest, PluginUpdateRequest, PluginValidateRequest,
+    PluginDisableRequest, PluginEnableRequest, PluginInstallRequest, PluginListRequest,
+    PluginManifestMarketplaceRequest, PluginManifestRequest, PluginMarketplaceAddRequest,
+    PluginMarketplaceListRequest, PluginMarketplaceRemoveRequest, PluginMarketplaceRepoRequest,
+    PluginMarketplaceRequest, PluginMarketplaceUpdateRequest, PluginRequest,
+    PluginUninstallRequest, PluginUpdateRequest, PluginValidateRequest,
 };
 
 #[test]
@@ -10,6 +13,34 @@ fn plugin_root_argv() {
 
     let argv = PluginMarketplaceRequest::new().into_command().argv();
     assert_eq!(argv, ["plugin", "marketplace"]);
+}
+
+#[test]
+fn plugin_manifest_argv() {
+    let argv = PluginManifestRequest::new().into_command().argv();
+    assert_eq!(argv, ["plugin", "manifest"]);
+
+    let argv = PluginManifestMarketplaceRequest::new()
+        .into_command()
+        .argv();
+    assert_eq!(argv, ["plugin", "manifest", "marketplace"]);
+}
+
+#[test]
+fn plugin_marketplace_repo_argv() {
+    let argv = PluginMarketplaceRepoRequest::new().into_command().argv();
+    assert_eq!(argv, ["plugin", "marketplace", "repo"]);
+}
+
+#[test]
+fn plugin_marketplace_add_argv() {
+    let argv = PluginMarketplaceAddRequest::new("https://example.com")
+        .into_command()
+        .argv();
+    assert_eq!(
+        argv,
+        ["plugin", "marketplace", "add", "https://example.com"]
+    );
 }
 
 #[test]
@@ -45,6 +76,21 @@ fn plugin_list_orders_flags_deterministically() {
 }
 
 #[test]
+fn plugin_install_uninstall_order_scope_flag() {
+    let argv = PluginInstallRequest::new()
+        .scope("project")
+        .into_command()
+        .argv();
+    assert_eq!(argv, ["plugin", "install", "--scope", "project"]);
+
+    let argv = PluginUninstallRequest::new()
+        .scope("project")
+        .into_command()
+        .argv();
+    assert_eq!(argv, ["plugin", "uninstall", "--scope", "project"]);
+}
+
+#[test]
 fn plugin_update_includes_scope_before_plugin_name() {
     let argv = PluginUpdateRequest::new("my-plugin")
         .scope("project")
@@ -71,4 +117,13 @@ fn plugin_marketplace_list_includes_json_flag() {
         .into_command()
         .argv();
     assert_eq!(argv, ["plugin", "marketplace", "list", "--json"]);
+}
+
+#[test]
+fn plugin_marketplace_remove_update_argv() {
+    let argv = PluginMarketplaceRemoveRequest::new().into_command().argv();
+    assert_eq!(argv, ["plugin", "marketplace", "remove"]);
+
+    let argv = PluginMarketplaceUpdateRequest::new().into_command().argv();
+    assert_eq!(argv, ["plugin", "marketplace", "update"]);
 }
