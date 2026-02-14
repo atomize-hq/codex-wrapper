@@ -24,32 +24,47 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let client = real_cli::maybe_isolated_client("setup_token_flow")?;
-    let session = client
+    let mut session = client
         .setup_token_start_with(ClaudeSetupTokenRequest::new().timeout(None))
         .await?;
 
-    println!("Open this URL to authenticate:\n{}", session.url());
-    let code = read_code()?;
-    let out = session.submit_code(&code).await?;
+    if let Some(url) = session
+        .wait_for_url(std::time::Duration::from_secs(2))
+        .await?
+    {
+        println!("Open this URL to authenticate:\n{url}");
+    } else {
+        println!(
+            "No OAuth URL detected yet. If `claude` opened a browser window, complete the flow there and close it."
+        );
+        println!("Waiting for `claude setup-token` to exit...");
+    }
+
+    if let Some(code) = read_code()? {
+        let out = session.submit_code(&code).await?;
+        println!("exit: {}", out.status);
+        print!("{}", String::from_utf8_lossy(&out.stdout));
+        eprint!("{}", String::from_utf8_lossy(&out.stderr));
+        return Ok(());
+    }
+
+    let out = session.wait().await?;
     println!("exit: {}", out.status);
     print!("{}", String::from_utf8_lossy(&out.stdout));
     eprint!("{}", String::from_utf8_lossy(&out.stderr));
     Ok(())
 }
 
-fn read_code() -> Result<String, Box<dyn Error>> {
+fn read_code() -> Result<Option<String>, Box<dyn Error>> {
     if let Ok(code) = env::var("CLAUDE_SETUP_TOKEN_CODE") {
         if !code.trim().is_empty() {
-            return Ok(code);
+            return Ok(Some(code));
         }
     }
 
-    println!("Paste code here and press Enter:");
+    println!("If prompted for a code, paste it here and press Enter (or press Enter to skip):");
     let mut line = String::new();
     io::stdin().read_line(&mut line)?;
     let code = line.trim().to_string();
-    if code.is_empty() {
-        return Err("Empty code".into());
-    }
-    Ok(code)
+    Ok((!code.is_empty()).then_some(code))
 }

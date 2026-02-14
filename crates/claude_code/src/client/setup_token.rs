@@ -17,6 +17,7 @@ use crate::{
 #[derive(Debug)]
 pub struct ClaudeSetupTokenSession {
     url: String,
+    url_rx: Option<oneshot::Receiver<String>>,
     child: tokio::process::Child,
     stdin: Option<tokio::process::ChildStdin>,
     stdout_buf: Arc<Mutex<Vec<u8>>>,
@@ -29,6 +30,32 @@ pub struct ClaudeSetupTokenSession {
 impl ClaudeSetupTokenSession {
     pub fn url(&self) -> &str {
         &self.url
+    }
+
+    pub async fn wait_for_url(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Option<&str>, ClaudeCodeError> {
+        if !self.url.is_empty() {
+            return Ok(Some(self.url.as_str()));
+        }
+
+        let Some(rx) = self.url_rx.as_mut() else {
+            return Ok(None);
+        };
+
+        match time::timeout(timeout, rx).await {
+            Ok(Ok(url)) => {
+                self.url = url;
+                self.url_rx = None;
+                Ok(Some(self.url.as_str()))
+            }
+            Ok(Err(_closed)) => {
+                self.url_rx = None;
+                Ok(None)
+            }
+            Err(_timeout) => Ok(None),
+        }
     }
 
     pub async fn submit_code(mut self, code: &str) -> Result<CommandOutput, ClaudeCodeError> {
@@ -96,8 +123,6 @@ impl ClaudeClient {
         &self,
         request: ClaudeSetupTokenRequest,
     ) -> Result<ClaudeSetupTokenSession, ClaudeCodeError> {
-        const URL_DETECT_TIMEOUT: Duration = Duration::from_secs(30);
-
         let requested_timeout = request.timeout;
         let binary = self.resolve_binary();
         let mut cmd = Command::new(&binary);
@@ -142,22 +167,9 @@ impl ClaudeClient {
             url_tx.clone(),
         );
 
-        let url = match time::timeout(URL_DETECT_TIMEOUT, url_rx).await {
-            Ok(Ok(url)) => url,
-            Ok(Err(_closed)) => {
-                return Err(ClaudeCodeError::InvalidRequest(
-                    "setup-token ended without emitting an OAuth URL".to_string(),
-                ));
-            }
-            Err(_) => {
-                return Err(ClaudeCodeError::Timeout {
-                    timeout: URL_DETECT_TIMEOUT,
-                });
-            }
-        };
-
         Ok(ClaudeSetupTokenSession {
-            url,
+            url: String::new(),
+            url_rx: Some(url_rx),
             child,
             stdin,
             stdout_buf,
