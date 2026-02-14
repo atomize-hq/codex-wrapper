@@ -69,10 +69,14 @@ pub fn resolve_binary() -> PathBuf {
 }
 
 pub fn default_client() -> ClaudeClient {
+    default_client_with_mirroring(false, false)
+}
+
+pub fn default_client_with_mirroring(mirror_stdout: bool, mirror_stderr: bool) -> ClaudeClient {
     ClaudeClient::builder()
         .binary(resolve_binary())
-        .mirror_stdout(false)
-        .mirror_stderr(false)
+        .mirror_stdout(mirror_stdout)
+        .mirror_stderr(mirror_stderr)
         .build()
 }
 
@@ -91,8 +95,16 @@ pub fn isolated_home_root(example_name: &str) -> PathBuf {
 }
 
 pub fn maybe_isolated_client(example_name: &str) -> Result<ClaudeClient, Box<dyn Error>> {
+    maybe_isolated_client_with_mirroring(example_name, false, false)
+}
+
+pub fn maybe_isolated_client_with_mirroring(
+    example_name: &str,
+    mirror_stdout: bool,
+    mirror_stderr: bool,
+) -> Result<ClaudeClient, Box<dyn Error>> {
     if !is_truthy(ENV_EXAMPLE_ISOLATED_HOME) {
-        return Ok(default_client());
+        return Ok(default_client_with_mirroring(mirror_stdout, mirror_stderr));
     }
 
     let home = isolated_home_root(example_name);
@@ -110,8 +122,8 @@ pub fn maybe_isolated_client(example_name: &str) -> Result<ClaudeClient, Box<dyn
         .env("XDG_CONFIG_HOME", xdg_config.to_string_lossy())
         .env("XDG_DATA_HOME", xdg_data.to_string_lossy())
         .env("XDG_CACHE_HOME", xdg_cache.to_string_lossy())
-        .mirror_stdout(false)
-        .mirror_stderr(false)
+        .mirror_stdout(mirror_stdout)
+        .mirror_stderr(mirror_stderr)
         .build())
 }
 

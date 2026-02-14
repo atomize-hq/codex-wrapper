@@ -23,7 +23,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let client = real_cli::maybe_isolated_client("setup_token_flow")?;
+    // Mirror the underlying CLI output; `setup-token` is interactive and otherwise
+    // users won't see the OAuth URL/prompt when the wrapper is capturing via a PTY.
+    let client = real_cli::maybe_isolated_client_with_mirroring("setup_token_flow", true, true)?;
     let mut session = client
         .setup_token_start_with(ClaudeSetupTokenRequest::new().timeout(None))
         .await?;

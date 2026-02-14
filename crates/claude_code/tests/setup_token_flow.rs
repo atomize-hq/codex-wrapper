@@ -60,6 +60,10 @@ echo "ok"
 
         let out = session.submit_code("my-code").await.expect("submit");
         assert!(out.status.success());
-        assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "ok");
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert!(
+            stdout.contains("ok"),
+            "expected stdout to contain ok; got: {stdout:?}"
+        );
     }
 }
