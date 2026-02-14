@@ -29,15 +29,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?;
 
     if let Some(url) = session
-        .wait_for_url(std::time::Duration::from_secs(2))
+        .wait_for_url(std::time::Duration::from_secs(30))
         .await?
     {
         println!("Open this URL to authenticate:\n{url}");
-    } else {
         println!(
-            "No OAuth URL detected yet. If `claude` opened a browser window, complete the flow there and close it."
+            "Complete the browser flow. If you're shown a one-time code, paste it below (Enter skips)."
         );
-        println!("Waiting for `claude setup-token` to exit...");
+    } else {
+        println!("No OAuth URL detected yet.");
+        println!(
+            "If `claude` opened a browser window, complete the flow there. If you're shown a one-time code, paste it below."
+        );
     }
 
     if let Some(code) = read_code()? {

@@ -176,7 +176,9 @@ impl ClaudeClient {
             stderr_buf,
             stdout_task: Some(stdout_task),
             stderr_task: Some(stderr_task),
-            timeout: requested_timeout.or(self.timeout),
+            // `setup-token` is inherently interactive and can require human/browser steps.
+            // Do not apply the client's default timeout unless the caller explicitly requests one.
+            timeout: requested_timeout,
         })
     }
 }
