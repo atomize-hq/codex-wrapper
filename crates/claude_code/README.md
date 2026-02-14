@@ -22,3 +22,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+## Examples (real CLI, no stubs)
+
+Examples live under `crates/claude_code/examples/` and always spawn a real `claude` binary.
+
+Common environment variables:
+- `CLAUDE_BINARY`: path to the `claude` binary (otherwise uses repo-local `./claude-<target>` when present, or `claude` from PATH).
+- `CLAUDE_EXAMPLE_ISOLATED_HOME=1`: run examples with an isolated home under `target/`.
+- `CLAUDE_EXAMPLE_LIVE=1`: enable examples that may require network/auth (e.g. `print_*`, `setup_token_flow`).
+- `CLAUDE_EXAMPLE_ALLOW_MUTATION=1`: enable examples that may mutate local state (e.g. `update`, plugin/MCP management).
