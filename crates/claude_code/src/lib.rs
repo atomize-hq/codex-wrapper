@@ -15,12 +15,22 @@ pub mod wrapper_coverage_manifest;
 
 pub use builder::ClaudeClientBuilder;
 pub use client::ClaudeClient;
-pub use error::{ClaudeCodeError, StreamJsonLineError};
+pub use client::ClaudeSetupTokenSession;
 pub use commands::command::ClaudeCommandRequest;
+pub use commands::doctor::ClaudeDoctorRequest;
 pub use commands::mcp::{
     McpAddJsonRequest, McpAddRequest, McpGetRequest, McpRemoveRequest, McpScope, McpTransport,
 };
+pub use commands::plugin::{
+    PluginDisableRequest, PluginEnableRequest, PluginInstallRequest, PluginListRequest,
+    PluginManifestMarketplaceRequest, PluginManifestRequest, PluginMarketplaceAddRequest,
+    PluginMarketplaceListRequest, PluginMarketplaceRemoveRequest, PluginMarketplaceRepoRequest,
+    PluginMarketplaceRequest, PluginMarketplaceUpdateRequest, PluginRequest,
+    PluginUninstallRequest, PluginUpdateRequest, PluginValidateRequest,
+};
 pub use commands::print::{ClaudeInputFormat, ClaudeOutputFormat, ClaudePrintRequest};
+pub use commands::setup_token::ClaudeSetupTokenRequest;
+pub use error::{ClaudeCodeError, StreamJsonLineError};
 pub use stream_json::{parse_stream_json_lines, StreamJsonLine, StreamJsonLineOutcome};
 
 pub use process::CommandOutput;

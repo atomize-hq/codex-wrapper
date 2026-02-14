@@ -80,6 +80,13 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
         }
     }
 
+    fn scope_targets(target_triples: &[&str]) -> WrapperSurfaceScopedTargets {
+        WrapperSurfaceScopedTargets {
+            platforms: None,
+            target_triples: Some(target_triples.iter().map(|t| t.to_string()).collect()),
+        }
+    }
+
     fn command(
         path: &[&str],
         level: CoverageLevel,
@@ -95,6 +102,19 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
             flags: (!flags.is_empty()).then_some(flags),
             args: (!args.is_empty()).then_some(args),
         }
+    }
+
+    fn command_scoped(
+        path: &[&str],
+        level: CoverageLevel,
+        note: Option<&str>,
+        scope: WrapperSurfaceScopedTargets,
+        flags: Vec<WrapperFlagCoverageV1>,
+        args: Vec<WrapperArgCoverageV1>,
+    ) -> WrapperCommandCoverageV1 {
+        let mut out = command(path, level, note, flags, args);
+        out.scope = Some(scope);
+        out
     }
 
     WrapperCoverageManifestV1 {
@@ -122,11 +142,13 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                     flag("--add-dir", CoverageLevel::Explicit),
                     flag("--mcp-config", CoverageLevel::Explicit),
                     flag("--strict-mcp-config", CoverageLevel::Explicit),
-
                     // Remaining root flags are supported via `ClaudePrintRequest::extra_args`.
                     flag("--agent", CoverageLevel::Passthrough),
                     flag("--agents", CoverageLevel::Passthrough),
-                    flag("--allow-dangerously-skip-permissions", CoverageLevel::Passthrough),
+                    flag(
+                        "--allow-dangerously-skip-permissions",
+                        CoverageLevel::Passthrough,
+                    ),
                     flag("--append-system-prompt", CoverageLevel::Passthrough),
                     flag("--betas", CoverageLevel::Passthrough),
                     flag("--chrome", CoverageLevel::Passthrough),
@@ -157,6 +179,21 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![],
             ),
             // IU subtree roots (policy): updater/diagnostics.
+            command_scoped(
+                &["install"],
+                CoverageLevel::IntentionallyUnsupported,
+                Some("Claude Code installation is out of scope for this wrapper."),
+                scope_targets(&["win32-x64"]),
+                vec![WrapperFlagCoverageV1 {
+                    key: "--force".to_string(),
+                    level: CoverageLevel::IntentionallyUnsupported,
+                    note: Some(
+                        "Claude Code installation is out of scope for this wrapper.".to_string(),
+                    ),
+                    scope: None,
+                }],
+                vec![],
+            ),
             command(
                 &["update"],
                 CoverageLevel::IntentionallyUnsupported,
@@ -164,69 +201,95 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![],
                 vec![],
             ),
-            command(
-                &["doctor"],
-                CoverageLevel::IntentionallyUnsupported,
-                Some("Claude Code updater diagnostics are out of scope for this wrapper."),
-                vec![],
-                vec![],
-            ),
+            command(&["doctor"], CoverageLevel::Explicit, None, vec![], vec![]),
             command(
                 &["setup-token"],
-                CoverageLevel::IntentionallyUnsupported,
-                Some("Token setup is out of scope for this wrapper (secrets-handling policy)."),
-                vec![],
-                vec![],
-            ),
-
-            // MCP management is supported via explicit typed requests.
-            command(
-                &["mcp"],
                 CoverageLevel::Explicit,
                 None,
-                vec![flag("--help", CoverageLevel::Passthrough)],
+                vec![],
                 vec![],
             ),
-            command(&["mcp", "list"], CoverageLevel::Explicit, None, vec![], vec![]),
+            // MCP management is supported via explicit typed requests.
+            command(&["mcp"], CoverageLevel::Explicit, None, vec![], vec![]),
             command(
+                &["mcp", "list"],
+                CoverageLevel::Explicit,
+                None,
+                vec![],
+                vec![],
+            ),
+            command_scoped(
                 &["mcp", "get"],
                 CoverageLevel::Explicit,
                 None,
-                vec![flag("--help", CoverageLevel::Passthrough)],
+                scope_targets(&["win32-x64"]),
                 vec![],
+                vec![WrapperArgCoverageV1 {
+                    name: "name".to_string(),
+                    level: CoverageLevel::Explicit,
+                    note: None,
+                    scope: None,
+                }],
             ),
-            command(
+            command_scoped(
                 &["mcp", "add"],
                 CoverageLevel::Explicit,
                 None,
+                scope_targets(&["win32-x64"]),
                 vec![
-                    flag("--help", CoverageLevel::Passthrough),
                     flag("--scope", CoverageLevel::Explicit),
                     flag("--transport", CoverageLevel::Explicit),
                     flag("--env", CoverageLevel::Explicit),
                     flag("--header", CoverageLevel::Explicit),
                 ],
-                vec![],
+                vec![
+                    WrapperArgCoverageV1 {
+                        name: "name".to_string(),
+                        level: CoverageLevel::Explicit,
+                        note: None,
+                        scope: None,
+                    },
+                    WrapperArgCoverageV1 {
+                        name: "commandOrUrl".to_string(),
+                        level: CoverageLevel::Explicit,
+                        note: None,
+                        scope: None,
+                    },
+                ],
             ),
-            command(
+            command_scoped(
                 &["mcp", "remove"],
                 CoverageLevel::Explicit,
                 None,
-                vec![
-                    flag("--help", CoverageLevel::Passthrough),
-                    flag("--scope", CoverageLevel::Explicit),
-                ],
-                vec![],
+                scope_targets(&["win32-x64"]),
+                vec![flag("--scope", CoverageLevel::Explicit)],
+                vec![WrapperArgCoverageV1 {
+                    name: "name".to_string(),
+                    level: CoverageLevel::Explicit,
+                    note: None,
+                    scope: None,
+                }],
             ),
-            command(
+            command_scoped(
                 &["mcp", "add-json"],
                 CoverageLevel::Explicit,
                 None,
+                scope_targets(&["win32-x64"]),
+                vec![flag("--scope", CoverageLevel::Explicit)],
                 vec![
-                    flag("--help", CoverageLevel::Passthrough),
-                    flag("--scope", CoverageLevel::Explicit),
+                    WrapperArgCoverageV1 {
+                        name: "name".to_string(),
+                        level: CoverageLevel::Explicit,
+                        note: None,
+                        scope: None,
+                    },
+                    WrapperArgCoverageV1 {
+                        name: "json".to_string(),
+                        level: CoverageLevel::Explicit,
+                        note: None,
+                        scope: None,
+                    },
                 ],
-                vec![],
             ),
             command(
                 &["mcp", "reset-project-choices"],
@@ -236,55 +299,167 @@ pub fn wrapper_coverage_manifest() -> WrapperCoverageManifestV1 {
                 vec![],
             ),
             // Best-effort MCP commands: usable via `run_command`, but not typed yet.
-            command(
+            command_scoped(
                 &["mcp", "serve"],
                 CoverageLevel::Passthrough,
                 Some("Supported via run_command; no typed API yet."),
-                vec![flag("--help", CoverageLevel::Passthrough)],
+                scope_targets(&["win32-x64"]),
+                vec![],
                 vec![],
             ),
-            command(
+            command_scoped(
                 &["mcp", "add-from-claude-desktop"],
                 CoverageLevel::Passthrough,
                 Some("Supported via run_command; platform-gated upstream."),
-                vec![flag("--help", CoverageLevel::Passthrough)],
+                scope_targets(&["win32-x64"]),
+                vec![flag("--scope", CoverageLevel::Passthrough)],
                 vec![],
             ),
-
-            // Plugin management is best-effort passthrough for parity.
-            command(
-                &["plugin"],
-                CoverageLevel::Passthrough,
-                Some("Supported via run_command; no typed API yet."),
-                vec![flag("--help", CoverageLevel::Passthrough)],
+            // Plugin management is supported via typed requests (may have side effects).
+            command(&["plugin"], CoverageLevel::Explicit, None, vec![], vec![]),
+            command_scoped(
+                &["plugin", "list"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![
+                    flag("--available", CoverageLevel::Explicit),
+                    flag("--json", CoverageLevel::Explicit),
+                ],
                 vec![],
             ),
-            command(
+            command_scoped(
+                &["plugin", "enable"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![flag("--scope", CoverageLevel::Explicit)],
+                vec![WrapperArgCoverageV1 {
+                    name: "plugin".to_string(),
+                    level: CoverageLevel::Explicit,
+                    note: None,
+                    scope: None,
+                }],
+            ),
+            command_scoped(
+                &["plugin", "disable"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![
+                    flag("--all", CoverageLevel::Explicit),
+                    flag("--scope", CoverageLevel::Explicit),
+                ],
+                vec![],
+            ),
+            command_scoped(
+                &["plugin", "install"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![flag("--scope", CoverageLevel::Explicit)],
+                vec![],
+            ),
+            command_scoped(
+                &["plugin", "uninstall"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![flag("--scope", CoverageLevel::Explicit)],
+                vec![],
+            ),
+            command_scoped(
+                &["plugin", "update"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![flag("--scope", CoverageLevel::Explicit)],
+                vec![WrapperArgCoverageV1 {
+                    name: "plugin".to_string(),
+                    level: CoverageLevel::Explicit,
+                    note: None,
+                    scope: None,
+                }],
+            ),
+            command_scoped(
+                &["plugin", "validate"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![],
+                vec![WrapperArgCoverageV1 {
+                    name: "path".to_string(),
+                    level: CoverageLevel::Explicit,
+                    note: None,
+                    scope: None,
+                }],
+            ),
+            command_scoped(
                 &["plugin", "manifest"],
-                CoverageLevel::Passthrough,
+                CoverageLevel::Explicit,
                 None,
-                vec![flag("--help", CoverageLevel::Passthrough)],
+                scope_targets(&["linux-x64", "darwin-arm64"]),
+                vec![],
                 vec![],
             ),
-            command(
+            command_scoped(
                 &["plugin", "manifest", "marketplace"],
-                CoverageLevel::Passthrough,
+                CoverageLevel::Explicit,
                 None,
-                vec![flag("--help", CoverageLevel::Passthrough)],
+                scope_targets(&["linux-x64", "darwin-arm64"]),
+                vec![],
                 vec![],
             ),
             command(
                 &["plugin", "marketplace"],
-                CoverageLevel::Passthrough,
+                CoverageLevel::Explicit,
                 None,
-                vec![flag("--help", CoverageLevel::Passthrough)],
+                vec![],
                 vec![],
             ),
-            command(
-                &["plugin", "marketplace", "repo"],
-                CoverageLevel::Passthrough,
+            command_scoped(
+                &["plugin", "marketplace", "add"],
+                CoverageLevel::Explicit,
                 None,
-                vec![flag("--help", CoverageLevel::Passthrough)],
+                scope_targets(&["win32-x64"]),
+                vec![],
+                vec![WrapperArgCoverageV1 {
+                    name: "source".to_string(),
+                    level: CoverageLevel::Explicit,
+                    note: None,
+                    scope: None,
+                }],
+            ),
+            command_scoped(
+                &["plugin", "marketplace", "list"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![flag("--json", CoverageLevel::Explicit)],
+                vec![],
+            ),
+            command_scoped(
+                &["plugin", "marketplace", "remove"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![],
+                vec![],
+            ),
+            command_scoped(
+                &["plugin", "marketplace", "repo"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["linux-x64", "darwin-arm64"]),
+                vec![],
+                vec![],
+            ),
+            command_scoped(
+                &["plugin", "marketplace", "update"],
+                CoverageLevel::Explicit,
+                None,
+                scope_targets(&["win32-x64"]),
+                vec![],
                 vec![],
             ),
         ],

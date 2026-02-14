@@ -185,20 +185,32 @@
       "path": [
         "doctor"
       ],
+      "level": "explicit"
+    },
+    {
+      "path": [
+        "install"
+      ],
       "level": "intentionally_unsupported",
-      "note": "Claude Code updater diagnostics are out of scope for this wrapper."
+      "note": "Claude Code installation is out of scope for this wrapper.",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "flags": [
+        {
+          "key": "--force",
+          "level": "intentionally_unsupported",
+          "note": "Claude Code installation is out of scope for this wrapper."
+        }
+      ]
     },
     {
       "path": [
         "mcp"
       ],
-      "level": "explicit",
-      "flags": [
-        {
-          "key": "--help",
-          "level": "passthrough"
-        }
-      ]
+      "level": "explicit"
     },
     {
       "path": [
@@ -206,6 +218,11 @@
         "add"
       ],
       "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
           "key": "--env",
@@ -216,15 +233,21 @@
           "level": "explicit"
         },
         {
-          "key": "--help",
-          "level": "passthrough"
-        },
-        {
           "key": "--scope",
           "level": "explicit"
         },
         {
           "key": "--transport",
+          "level": "explicit"
+        }
+      ],
+      "args": [
+        {
+          "name": "commandOrUrl",
+          "level": "explicit"
+        },
+        {
+          "name": "name",
           "level": "explicit"
         }
       ]
@@ -236,9 +259,14 @@
       ],
       "level": "passthrough",
       "note": "Supported via run_command; platform-gated upstream.",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
-          "key": "--help",
+          "key": "--scope",
           "level": "passthrough"
         }
       ]
@@ -249,13 +277,24 @@
         "add-json"
       ],
       "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
-          "key": "--help",
-          "level": "passthrough"
+          "key": "--scope",
+          "level": "explicit"
+        }
+      ],
+      "args": [
+        {
+          "name": "json",
+          "level": "explicit"
         },
         {
-          "key": "--scope",
+          "name": "name",
           "level": "explicit"
         }
       ]
@@ -266,10 +305,15 @@
         "get"
       ],
       "level": "explicit",
-      "flags": [
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "args": [
         {
-          "key": "--help",
-          "level": "passthrough"
+          "name": "name",
+          "level": "explicit"
         }
       ]
     },
@@ -286,13 +330,20 @@
         "remove"
       ],
       "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
-          "key": "--help",
-          "level": "passthrough"
-        },
-        {
           "key": "--scope",
+          "level": "explicit"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
           "level": "explicit"
         }
       ]
@@ -311,23 +362,101 @@
       ],
       "level": "passthrough",
       "note": "Supported via run_command; no typed API yet.",
-      "flags": [
-        {
-          "key": "--help",
-          "level": "passthrough"
-        }
-      ]
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      }
     },
     {
       "path": [
         "plugin"
       ],
-      "level": "passthrough",
-      "note": "Supported via run_command; no typed API yet.",
+      "level": "explicit"
+    },
+    {
+      "path": [
+        "plugin",
+        "disable"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
-          "key": "--help",
-          "level": "passthrough"
+          "key": "--all",
+          "level": "explicit"
+        },
+        {
+          "key": "--scope",
+          "level": "explicit"
+        }
+      ]
+    },
+    {
+      "path": [
+        "plugin",
+        "enable"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "flags": [
+        {
+          "key": "--scope",
+          "level": "explicit"
+        }
+      ],
+      "args": [
+        {
+          "name": "plugin",
+          "level": "explicit"
+        }
+      ]
+    },
+    {
+      "path": [
+        "plugin",
+        "install"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "flags": [
+        {
+          "key": "--scope",
+          "level": "explicit"
+        }
+      ]
+    },
+    {
+      "path": [
+        "plugin",
+        "list"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "flags": [
+        {
+          "key": "--available",
+          "level": "explicit"
+        },
+        {
+          "key": "--json",
+          "level": "explicit"
         }
       ]
     },
@@ -336,13 +465,13 @@
         "plugin",
         "manifest"
       ],
-      "level": "passthrough",
-      "flags": [
-        {
-          "key": "--help",
-          "level": "passthrough"
-        }
-      ]
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "linux-x64",
+          "darwin-arm64"
+        ]
+      }
     },
     {
       "path": [
@@ -350,24 +479,37 @@
         "manifest",
         "marketplace"
       ],
-      "level": "passthrough",
-      "flags": [
-        {
-          "key": "--help",
-          "level": "passthrough"
-        }
-      ]
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "linux-x64",
+          "darwin-arm64"
+        ]
+      }
     },
     {
       "path": [
         "plugin",
         "marketplace"
       ],
-      "level": "passthrough",
-      "flags": [
+      "level": "explicit"
+    },
+    {
+      "path": [
+        "plugin",
+        "marketplace",
+        "add"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "args": [
         {
-          "key": "--help",
-          "level": "passthrough"
+          "name": "source",
+          "level": "explicit"
         }
       ]
     },
@@ -375,13 +517,118 @@
       "path": [
         "plugin",
         "marketplace",
-        "repo"
+        "list"
       ],
-      "level": "passthrough",
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
       "flags": [
         {
-          "key": "--help",
-          "level": "passthrough"
+          "key": "--json",
+          "level": "explicit"
+        }
+      ]
+    },
+    {
+      "path": [
+        "plugin",
+        "marketplace",
+        "remove"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      }
+    },
+    {
+      "path": [
+        "plugin",
+        "marketplace",
+        "repo"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "linux-x64",
+          "darwin-arm64"
+        ]
+      }
+    },
+    {
+      "path": [
+        "plugin",
+        "marketplace",
+        "update"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      }
+    },
+    {
+      "path": [
+        "plugin",
+        "uninstall"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "flags": [
+        {
+          "key": "--scope",
+          "level": "explicit"
+        }
+      ]
+    },
+    {
+      "path": [
+        "plugin",
+        "update"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "flags": [
+        {
+          "key": "--scope",
+          "level": "explicit"
+        }
+      ],
+      "args": [
+        {
+          "name": "plugin",
+          "level": "explicit"
+        }
+      ]
+    },
+    {
+      "path": [
+        "plugin",
+        "validate"
+      ],
+      "level": "explicit",
+      "scope": {
+        "target_triples": [
+          "win32-x64"
+        ]
+      },
+      "args": [
+        {
+          "name": "path",
+          "level": "explicit"
         }
       ]
     },
@@ -389,8 +636,7 @@
       "path": [
         "setup-token"
       ],
-      "level": "intentionally_unsupported",
-      "note": "Token setup is out of scope for this wrapper (secrets-handling policy)."
+      "level": "explicit"
     },
     {
       "path": [

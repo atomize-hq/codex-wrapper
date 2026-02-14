@@ -5,10 +5,22 @@ use tokio::process::Command;
 use crate::{
     builder::ClaudeClientBuilder,
     commands::command::ClaudeCommandRequest,
+    commands::doctor::ClaudeDoctorRequest,
     commands::mcp::{McpAddJsonRequest, McpAddRequest, McpGetRequest, McpRemoveRequest},
+    commands::plugin::{
+        PluginDisableRequest, PluginEnableRequest, PluginInstallRequest, PluginListRequest,
+        PluginManifestMarketplaceRequest, PluginManifestRequest, PluginMarketplaceAddRequest,
+        PluginMarketplaceListRequest, PluginMarketplaceRemoveRequest, PluginMarketplaceRepoRequest,
+        PluginMarketplaceRequest, PluginMarketplaceUpdateRequest, PluginRequest,
+        PluginUninstallRequest, PluginUpdateRequest, PluginValidateRequest,
+    },
     commands::print::{ClaudeOutputFormat, ClaudePrintRequest},
     parse_stream_json_lines, process, ClaudeCodeError, CommandOutput, StreamJsonLineOutcome,
 };
+
+mod setup_token;
+
+pub use setup_token::ClaudeSetupTokenSession;
 
 #[derive(Debug, Clone)]
 pub struct ClaudeClient {
@@ -115,13 +127,136 @@ impl ClaudeClient {
         self.run_command(req.into_command()).await
     }
 
-    pub async fn mcp_remove(&self, req: McpRemoveRequest) -> Result<CommandOutput, ClaudeCodeError> {
+    pub async fn mcp_remove(
+        &self,
+        req: McpRemoveRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
         self.run_command(req.into_command()).await
     }
 
     pub async fn mcp_add_json(
         &self,
         req: McpAddJsonRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn doctor(&self) -> Result<CommandOutput, ClaudeCodeError> {
+        self.doctor_with(ClaudeDoctorRequest::new()).await
+    }
+
+    pub async fn doctor_with(
+        &self,
+        req: ClaudeDoctorRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_list(
+        &self,
+        req: PluginListRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin(&self, req: PluginRequest) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_enable(
+        &self,
+        req: PluginEnableRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_disable(
+        &self,
+        req: PluginDisableRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_install(
+        &self,
+        req: PluginInstallRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_uninstall(
+        &self,
+        req: PluginUninstallRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_update(
+        &self,
+        req: PluginUpdateRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_validate(
+        &self,
+        req: PluginValidateRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_manifest(
+        &self,
+        req: PluginManifestRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_manifest_marketplace(
+        &self,
+        req: PluginManifestMarketplaceRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_marketplace_repo(
+        &self,
+        req: PluginMarketplaceRepoRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_marketplace(
+        &self,
+        req: PluginMarketplaceRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_marketplace_add(
+        &self,
+        req: PluginMarketplaceAddRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_marketplace_list(
+        &self,
+        req: PluginMarketplaceListRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_marketplace_remove(
+        &self,
+        req: PluginMarketplaceRemoveRequest,
+    ) -> Result<CommandOutput, ClaudeCodeError> {
+        self.run_command(req.into_command()).await
+    }
+
+    pub async fn plugin_marketplace_update(
+        &self,
+        req: PluginMarketplaceUpdateRequest,
     ) -> Result<CommandOutput, ClaudeCodeError> {
         self.run_command(req.into_command()).await
     }
