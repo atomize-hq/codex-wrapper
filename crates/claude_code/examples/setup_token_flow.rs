@@ -9,7 +9,11 @@
 //! - This example uses the real `claude` binary and may require network/auth.
 //! - Optional isolation: `CLAUDE_EXAMPLE_ISOLATED_HOME=1`
 
-use std::{env, error::Error, io};
+use std::{
+    env,
+    error::Error,
+    io::{self, Write},
+};
 
 use claude_code::ClaudeSetupTokenRequest;
 
@@ -34,11 +38,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .wait_for_url(std::time::Duration::from_secs(30))
         .await?
     {
+        // Some terminals render stray control sequences if other output left the cursor mid-line.
+        // Clear the current line before printing our own clean summary.
+        clear_current_line();
         println!("Open this URL to authenticate:\n{url}");
         println!(
             "Complete the browser flow. If you're shown a one-time code, paste it below (Enter skips)."
         );
     } else {
+        clear_current_line();
         println!("No OAuth URL detected yet.");
         println!(
             "If `claude` opened a browser window, complete the flow there. If you're shown a one-time code, paste it below."
@@ -58,6 +66,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     print!("{}", String::from_utf8_lossy(&out.stdout));
     eprint!("{}", String::from_utf8_lossy(&out.stderr));
     Ok(())
+}
+
+fn clear_current_line() {
+    // Best-effort ANSI line clear; ignore errors for non-tty stdout.
+    let mut out = std::io::stdout().lock();
+    let _ = write!(out, "\r\x1b[2K");
+    let _ = out.flush();
 }
 
 fn read_code() -> Result<Option<String>, Box<dyn Error>> {
